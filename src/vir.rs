@@ -39,6 +39,12 @@ pub struct FunctionRow {
     pub body_lines: u32,
     pub n_requires: u32,
     pub n_ensures: u32,
+    /// Trait method declaration with a default body.
+    pub has_default: bool,
+    /// For a trait method implementation: path of the declaration it implements.
+    pub trait_method: Option<String>,
+    /// `#[verifier::type_invariant]` function: used implicitly by the verifier.
+    pub type_invariant: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -55,6 +61,38 @@ pub struct UseRow {
     pub col: u32,
 }
 
+#[derive(Debug, Clone)]
+pub struct QuantRow {
+    pub caller: usize,
+    /// forall, exists or choose.
+    pub quant: &'static str,
+    /// explicit (`#[trigger]` or `#![trigger ..]`), auto_annotation (`#![auto]`), or none.
+    pub trigger: &'static str,
+    pub n_triggers: u32,
+    pub section: &'static str,
+    pub file: String,
+    pub line: u32,
+}
+
+#[derive(Debug, Clone)]
+pub struct TrustedRow {
+    pub caller: Option<usize>,
+    /// assume, admit, external_body, external_fn, external_type, assume_specification, broadcast_axiom.
+    pub kind: &'static str,
+    pub file: String,
+    pub line: u32,
+    pub text: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct TraitImplRow {
+    pub impl_path: String,
+    pub trait_path: String,
+    pub self_type: String,
+    pub file: String,
+    pub line: u32,
+}
+
 #[derive(Debug, Default)]
 pub struct CrateFacts {
     pub krate: String,
@@ -63,6 +101,11 @@ pub struct CrateFacts {
     pub modules: Vec<String>,
     /// Broadcast group paths owned by this crate (`(group_id ..)` forms).
     pub groups: Vec<String>,
+    pub quants: Vec<QuantRow>,
+    pub trusted: Vec<TrustedRow>,
+    pub trait_impls: Vec<TraitImplRow>,
+    /// Own-crate `external_fn` and `external_type` ids: (kind, path).
+    pub externals: Vec<(&'static str, String)>,
     pub forms: usize,
 }
 
@@ -81,6 +124,25 @@ pub fn parse_impl_names(text: &str) -> ImplNames {
         }
     }
     m
+}
+
+/// Rows of `trait_impls` from `--log impl-names`, for impls owned by `krate`.
+pub fn parse_impl_rows(text: &str, krate: &str) -> Vec<TraitImplRow> {
+    let mut v = Vec::new();
+    for line in text.lines() {
+        let p: Vec<&str> = line.split("   ###   ").collect();
+        if p.len() >= 4 && p[0].split("::").next() == Some(krate) {
+            let (file, l, _, _) = parse_span(p[3].trim()).unwrap_or_default();
+            v.push(TraitImplRow {
+                impl_path: p[0].trim().to_string(),
+                trait_path: p[1].trim().to_string(),
+                self_type: p[2].trim().to_string(),
+                file,
+                line: l,
+            });
+        }
+    }
+    v
 }
 
 /// `file:l:c: l2:c2 (#n)` split into (file, line, col, end_line).
@@ -106,6 +168,66 @@ struct RawUse<'a> {
 
 struct Ctx<'a> {
     span: &'a str,
+    quants: Vec<(&'static str, &'static str, u32, &'static str, &'a str)>,
+    assumes: Vec<(bool, &'a str)>,
+}
+
+/// Trigger classification of a quantifier's subtree. Nested quantifiers are not entered:
+/// their annotations belong to them.
+fn scan_triggers(n: &Node, groups: &mut Vec<String>, with: &mut u32, auto: &mut bool) {
+    let Some(v) = n.list() else { return };
+    if v.first().and_then(|h| h.atom()) == Some(">") {
+        match v.get(1).and_then(|h| h.atom()) {
+            Some("Quant") | Some("Choose") => return,
+            Some("WithTriggers") => {
+                let f = fields(&v[2..]);
+                if let Some(t) = f.get("triggers").and_then(|t| t.list()) {
+                    *with += t.len() as u32;
+                }
+                if let Some(b) = f.get("body") {
+                    scan_triggers(b, groups, with, auto);
+                }
+                return;
+            }
+            Some("Unary") => {
+                if let Some(op) = v.get(2).and_then(|x| x.list())
+                    && op.first().and_then(|x| x.atom()) == Some("UnaryOp")
+                    && op.get(1).and_then(|x| x.atom()) == Some("Trigger")
+                    && let Some(ann) = op.get(2).and_then(|x| x.list())
+                {
+                    match ann.get(1).and_then(|x| x.atom()) {
+                        Some("Trigger") => {
+                            let g = crate::sexp::render(&op[2]);
+                            if !groups.contains(&g) {
+                                groups.push(g);
+                            }
+                        }
+                        Some("AutoTrigger") | Some("AllTriggers") => *auto = true,
+                        _ => {}
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+    for c in v {
+        scan_triggers(c, groups, with, auto);
+    }
+}
+
+fn classify_quant(body: &[Node]) -> (&'static str, u32) {
+    let (mut groups, mut with, mut auto) = (Vec::new(), 0, false);
+    for n in body {
+        scan_triggers(n, &mut groups, &mut with, &mut auto);
+    }
+    let n = with + groups.len() as u32;
+    if n > 0 {
+        ("explicit", n)
+    } else if auto {
+        ("auto_annotation", 0)
+    } else {
+        ("none", 0)
+    }
 }
 
 fn walk<'a>(
@@ -155,6 +277,37 @@ fn walk<'a>(
                 fuel = Some(f.to_string());
             }
             Some("ExecFnByName") => kind = "fn_value",
+            Some(q @ ("Quant" | "Choose")) => {
+                kind = "other";
+                let (name, body) = if q == "Choose" {
+                    ("choose", &v[2..])
+                } else {
+                    let name = match v
+                        .get(2)
+                        .and_then(|x| x.list())
+                        .and_then(|l| l.first())
+                        .and_then(|x| x.atom())
+                    {
+                        Some("Forall") => "forall",
+                        Some("Exists") => "exists",
+                        _ => return Err(format!("unknown quantifier kind at {}", cx.span)),
+                    };
+                    (name, &v[3..])
+                };
+                let (trig, n) = classify_quant(body);
+                cx.quants.push((name, trig, n, section, cx.span));
+            }
+            Some("AssertAssume") => {
+                kind = "other";
+                let f = fields(&v[2..]);
+                if f.get("is_assume").and_then(|x| x.atom()) == Some("true") {
+                    // `admit()` is `assume(false)`.
+                    let is_false = f.get("expr").is_some_and(|e| {
+                        crate::sexp::render(e).contains("(> Const (Constant Bool false))")
+                    });
+                    cx.assumes.push((is_false, cx.span));
+                }
+            }
             Some("WithTriggers") => {
                 // :triggers are trigger terms; the body is not.
                 let f = fields(&v[2..]);
@@ -369,6 +522,13 @@ fn parse_function(
         Node::Atom("None") => None,
         n => Some(crate::sexp::render(n)),
     });
+    let has_default = kf.get("has_default").and_then(|n| n.atom()) == Some("true");
+    let trait_method = if kind == "trait_impl" {
+        kf.get("method").and_then(|n| fun_path(n)).map(String::from)
+    } else {
+        None
+    };
+    let has_proxy = f.get("proxy").is_some_and(|n| n.atom() != Some("None"));
     let row = FunctionRow {
         path: path.to_string(),
         friendly,
@@ -399,10 +559,17 @@ fn parse_function(
         body_lines: end_line.saturating_sub(line) + 1,
         n_requires: count_exprs(f.get("require")),
         n_ensures: count_exprs(f.get("ensure")),
+        has_default,
+        trait_method,
+        type_invariant: flag(&a, "is_type_invariant_fn"),
     };
     let caller = facts.functions.len();
     let mut edges = Vec::new();
-    let mut cx = Ctx { span };
+    let mut cx = Ctx {
+        span,
+        quants: Vec::new(),
+        assumes: Vec::new(),
+    };
     for key in [
         "require",
         "ensure",
@@ -426,6 +593,52 @@ fn parse_function(
     }
     if let Some(h) = a.get("hidden") {
         walk(h, "hide", "hide", false, &mut cx, &mut edges, None)?;
+    }
+    let at = |sp: &str| {
+        let (file, line, _, _) =
+            parse_span(sp).unwrap_or_else(|| (row.file.clone(), row.line, 0, row.line));
+        (file, line)
+    };
+    for (quant, trigger, n_triggers, section, sp) in std::mem::take(&mut cx.quants) {
+        let (file, line) = at(sp);
+        facts.quants.push(QuantRow {
+            caller,
+            quant,
+            trigger,
+            n_triggers,
+            section,
+            file,
+            line,
+        });
+    }
+    for (admit, sp) in std::mem::take(&mut cx.assumes) {
+        let (file, line) = at(sp);
+        facts.trusted.push(TrustedRow {
+            caller: Some(caller),
+            kind: if admit { "admit" } else { "assume" },
+            file,
+            line,
+            text: String::new(),
+        });
+    }
+    let mut own_trust = |kind: &'static str| {
+        facts.trusted.push(TrustedRow {
+            caller: Some(caller),
+            kind,
+            file: row.file.clone(),
+            line: row.line,
+            text: String::new(),
+        });
+    };
+    if row.external_body {
+        own_trust(if row.broadcast_forall {
+            "broadcast_axiom"
+        } else {
+            "external_body"
+        });
+    }
+    if has_proxy {
+        own_trust("assume_specification");
     }
     for RawUse {
         callee,
@@ -473,6 +686,21 @@ pub fn parse_log(text: &str, krate: &str, names: &ImplNames) -> Result<CrateFact
                     && m.split("::").next() == Some(krate)
                 {
                     facts.modules.push(m.to_string());
+                }
+            }
+            Some(k @ ("external_fn" | "external_type")) => {
+                let path = v.get(1).and_then(|n| fun_path(n).or(n.atom()));
+                if let Some(p) = path
+                    && p.split("::").next() == Some(krate)
+                {
+                    facts.externals.push((
+                        if k == "external_fn" {
+                            "external_fn"
+                        } else {
+                            "external_type"
+                        },
+                        p.to_string(),
+                    ));
                 }
             }
             Some("group_id") => {

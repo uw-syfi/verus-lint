@@ -6,7 +6,7 @@ use duckdb::{Connection, params};
 use std::collections::HashMap;
 use std::path::Path;
 
-pub const SCHEMA_VERSION: &str = "1.0.0";
+pub const SCHEMA_VERSION: &str = "1.1.0";
 const SCHEMA_SQL: &str = include_str!("schema.sql");
 
 pub struct Db {
@@ -112,7 +112,10 @@ impl Db {
                     r.end_line,
                     r.body_lines,
                     r.n_requires,
-                    r.n_ensures
+                    r.n_ensures,
+                    r.has_default,
+                    r.trait_method,
+                    r.type_invariant
                 ])?;
             }
         }
@@ -132,6 +135,56 @@ impl Db {
                     u.col
                 ])?;
             }
+        }
+        {
+            let mut a = self.conn.appender("quantifiers")?;
+            for q in &f.quants {
+                a.append_row(params![
+                    base + q.caller as i64,
+                    q.quant,
+                    q.trigger,
+                    q.n_triggers,
+                    q.section,
+                    q.file,
+                    q.line
+                ])?;
+            }
+            let mut a = self.conn.appender("trusted")?;
+            for t in &f.trusted {
+                a.append_row(params![
+                    t.caller.map(|c| base + c as i64),
+                    t.kind,
+                    t.file,
+                    t.line,
+                    t.text
+                ])?;
+            }
+            // Own-crate external ids: located at the function of the same path when present.
+            for (kind, path) in &f.externals {
+                let at = f.functions.iter().position(|r| &r.path == path);
+                let (id, file, line) = match at {
+                    Some(i) => (
+                        Some(base + i as i64),
+                        f.functions[i].file.clone(),
+                        f.functions[i].line,
+                    ),
+                    None => (None, String::new(), 0),
+                };
+                a.append_row(params![id, *kind, file, line, path])?;
+            }
+        }
+        for t in &f.trait_impls {
+            self.conn.execute(
+                "INSERT OR IGNORE INTO trait_impls VALUES (?, ?, ?, ?, ?, ?)",
+                params![
+                    t.impl_path,
+                    t.trait_path,
+                    t.self_type,
+                    f.krate,
+                    t.file,
+                    t.line
+                ],
+            )?;
         }
         let mut mod_file: HashMap<&str, &str> = HashMap::new();
         for r in &f.functions {
@@ -159,7 +212,8 @@ impl Db {
     pub fn resolve(&self) -> Result<()> {
         self.conn.execute_batch(
             "UPDATE uses SET callee_id = f.fn_id FROM functions f WHERE f.path = uses.callee_path;
-             UPDATE module_uses SET callee_id = f.fn_id FROM functions f WHERE f.path = module_uses.callee_path;",
+             UPDATE module_uses SET callee_id = f.fn_id FROM functions f WHERE f.path = module_uses.callee_path;
+             UPDATE group_members SET member_id = f.fn_id FROM functions f WHERE f.path = group_members.member_path;",
         )?;
         Ok(())
     }

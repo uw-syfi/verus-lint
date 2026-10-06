@@ -167,6 +167,59 @@ pub fn scan_file(src: &str, file: &str, facts: &CrateFacts) -> Vec<ScanUse> {
     out
 }
 
+#[derive(Debug, PartialEq, Eq)]
+pub struct ScanGroup {
+    pub name: String,
+    pub members: Vec<String>,
+    pub line: u32,
+}
+
+/// Scan `src` for `broadcast group NAME { members }` items.
+pub fn scan_groups(src: &str) -> Vec<ScanGroup> {
+    let text = blank(src);
+    let bytes = text.as_bytes();
+    let mut out = Vec::new();
+    let mut offset = 0;
+    while let Some(p) = text[offset..].find("broadcast") {
+        let at = offset + p;
+        offset = at + 9;
+        if at > 0 && (bytes[at - 1].is_ascii_alphanumeric() || bytes[at - 1] == b'_') {
+            continue;
+        }
+        let rest = &text[at + 9..];
+        let after = rest.trim_start();
+        if rest.len() == after.len() || !after.starts_with("group") {
+            continue;
+        }
+        let after = &after[5..];
+        let body = after.trim_start();
+        if body.len() == after.len() {
+            continue;
+        }
+        let name: String = body
+            .chars()
+            .take_while(|c| c.is_alphanumeric() || *c == '_')
+            .collect();
+        let Some(open) = body.find('{') else { continue };
+        let Some(close) = body[open..].find('}') else {
+            continue;
+        };
+        if name.is_empty() {
+            continue;
+        }
+        let members = expand(&body[open + 1..open + close])
+            .into_iter()
+            .filter(|m| !m.is_empty())
+            .collect();
+        out.push(ScanGroup {
+            name,
+            members,
+            line: text[..at].matches('\n').count() as u32 + 1,
+        });
+    }
+    out
+}
+
 /// Resolve a scanned path to a candidate absolute VIR path set: as written,
 /// `crate::` rewritten, and relative to the module and its ancestors.
 pub fn candidates(path: &str, module: &str, krate: &str) -> Vec<String> {
@@ -226,6 +279,23 @@ mod tests {
         let names: Vec<_> = got.iter().map(|u| u.path.as_str()).collect();
         assert_eq!(names, ["vstd::a::group_a", "vstd::b::one", "vstd::c::two"]);
         assert!(got.iter().all(|u| u.module == "mini::n"));
+    }
+
+    #[test]
+    fn scans_group_members() {
+        let src = "// broadcast group no { x }\npub broadcast group group_a {\n    lemma_a,\n    crate::m::lemma_b,\n    vstd::seq::group_seq_lemmas,\n}\nbroadcast use group_a;\n";
+        let g = scan_groups(src);
+        assert_eq!(g.len(), 1);
+        assert_eq!(g[0].name, "group_a");
+        assert_eq!(g[0].line, 2);
+        assert_eq!(
+            g[0].members,
+            [
+                "lemma_a",
+                "crate::m::lemma_b",
+                "vstd::seq::group_seq_lemmas"
+            ]
+        );
     }
 
     #[test]

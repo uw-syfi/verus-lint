@@ -6,7 +6,7 @@
 use crate::config::glob_match;
 use crate::db::{CrateInfo, Db};
 use crate::version::{self, VerusVersion};
-use crate::vir::{ImplNames, parse_impl_names, parse_log};
+use crate::vir::{ImplNames, parse_impl_names, parse_impl_rows, parse_log};
 use anyhow::{Context, Result, anyhow, bail};
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
@@ -293,24 +293,16 @@ pub fn extract(o: &Options) -> Result<Summary> {
         let t = Instant::now();
         let text =
             std::fs::read_to_string(&vir).with_context(|| format!("reading {}", vir.display()))?;
-        let names: ImplNames = std::fs::read_to_string(log_dir.join("crate.impl_names"))
-            .map(|t| parse_impl_names(&t))
-            .unwrap_or_default();
-        let facts = parse_log(&text, &m.ident(), &names).map_err(|e| anyhow!("{}: {e}", m.name))?;
+        let impl_text =
+            std::fs::read_to_string(log_dir.join("crate.impl_names")).unwrap_or_default();
         let manifest = m
             .manifest
             .strip_prefix(&ws)
             .unwrap_or(&m.manifest)
             .display()
             .to_string();
-        db.load_crate(
-            &facts,
-            &CrateInfo {
-                manifest: &manifest,
-                log_bytes: text.len() as u64,
-            },
-        )?;
-        scan_module_uses(&db, &ws, &m.manifest, &facts)?;
+        let facts = load_crate_logs(&mut db, &ws, &m.ident(), &manifest, &text, &impl_text)
+            .map_err(|e| anyhow!("{}: {e}", m.name))?;
         n_fn += facts.functions.len();
         n_use += facts.uses.len();
         log_bytes += text.len() as u64;
@@ -335,22 +327,17 @@ pub fn extract(o: &Options) -> Result<Summary> {
 }
 
 /// Module-level `broadcast use` from a scan of the crate's source files.
-fn scan_module_uses(
-    db: &Db,
-    ws: &Path,
-    manifest: &Path,
-    facts: &crate::vir::CrateFacts,
-) -> Result<()> {
+fn scan_module_uses(db: &Db, ws: &Path, facts: &crate::vir::CrateFacts) -> Result<()> {
     use crate::scan::{candidates, scan_file};
     let files: BTreeSet<&str> = facts.functions.iter().map(|f| f.file.as_str()).collect();
     let fn_paths: BTreeSet<&str> = facts.functions.iter().map(|f| f.path.as_str()).collect();
-    let _ = manifest;
     for file in files {
         let p = ws.join(file);
         let Ok(src) = std::fs::read_to_string(&p) else {
             db.warn(&facts.krate, "scan_unreadable_file", file)?;
             continue;
         };
+        scan_group_members(db, file, &src, facts, &fn_paths)?;
         for u in scan_file(&src, file, facts) {
             let cands = candidates(&u.path, &u.module, &facts.krate);
             let own = |c: &String| fn_paths.contains(c.as_str()) || facts.groups.contains(c);
@@ -374,6 +361,88 @@ fn scan_module_uses(
             db.conn.execute(
                 "INSERT INTO module_uses VALUES (?, ?, NULL, 'broadcast_use', ?, ?)",
                 duckdb::params![u.module, callee, file, u.line],
+            )?;
+        }
+    }
+    Ok(())
+}
+
+/// Parse one crate's logs and load its facts, including the source scans for
+/// module-level `broadcast use` and `broadcast group` members.
+pub fn load_crate_logs(
+    db: &mut Db,
+    ws: &Path,
+    ident: &str,
+    manifest: &str,
+    vir_text: &str,
+    impl_text: &str,
+) -> Result<crate::vir::CrateFacts> {
+    let names: ImplNames = parse_impl_names(impl_text);
+    let mut facts = parse_log(vir_text, ident, &names).map_err(|e| anyhow!("{e}"))?;
+    facts.trait_impls = parse_impl_rows(impl_text, ident);
+    db.load_crate(
+        &facts,
+        &CrateInfo {
+            manifest,
+            log_bytes: vir_text.len() as u64,
+        },
+    )?;
+    scan_module_uses(db, ws, &facts)?;
+    Ok(facts)
+}
+
+/// `broadcast group` members of one source file into `group_members`.
+fn scan_group_members(
+    db: &Db,
+    file: &str,
+    src: &str,
+    facts: &crate::vir::CrateFacts,
+    fn_paths: &BTreeSet<&str>,
+) -> Result<()> {
+    use crate::scan::{candidates, scan_groups};
+    let file_modules: BTreeSet<&str> = facts
+        .functions
+        .iter()
+        .filter(|f| f.file == file)
+        .map(|f| f.module.as_str())
+        .collect();
+    for g in scan_groups(src) {
+        let suffix = format!("::{}", g.name);
+        let mut paths: Vec<&String> = facts
+            .groups
+            .iter()
+            .filter(|p| p.ends_with(&suffix))
+            .collect();
+        if paths.len() > 1 {
+            paths.retain(|p| {
+                p.rsplit_once("::")
+                    .is_some_and(|(m, _)| file_modules.contains(m))
+            });
+        }
+        let Some(gp) = paths.first().map(|p| p.to_string()) else {
+            continue; // a group of an imported crate, or not extracted
+        };
+        if paths.len() > 1 {
+            db.warn(
+                &facts.krate,
+                "ambiguous_broadcast_group",
+                &format!("{file}:{}: {}", g.line, g.name),
+            )?;
+        }
+        let module = gp.rsplit_once("::").map(|x| x.0).unwrap_or(&facts.krate);
+        for mem in &g.members {
+            let cands = candidates(mem, module, &facts.krate);
+            let callee = cands
+                .iter()
+                .find(|c| fn_paths.contains(c.as_str()) || facts.groups.contains(c))
+                .cloned()
+                .unwrap_or_else(|| {
+                    mem.strip_prefix("crate::")
+                        .map_or(mem.clone(), |r| format!("{}::{r}", facts.krate))
+                });
+            db.conn.execute(
+                "INSERT INTO group_members VALUES (?, ?, NULL, ?, ?)",
+                duckdb::params![gp, callee, file, g.line],
             )?;
         }
     }

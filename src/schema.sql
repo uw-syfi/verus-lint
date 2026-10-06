@@ -7,7 +7,8 @@ CREATE TABLE functions (
     vis VARCHAR, body_vis VARCHAR, opaque BOOLEAN, reveal_vis VARCHAR, external_body BOOLEAN,
     broadcast_forall BOOLEAN, broadcast_forall_only BOOLEAN, rlimit_attr VARCHAR, spinoff_prover BOOLEAN,
     integer_ring BOOLEAN, bit_vector BOOLEAN, nonlinear BOOLEAN, has_body BOOLEAN,
-    file VARCHAR, line INTEGER, end_line INTEGER, body_lines INTEGER, n_requires INTEGER, n_ensures INTEGER
+    file VARCHAR, line INTEGER, end_line INTEGER, body_lines INTEGER, n_requires INTEGER, n_ensures INTEGER,
+    has_default BOOLEAN, trait_method VARCHAR, type_invariant BOOLEAN
 );
 CREATE TABLE uses (
     caller_id BIGINT, callee_path VARCHAR, callee_id BIGINT, section VARCHAR, kind VARCHAR,
@@ -16,6 +17,11 @@ CREATE TABLE uses (
 CREATE TABLE module_uses (module VARCHAR, callee_path VARCHAR, callee_id BIGINT, kind VARCHAR, file VARCHAR, line INTEGER);
 -- Broadcast groups defined by an extracted crate ((group_id ..) forms in the log).
 CREATE TABLE broadcast_groups (path VARCHAR PRIMARY KEY, crate VARCHAR);
+-- Members of `broadcast group` items, from a source scan (the log has group ids only).
+CREATE TABLE group_members (group_path VARCHAR, member_path VARCHAR, member_id BIGINT, file VARCHAR, line INTEGER);
+CREATE TABLE quantifiers (fn_id BIGINT, quant VARCHAR, "trigger" VARCHAR, n_triggers INTEGER, section VARCHAR, file VARCHAR, line INTEGER);
+CREATE TABLE trusted (fn_id BIGINT, kind VARCHAR, file VARCHAR, line INTEGER, text VARCHAR);
+CREATE TABLE trait_impls (impl_path VARCHAR PRIMARY KEY, trait_path VARCHAR, self_type VARCHAR, crate VARCHAR, file VARCHAR, line INTEGER);
 -- Extraction problems a rule can refuse to trust (unresolved names, skipped files).
 CREATE TABLE warnings (crate VARCHAR, what VARCHAR, detail VARCHAR);
 
