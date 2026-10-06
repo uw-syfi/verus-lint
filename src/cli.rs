@@ -297,6 +297,25 @@ fn build_rules_crate(manifest: &Path, profile: &str) -> Result<PathBuf> {
         }
     }
     cmd.stderr(std::process::Stdio::inherit());
+    // Variables cargo sets for the package that is running us (a test, `cargo run`) are not
+    // part of this build; leaking them makes build scripts rebuild native code every time.
+    for (k, _) in std::env::vars_os() {
+        let k = k.to_string_lossy();
+        if k.starts_with("CARGO_PKG_")
+            || k.starts_with("CARGO_BIN_")
+            || matches!(
+                k.as_ref(),
+                "CARGO_MANIFEST_DIR"
+                    | "CARGO_MANIFEST_PATH"
+                    | "CARGO_CRATE_NAME"
+                    | "CARGO_PRIMARY_PACKAGE"
+                    | "CARGO_TARGET_TMPDIR"
+                    | "CARGO"
+            )
+        {
+            cmd.env_remove(k.as_ref());
+        }
+    }
     eprintln!("building rules crate {}", manifest.display());
     let o = cmd
         .output()

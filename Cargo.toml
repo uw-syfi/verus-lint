@@ -17,11 +17,18 @@ serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.151"
 toml = "1.1.6"
 
-[lints.rust]
+[lints]
+workspace = true
+
+[workspace]
+members = [".", "examples/rust-rules"]
+exclude = ["spike/vir-proto", "tests/fixtures/crate"]
+
+[workspace.lints.rust]
 unsafe_code = "forbid"
 missing_docs = "warn"
 
-[lints.clippy]
+[workspace.lints.clippy]
 pedantic = { level = "warn", priority = -1 }
 nursery = { level = "warn", priority = -1 }
 cargo = { level = "warn", priority = -1 }

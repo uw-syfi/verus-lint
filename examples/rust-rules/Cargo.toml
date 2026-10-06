@@ -1,0 +1,20 @@
+[package]
+name = "verus-lint-example-rules"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+description = "Example verus-lint Rust rules crate"
+keywords = ["verus", "lint"]
+categories = ["development-tools"]
+repository = "https://github.com/uw-syfi/verus-lint"
+rust-version = "1.88"
+publish = false
+
+# In your own repository depend on a released or pinned verus-lint instead of a path:
+#   verus-lint = { git = "https://github.com/uw-syfi/verus-lint", rev = "..." }
+[dependencies]
+anyhow = "1.0.104"
+verus-lint = { path = "../.." }
+
+[lints]
+workspace = true
