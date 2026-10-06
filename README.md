@@ -13,7 +13,7 @@ baselines, and reports come out as text, JSON or SARIF.
 ## Quick start
 
 ```sh
-cargo install verus-lint --version 0.1.0 --locked   # Rust 1.88+; needs Verus 0.2026.07.18.3a4d30b
+cargo install verus-lint --version 0.1.1 --locked   # Rust 1.88+; needs Verus 0.2026.07.18.3a4d30b
 verus-lint extract                                  # crates need [package.metadata.verus] verify = true
 verus-lint query "SELECT mode, count(*) FROM functions GROUP BY mode"
 verus-lint check --rules lints/sql                  # run your SQL rules

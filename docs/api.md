@@ -35,7 +35,7 @@ publish = false
 
 [dependencies]
 anyhow = "1"
-verus-lint = "0.1.0"
+verus-lint = "0.1.1"
 
 [workspace]   # keeps the crate out of the Cargo workspace it sits in
 ```

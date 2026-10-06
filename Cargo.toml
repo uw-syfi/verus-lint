@@ -1,6 +1,6 @@
 [package]
 name = "verus-lint"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 license = "MIT"
 description = "Lint and analysis for Verus codebases, from Verus VIR logs and verification reports"

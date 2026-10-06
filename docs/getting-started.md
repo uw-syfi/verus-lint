@@ -15,8 +15,8 @@ a `./verify` wrapper script, which is what the `toolchain` setting is for.
 ## 1. Install
 
 ```sh
-cargo install verus-lint --version 0.1.0 --locked
-verus-lint --version        # verus-lint 0.1.0
+cargo install verus-lint --version 0.1.1 --locked
+verus-lint --version        # verus-lint 0.1.1
 ```
 
 Needs Rust 1.88 or newer. The first build compiles a bundled DuckDB and takes a
@@ -183,7 +183,7 @@ publish = false
 
 [dependencies]
 anyhow = "1"
-verus-lint = "0.1.0"
+verus-lint = "0.1.1"
 
 [workspace]   # the crate sits inside another directory tree
 ```
