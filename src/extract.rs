@@ -13,12 +13,11 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::time::Instant;
 
-#[allow(
-    missing_docs,
-    reason = "plain data row; field names match the schema columns"
-)]
+/// Settings of one extraction run.
 pub struct Options {
+    /// Cargo workspace root.
     pub workspace: PathBuf,
+    /// Output directory (database and per-crate logs), relative to the workspace.
     pub out: PathBuf,
     /// Command prefix for `cargo verus` (a container wrapper), may be empty.
     pub toolchain: Vec<String>,
@@ -35,14 +34,14 @@ pub struct Options {
     pub reuse_logs: bool,
 }
 
-#[allow(
-    missing_docs,
-    reason = "plain data row; field names match the schema columns"
-)]
 #[derive(Debug, Clone)]
+/// A verified workspace member.
 pub struct Member {
+    /// Package name.
     pub name: String,
+    /// Path of the member's `Cargo.toml`.
     pub manifest: PathBuf,
+    /// Names of the verified workspace members it depends on.
     pub deps: Vec<String>,
 }
 
@@ -226,17 +225,21 @@ pub(crate) fn now_utc() -> String {
         .unwrap_or_default()
 }
 
-#[allow(
-    missing_docs,
-    reason = "plain data row; field names match the schema columns"
-)]
+/// What an extraction run produced.
 pub struct Summary {
+    /// Crates extracted.
     pub crates: usize,
+    /// Function rows loaded.
     pub functions: usize,
+    /// Use rows loaded.
     pub uses: usize,
+    /// Path of the database file.
     pub db: PathBuf,
+    /// Seconds spent in Verus.
     pub verus_seconds: f64,
+    /// Seconds spent parsing logs and loading the database.
     pub parse_load_seconds: f64,
+    /// Total size of the VIR logs in bytes.
     pub log_bytes: u64,
 }
 

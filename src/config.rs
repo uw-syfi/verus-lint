@@ -5,12 +5,9 @@ use serde::Deserialize;
 use std::collections::BTreeMap;
 use std::path::Path;
 
-#[allow(
-    missing_docs,
-    reason = "plain data row; field names match the schema columns"
-)]
 #[derive(Debug, Default, Clone, Deserialize)]
 #[serde(default, deny_unknown_fields)]
+/// The `[extract]` section: which crates to extract and how to run Verus.
 pub struct ExtractCfg {
     /// Command prefix for `cargo verus`, for example `["./verify"]`.
     pub toolchain: Vec<String>,
@@ -20,12 +17,9 @@ pub struct ExtractCfg {
     pub exclude: Vec<String>,
 }
 
-#[allow(
-    missing_docs,
-    reason = "plain data row; field names match the schema columns"
-)]
 #[derive(Debug, Default, Clone, Deserialize)]
 #[serde(default, deny_unknown_fields)]
+/// The `[roots]` section: functions that are live by definition for dead-code rules.
 pub struct RootsCfg {
     /// Glob patterns for top theorems, negative controls and fixtures. A pattern with `::` matches
     /// the function path (or its friendly path); one without matches the bare function name.
@@ -45,12 +39,9 @@ pub struct RootsCfg {
     pub name_files: Vec<String>,
 }
 
-#[allow(
-    missing_docs,
-    reason = "plain data row; field names match the schema columns"
-)]
 #[derive(Debug, Default, Clone, Deserialize)]
 #[serde(default, deny_unknown_fields)]
+/// The `[rules]` section: where rules live, their levels and parameters.
 pub struct RulesCfg {
     /// Directories of SQL rules, relative to the workspace. No rules are built in.
     pub dirs: Vec<String>,
@@ -65,18 +56,23 @@ pub struct RulesCfg {
     pub params: BTreeMap<String, BTreeMap<String, toml::Value>>,
 }
 
-#[allow(
-    missing_docs,
-    reason = "plain data row; field names match the schema columns"
-)]
 #[derive(Debug, Default, Clone, Deserialize)]
 #[serde(default, deny_unknown_fields)]
+/// The `[baseline]` section.
 pub struct BaselineCfg {
     /// Baseline file, relative to the workspace (default `verus-lint-baseline.json`).
     pub file: Option<String>,
 }
 
 /// What a rule's findings do to the exit status.
+///
+/// ```
+/// use verus_lint::config::Level;
+/// assert_eq!(Level::parse("gate")?, Level::Gate);
+/// assert_eq!(Level::Gate.as_str(), "gate");
+/// assert!(Level::parse("loud").is_err());
+/// # Ok::<(), anyhow::Error>(())
+/// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Level {
     /// The rule is not run.
@@ -116,16 +112,36 @@ impl Level {
     }
 }
 
-#[allow(
-    missing_docs,
-    reason = "plain data row; field names match the schema columns"
-)]
 #[derive(Debug, Default, Clone, Deserialize)]
 #[serde(default)]
+/// A parsed `verus-lint.toml`. Every section and key is optional.
+///
+/// ```
+/// use verus_lint::config::{Config, Level};
+///
+/// let cfg = Config::parse(
+///     r#"
+///     [roots]
+///     patterns = ["theorem_*"]
+///
+///     [rules.levels]
+///     "my/dead-proof-code" = "gate"
+///     "#,
+/// )?;
+/// assert_eq!(cfg.roots.patterns, ["theorem_*"]);
+/// assert_eq!(cfg.level("my/dead-proof-code")?, Level::Gate);
+/// assert_eq!(cfg.level("any/other")?, Level::Warn); // the default
+/// assert!(Config::parse("[extract]\nbogus = 1").is_err()); // unknown keys are errors
+/// # Ok::<(), anyhow::Error>(())
+/// ```
 pub struct Config {
+    /// `[extract]` section.
     pub extract: ExtractCfg,
+    /// `[roots]` section.
     pub roots: RootsCfg,
+    /// `[rules]` section.
     pub rules: RulesCfg,
+    /// `[baseline]` section.
     pub baseline: BaselineCfg,
 }
 
@@ -182,6 +198,13 @@ impl Config {
 }
 
 /// Glob match where `*` matches any run of characters (including `::` and `/`).
+///
+/// ```
+/// use verus_lint::config::glob_match;
+/// assert!(glob_match("*::theorem_*", "proj::a::theorem_x"));
+/// assert!(glob_match("crates/**", "crates/a/b"));
+/// assert!(!glob_match("a", "ab"));
+/// ```
 #[must_use]
 pub fn glob_match(pat: &str, text: &str) -> bool {
     let p: Vec<char> = pat.chars().collect();
@@ -238,10 +261,10 @@ mod tests {
     #[test]
     fn parses_sections() {
         let c = Config::parse(
-            "[extract]\ntoolchain=[\"./v\"]\nexclude=[\"sea-lion-cuda-sys\"]\n[roots]\npatterns=[\"*::neg_*\"]\n[rules]\ndirs=[\"x\"]\n[baseline]\nfile=\"b.json\"\n",
+            "[extract]\ntoolchain=[\"./v\"]\nexclude=[\"my-cuda-sys\"]\n[roots]\npatterns=[\"*::neg_*\"]\n[rules]\ndirs=[\"x\"]\n[baseline]\nfile=\"b.json\"\n",
         )
         .unwrap();
-        assert_eq!(c.extract.exclude, ["sea-lion-cuda-sys"]);
+        assert_eq!(c.extract.exclude, ["my-cuda-sys"]);
         assert_eq!(c.roots.patterns, ["*::neg_*"]);
         assert_eq!(c.rules.dirs, ["x"]);
         assert!(Config::parse("[extract]\nbogus=1\n").is_err());

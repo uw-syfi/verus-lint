@@ -16,10 +16,21 @@ use std::collections::{BTreeMap, BTreeSet, HashMap};
 pub type FnSet = BTreeSet<FnId>;
 
 /// Identifier of a function row (`functions.fn_id`).
+///
+/// Ids are assigned at extraction and are stable only within one database. Use
+/// [`Function::path`] for anything that must survive re-extraction.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct FnId(pub i64);
 
 /// Declared severity of a rule's findings.
+///
+/// ```
+/// use verus_lint::sdk::Severity;
+/// assert_eq!(Severity::parse("warning")?, Severity::Warning);
+/// assert!(Severity::Error > Severity::Note);
+/// assert_eq!(Severity::Note.as_str(), "note");
+/// # Ok::<(), anyhow::Error>(())
+/// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Severity {
     /// Informational.
@@ -56,6 +67,15 @@ impl Severity {
 }
 
 /// How a rule's findings are compared with the baseline file.
+///
+/// ```
+/// use verus_lint::sdk::Ratchet;
+/// let r = Ratchet::parse("metric, ratio = 1.1, abs = 10")?;
+/// // A baseline value of 200 allows up to max(1.1 * 200, 200 + 10) = 220.
+/// assert!((r.allowed(200.0) - 220.0).abs() < 1e-9);
+/// assert_eq!(Ratchet::parse("set")?, Ratchet::Set);
+/// # Ok::<(), anyhow::Error>(())
+/// ```
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub enum Ratchet {
     /// No ratchet: every finding counts.
@@ -115,6 +135,17 @@ impl Ratchet {
 }
 
 /// Static description of a rule: identity, default severity, parameters and ratchet.
+///
+/// Build one with [`RuleMeta::new`] and the builder methods.
+///
+/// ```
+/// use verus_lint::sdk::{Ratchet, RuleMeta, Severity};
+/// let m = RuleMeta::new("my/big-proofs", "Proof functions with long bodies.")
+///     .severity(Severity::Note)
+///     .param("max_lines", 200)
+///     .ratchet(Ratchet::Set);
+/// assert_eq!(m.params, [("max_lines".to_string(), "200".to_string())]);
+/// ```
 #[derive(Debug, Clone)]
 pub struct RuleMeta {
     /// Unique id, `namespace/name`.
@@ -182,6 +213,15 @@ impl RuleMeta {
 }
 
 /// Resolved parameter values of one rule: defaults, then config, then the command line.
+///
+/// ```
+/// use verus_lint::sdk::Params;
+/// let p = Params([("max_lines".to_string(), "200".to_string())].into());
+/// assert_eq!(p.get_u64("max_lines")?, 200);
+/// assert!((p.get_f64("max_lines")? - 200.0).abs() < 1e-9);
+/// assert!(p.get_u64("missing").is_err());
+/// # Ok::<(), anyhow::Error>(())
+/// ```
 #[derive(Debug, Clone, Default)]
 pub struct Params(pub BTreeMap<String, String>);
 
@@ -357,6 +397,42 @@ pub struct Use {
 }
 
 /// Facts of one extracted workspace, loaded from the database.
+///
+/// `Facts` holds the `functions` and `uses` tables as typed rows with indexes by id and path.
+/// Everything else (quantifiers, trusted items, verification cost) is reached with
+/// [`Facts::query`], which returns text cells.
+///
+/// In a rule, the CLI gives you a `Facts` through [`Cx::facts`]. To build one yourself (tests, a
+/// standalone tool), open the database `extract` wrote with [`crate::db::Db::open_read_only`] and pass its
+/// `conn` to [`Facts::load`].
+///
+/// ```
+/// use verus_lint::sdk::{Mode, UseKind};
+/// # use verus_lint::{db::Db, extract::load_crate_logs, sdk::Facts};
+/// # let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+/// # let mut db = Db::in_memory()?;
+/// # let vir = std::fs::read_to_string(root.join("tests/fixtures/fx/crate.vir"))?;
+/// # let imp = std::fs::read_to_string(root.join("tests/fixtures/fx/crate.impl_names"))?;
+/// # load_crate_logs(&mut db, root, "fx", "Cargo.toml", &vir, &imp)?;
+/// # db.resolve()?;
+/// # let facts = Facts::load(db.conn)?;
+/// let top = facts.by_path("fx::live::theorem_top").unwrap();
+/// assert_eq!(top.mode, Mode::Proof);
+///
+/// // Typed access: what does `theorem_top` call?
+/// let callees: Vec<_> = facts
+///     .uses_from(top.id)
+///     .filter(|u| u.kind == UseKind::Call)
+///     .filter_map(|u| u.callee)
+///     .map(|id| facts.function(id).name.as_str())
+///     .collect();
+/// assert!(callees.contains(&"lemma_used"));
+///
+/// // Everything else: read-only SQL, every cell as text, header row first.
+/// let rows = facts.query("SELECT kind, count(*) AS n FROM trusted GROUP BY kind ORDER BY kind")?;
+/// assert_eq!(rows[0], ["kind", "n"]);
+/// # Ok::<(), anyhow::Error>(())
+/// ```
 pub struct Facts {
     conn: Connection,
     functions: Vec<Function>,
@@ -608,7 +684,34 @@ impl Facts {
     }
 }
 
-/// Directed graph over functions.
+/// Directed graph over functions, built by [`Facts::graph`].
+///
+/// An edge `a -> b` means `a` has a resolved use of `b` that the `keep` filter accepted. Use
+/// the filter to choose which uses count (for example calls only, or everything except
+/// `ensures` sections).
+///
+/// ```
+/// use verus_lint::sdk::UseKind;
+/// # use verus_lint::{db::Db, extract::load_crate_logs, sdk::Facts};
+/// # let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+/// # let mut db = Db::in_memory()?;
+/// # let vir = std::fs::read_to_string(root.join("tests/fixtures/fx/crate.vir"))?;
+/// # let imp = std::fs::read_to_string(root.join("tests/fixtures/fx/crate.impl_names"))?;
+/// # load_crate_logs(&mut db, root, "fx", "Cargo.toml", &vir, &imp)?;
+/// # db.resolve()?;
+/// # let facts = Facts::load(db.conn)?;
+/// let id = |p: &str| facts.by_path(p).unwrap().id;
+/// let (a, b) = (id("fx::live::lemma_dead_a"), id("fx::live::lemma_dead_b"));
+///
+/// let g = facts.graph(|u| u.kind == UseKind::Call);
+/// assert_eq!(g.callees(a), vec![b]);
+/// assert!(g.reachable(&[a]).contains(&b));
+///
+/// // `a` and `b` call each other: one strongly connected component of size two.
+/// let cycles: Vec<_> = g.sccs().into_iter().filter(|c| c.len() > 1).collect();
+/// assert_eq!(cycles, vec![vec![a, b]]);
+/// # Ok::<(), anyhow::Error>(())
+/// ```
 pub struct Graph {
     ids: Vec<FnId>,
     index: HashMap<FnId, usize>,
@@ -681,6 +784,9 @@ impl Graph {
 }
 
 /// What a rule sees: the facts and its resolved parameters.
+///
+/// The CLI builds a `Cx` for each rule. Build one by hand to unit-test a rule: see the example
+/// on [`Rule`].
 pub struct Cx<'a> {
     /// Extracted facts.
     pub facts: &'a Facts,
@@ -689,6 +795,55 @@ pub struct Cx<'a> {
 }
 
 /// A check over the facts. Implement this in a rules crate and pass instances to [`crate::run`].
+///
+/// The rule's id, severity, parameters and ratchet come from [`Rule::meta`]; its findings come
+/// from [`Rule::check`]. A rule can be tested without the CLI by building a [`Cx`] and calling
+/// `check` directly:
+///
+/// ```
+/// use verus_lint::rules::Finding;
+/// use verus_lint::sdk::{Cx, Findings, Mode, Params, Rule, RuleMeta};
+/// # use verus_lint::{db::Db, extract::load_crate_logs, sdk::Facts};
+/// # let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+/// # let mut db = Db::in_memory()?;
+/// # let vir = std::fs::read_to_string(root.join("tests/fixtures/fx/crate.vir"))?;
+/// # let imp = std::fs::read_to_string(root.join("tests/fixtures/fx/crate.impl_names"))?;
+/// # load_crate_logs(&mut db, root, "fx", "Cargo.toml", &vir, &imp)?;
+/// # db.resolve()?;
+/// # let facts = Facts::load(db.conn)?;
+///
+/// /// Proof functions longer than `max_lines` lines.
+/// struct LongProofs;
+///
+/// impl Rule for LongProofs {
+///     fn meta(&self) -> RuleMeta {
+///         RuleMeta::new("my/long-proofs", "Proof functions with long bodies.")
+///             .param("max_lines", 5)
+///     }
+///     fn check(&self, cx: &Cx, out: &mut Findings) -> anyhow::Result<()> {
+///         let max = cx.params.get_u64("max_lines")?;
+///         for f in cx.facts.functions() {
+///             if f.mode == Mode::Proof && u64::from(f.body_lines) > max {
+///                 out.push(Finding::at(f, format!("{} lines", f.body_lines)));
+///             }
+///         }
+///         Ok(())
+///     }
+/// }
+///
+/// // Resolve parameters the way the runner does: the rule's defaults.
+/// let rule = LongProofs;
+/// let mut params = Params(rule.meta().params.into_iter().collect());
+/// let mut out = Findings::default();
+/// rule.check(&Cx { facts: &facts, params: &params }, &mut out)?;
+/// assert!(out.is_empty()); // every proof function in the fixture is short
+///
+/// // A config or `--param max_lines=0` override changes the threshold.
+/// params.0.insert("max_lines".into(), "0".into());
+/// rule.check(&Cx { facts: &facts, params: &params }, &mut out)?;
+/// assert!(!out.is_empty());
+/// # Ok::<(), anyhow::Error>(())
+/// ```
 pub trait Rule {
     /// Identity, severity, parameters and ratchet.
     fn meta(&self) -> RuleMeta;
@@ -701,6 +856,16 @@ pub trait Rule {
 }
 
 /// Collector the rule pushes findings into.
+///
+/// ```
+/// use verus_lint::rules::Finding;
+/// use verus_lint::sdk::Findings;
+///
+/// let mut out = Findings::default();
+/// assert!(out.is_empty());
+/// out.push(Finding::new("crate::m::f", "message").location("src/m.rs", 10));
+/// assert_eq!(out.len(), 1);
+/// ```
 #[derive(Debug, Default)]
 pub struct Findings(pub(crate) Vec<Finding>);
 

@@ -10,7 +10,7 @@ repository = "https://github.com/uw-syfi/verus-lint"
 readme = "README.md"
 rust-version = "1.88"
 # Design notes and the fixture's Verus source crate (rebuilt with Docker) stay out of the package.
-exclude = ["DESIGN.md", "tests/fixtures/crate/", "tests/fixtures/regen.sh", "target/"]
+exclude = ["DESIGN.md", "tests/fixtures/crate/", "tests/fixtures/regen.sh", "target/", ".agents/", ".claude/"]
 
 [dependencies]
 anyhow = "1.0.104"

@@ -116,16 +116,19 @@ pub fn check_report_version(obj: &Value) -> Result<()> {
     })
 }
 
-#[allow(
-    missing_docs,
-    reason = "plain data row; field names match the schema columns"
-)]
+/// Metadata of one verification run, stored in the `runs` table.
 pub struct RunInfo {
+    /// Crate identifier.
     pub krate: String,
+    /// Solver seed, if the run set one.
     pub seed: Option<u32>,
+    /// Verus arguments of the run, as text.
     pub verus_args: String,
+    /// Source commit of the workspace when the run was made.
     pub source_commit: String,
+    /// Run start time (UTC, ISO 8601).
     pub started_at: String,
+    /// Wall-clock seconds.
     pub wall_s: f64,
 }
 
@@ -297,16 +300,19 @@ fn insert_modules(db: &Db, obj: &Value, info: &RunInfo, run_id: i64) -> Result<u
     Ok(n)
 }
 
-#[allow(
-    missing_docs,
-    reason = "plain data row; field names match the schema columns"
-)]
+/// Settings of one `verify` run.
 pub struct Options {
+    /// Cargo workspace root.
     pub workspace: std::path::PathBuf,
+    /// Database directory, relative to the workspace.
     pub out: std::path::PathBuf,
+    /// Command prefix for `cargo verus`; may be empty.
     pub toolchain: Vec<String>,
+    /// Crates to verify; empty means every crate in the database.
     pub crates: Vec<String>,
+    /// Members to skip.
     pub exclude: Vec<String>,
+    /// Cargo target directory for the verification builds.
     pub target_dir: Option<std::path::PathBuf>,
     /// One run per crate and seed; empty means one run without a seed.
     pub seeds: Vec<u32>,
