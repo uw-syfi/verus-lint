@@ -721,7 +721,10 @@ mod tests {
             .into_iter()
             .find(|r| r.id == "verus/rlimit-headroom")
             .unwrap();
-        let ov = BTreeMap::from([("warn_pct".to_string(), "30".to_string())]);
+        let ov = BTreeMap::from([
+            ("budget".to_string(), "10000000".to_string()),
+            ("warn_pct".to_string(), "30".to_string()),
+        ]);
         let head = crate::rules::run_rule(&db.conn, &low, &ov).unwrap();
         assert_eq!(head.len(), 1);
         assert_eq!(head[0].severity, "warning");
