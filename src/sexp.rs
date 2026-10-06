@@ -43,7 +43,7 @@ impl<'a> Reader<'a> {
         }
     }
 
-    fn skip_ws(&mut self) {
+    const fn skip_ws(&mut self) {
         while self.i < self.b.len() {
             match self.b[self.i] {
                 b' ' | b'\n' | b'\t' | b'\r' => self.i += 1,

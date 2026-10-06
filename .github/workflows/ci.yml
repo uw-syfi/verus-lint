@@ -3,10 +3,16 @@ on:
   push:
     branches: [main]
   pull_request:
+env:
+  # The bundled DuckDB C++ build is large; drop debug info and incremental data to fit the runner disk.
+  CARGO_PROFILE_DEV_DEBUG: 0
+  CARGO_INCREMENTAL: 0
 jobs:
   check:
     runs-on: ubuntu-latest
     steps:
+      - name: Free disk space
+        run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
         with:
