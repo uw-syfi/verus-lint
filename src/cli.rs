@@ -70,6 +70,36 @@ struct ExtractArgs {
 }
 
 #[derive(Args, Clone)]
+struct VerifyArgs {
+    #[command(flatten)]
+    common: Common,
+    /// Directory of the database written by `extract`, relative to the workspace.
+    #[arg(long, default_value = ".verus-lint")]
+    out: PathBuf,
+    /// Command prefix for `cargo verus`, split on spaces (for example `./coral/verify`).
+    #[arg(long, default_value = "")]
+    toolchain: String,
+    /// Verify only this package (repeatable); default: every crate in the database.
+    #[arg(long = "crate")]
+    crates: Vec<String>,
+    /// Skip this member (package name or manifest-directory glob; repeatable).
+    #[arg(long)]
+    exclude: Vec<String>,
+    /// Cargo target directory for the verification builds.
+    #[arg(long)]
+    target_dir: Option<PathBuf>,
+    /// Solver seeds, comma separated: one run per crate and seed (default: one run, no seed).
+    #[arg(long, value_delimiter = ',')]
+    seeds: Vec<u32>,
+    /// Ingest the reports saved by an earlier `verify` instead of running Verus.
+    #[arg(long)]
+    reuse_reports: bool,
+    /// Ingest this saved `--output-json` output for the one `--crate` instead of running Verus.
+    #[arg(long, requires = "crates")]
+    report: Option<PathBuf>,
+}
+
+#[derive(Args, Clone)]
 struct CheckArgs {
     /// Database written by `extract` (default: `.verus-lint/facts.duckdb` in the workspace).
     #[arg(long)]
@@ -104,6 +134,8 @@ struct CheckArgs {
 enum Cmd {
     /// Run Verus per crate and load facts into `DuckDB`.
     Extract(ExtractArgs),
+    /// Run Verus's verification per crate and load per-function cost (rlimit, time) into the database.
+    Verify(VerifyArgs),
     /// Run SQL and Rust rules against an extracted database.
     Check {
         #[command(flatten)]
@@ -175,6 +207,47 @@ fn do_extract(a: &ExtractArgs) -> Result<PathBuf> {
         s.db.display()
     );
     Ok(s.db)
+}
+
+fn do_verify(a: &VerifyArgs) -> Result<()> {
+    let cfg = load_config(&a.common)?;
+    if let Some(report) = &a.report {
+        let [krate] = a.crates.as_slice() else {
+            bail!("--report needs exactly one --crate");
+        };
+        let seed = match a.seeds.as_slice() {
+            [] => None,
+            [s] => Some(*s),
+            _ => bail!("--report takes at most one seed"),
+        };
+        let n = crate::verify::ingest_file(&a.common.workspace, &a.out, report, krate, seed)?;
+        eprintln!(
+            "ingested {} functions ({} unjoined), {} modules as run {}",
+            n.functions, n.unjoined, n.modules, n.run_id
+        );
+        return Ok(());
+    }
+    let mut toolchain: Vec<String> = a.toolchain.split_whitespace().map(String::from).collect();
+    if toolchain.is_empty() {
+        toolchain.clone_from(&cfg.extract.toolchain);
+    }
+    let mut exclude = cfg.extract.exclude.clone();
+    exclude.extend(a.exclude.iter().cloned());
+    let s = crate::verify::run(&crate::verify::Options {
+        workspace: a.common.workspace.clone(),
+        out: a.out.clone(),
+        toolchain,
+        crates: a.crates.clone(),
+        exclude,
+        target_dir: a.target_dir.clone(),
+        seeds: a.seeds.clone(),
+        reuse_reports: a.reuse_reports,
+    })?;
+    eprintln!(
+        "verified {} runs, {} function rows ({} unjoined); verus {:.1}s",
+        s.runs, s.functions, s.unjoined, s.verus_seconds
+    );
+    Ok(())
 }
 
 fn parse_overrides(params: &[String]) -> Result<BTreeMap<String, String>> {
@@ -367,6 +440,10 @@ fn dispatch(native: &[&dyn Rule], cli: Cli) -> Result<ExitCode> {
     match cli.cmd {
         Cmd::Extract(a) => {
             do_extract(&a)?;
+            Ok(ExitCode::SUCCESS)
+        }
+        Cmd::Verify(a) => {
+            do_verify(&a)?;
             Ok(ExitCode::SUCCESS)
         }
         Cmd::Check { common, check } => {

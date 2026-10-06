@@ -13,6 +13,7 @@ pub mod rules;
 pub(crate) mod scan;
 pub mod sdk;
 pub(crate) mod sexp;
+pub mod verify;
 pub mod version;
 pub(crate) mod vir;
 

@@ -25,6 +25,32 @@ CREATE TABLE trait_impls (impl_path VARCHAR PRIMARY KEY, trait_path VARCHAR, sel
 -- Extraction problems a rule can refuse to trust (unresolved names, skipped files).
 CREATE TABLE warnings (crate VARCHAR, what VARCHAR, detail VARCHAR);
 
+-- One row per Verus verification run of one crate (`verify`). `seed` is null when the run set no
+-- solver seed.
+CREATE TABLE runs (run_id BIGINT PRIMARY KEY, crate VARCHAR, seed INTEGER, verus_args VARCHAR, source_commit VARCHAR, started_at VARCHAR, wall_s DOUBLE);
+-- Per-function verification cost from a run's report. `fn_id` is null when the report name matched
+-- no extracted function, or more than one. `rlimit` is Verus's resource count, `time_us` the SMT time.
+CREATE TABLE verify_fn (run_id BIGINT, fn_id BIGINT, friendly VARCHAR, crate VARCHAR, module VARCHAR, mode VARCHAR, rlimit BIGINT, time_us BIGINT, success BOOLEAN, seed INTEGER);
+-- Per-module cost. `rlimit` and `smt_time_ms` sum the module's own functions' queries;
+-- `session_time_ms` is the longest solver session (the main one or a spinoff) of the module.
+CREATE TABLE verify_module (run_id BIGINT, module VARCHAR, crate VARCHAR, rlimit BIGINT, smt_time_ms BIGINT, session_time_ms BIGINT);
+
+-- The run a rule should read for each crate: the one without a seed if there is one, else the
+-- lowest seed; the newest of those.
+CREATE VIEW verify_default_runs AS
+SELECT run_id FROM (
+    SELECT run_id, row_number() OVER (PARTITION BY crate ORDER BY (seed IS NOT NULL), seed, run_id DESC) AS rn
+    FROM runs) WHERE rn = 1;
+CREATE VIEW verify_latest AS
+SELECT v.* FROM verify_fn v JOIN verify_default_runs USING (run_id);
+CREATE VIEW verify_module_latest AS
+SELECT v.* FROM verify_module v JOIN verify_default_runs USING (run_id);
+-- Cost of each function across all runs of its crate (all seeds).
+CREATE VIEW verify_worst AS
+SELECT crate, friendly, any_value(fn_id) AS fn_id, count(DISTINCT run_id) AS n_runs,
+       max(rlimit) AS max_rlimit, min(rlimit) AS min_rlimit, bool_and(success) AS all_ok
+FROM verify_fn GROUP BY crate, friendly;
+
 -- Resolved uses, one per caller, callee and section. A statically resolved
 -- trait-method call and a function value count as uses of the callee.
 CREATE VIEW edges AS

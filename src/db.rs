@@ -8,7 +8,7 @@ use std::collections::HashMap;
 use std::path::Path;
 
 /// Version of the fact schema stored in `meta`.
-pub const SCHEMA_VERSION: &str = "1.2.0";
+pub const SCHEMA_VERSION: &str = "1.3.0";
 const SCHEMA_SQL: &str = include_str!("schema.sql");
 
 #[allow(

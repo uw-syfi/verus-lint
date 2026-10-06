@@ -138,7 +138,7 @@ pub fn select_members(
     Ok(members)
 }
 
-fn cargo_metadata(ws: &Path) -> Result<String> {
+pub(crate) fn cargo_metadata(ws: &Path) -> Result<String> {
     let out = Command::new("cargo")
         .args(["metadata", "--format-version", "1", "--no-deps"])
         .current_dir(ws)
@@ -198,7 +198,7 @@ pub fn clean_args(krate: &str, target_dir: Option<&Path>) -> Vec<String> {
 }
 
 /// `<toolchain prefix> <args>`; without a prefix the first argument is the program.
-fn toolchain_command(toolchain: &[String], args: Vec<String>) -> Command {
+pub(crate) fn toolchain_command(toolchain: &[String], args: Vec<String>) -> Command {
     let mut all: Vec<String> = toolchain.to_vec();
     all.extend(args);
     let mut c = Command::new(&all[0]);
@@ -206,7 +206,7 @@ fn toolchain_command(toolchain: &[String], args: Vec<String>) -> Command {
     c
 }
 
-fn git(ws: &Path, args: &[&str]) -> Option<String> {
+pub(crate) fn git(ws: &Path, args: &[&str]) -> Option<String> {
     let o = Command::new("git")
         .args(args)
         .current_dir(ws)
@@ -215,6 +215,15 @@ fn git(ws: &Path, args: &[&str]) -> Option<String> {
     o.status
         .success()
         .then(|| String::from_utf8_lossy(&o.stdout).trim().to_string())
+}
+
+/// Current UTC time as `YYYY-MM-DDThh:mm:ssZ` (empty when `date` is unavailable).
+pub(crate) fn now_utc() -> String {
+    Command::new("date")
+        .args(["-u", "+%Y-%m-%dT%H:%M:%SZ"])
+        .output()
+        .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string())
+        .unwrap_or_default()
 }
 
 #[allow(
@@ -268,16 +277,7 @@ pub fn extract(o: &Options) -> Result<Summary> {
             .is_some_and(|s| !s.is_empty())
             .to_string(),
     )?;
-    let now = Command::new("date")
-        .args(["-u", "+%Y-%m-%dT%H:%M:%SZ"])
-        .output()
-        .ok();
-    db.set_meta(
-        "extracted_at",
-        now.map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string())
-            .as_deref()
-            .unwrap_or(""),
-    )?;
+    db.set_meta("extracted_at", &now_utc())?;
 
     let (mut verus_s, mut parse_s, mut log_bytes) = (0.0, 0.0, 0u64);
     let (mut n_fn, mut n_use) = (0, 0);
