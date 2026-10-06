@@ -41,15 +41,19 @@ All tables are Verus-generic. Paths are VIR paths (`crate::module::impl&%N::f`);
 | `meta` | `key` | `value`: `schema_version`, `verus_version`, `verus_commit`, `rust_toolchain`, `source_commit`, `source_dirty`, `extracted_at`, `tool_version` |
 | `crates` | `crate` | `manifest`, `input_hash`, `log_bytes`, `fn_count`, `verified` (bool: dynamic facts present) |
 | `modules` | `module` | `crate`, `file` |
-| `functions` | `fn_id` | `path`, `friendly`, `crate`, `module`, `name`, `self_type`, `trait_path`, `mode` (exec, proof, spec), `kind` (static, trait_decl, trait_impl, foreign_trait_impl), `item_kind` (function, const), `vis` (pub, or the restricting module), `body_vis` (open/closed: pub, module, or none for no body), `opaque` (bool), `reveal_vis`, `external_body`, `broadcast_forall`, `broadcast_forall_only`, `rlimit_attr` (nullable, `inf` allowed), `spinoff_prover`, `integer_ring`, `bit_vector`, `nonlinear`, `has_body`, `file`, `line`, `end_line`, `body_lines`, `n_requires`, `n_ensures` |
+| `functions` | `fn_id` | `path`, `friendly`, `crate`, `module`, `name`, `self_type`, `trait_path`, `mode` (exec, proof, spec), `kind` (static, trait_decl, trait_impl, foreign_trait_impl), `item_kind` (function, const), `vis` (pub, or the restricting module), `body_vis` (open/closed: pub, module, or none for no body), `opaque` (bool), `reveal_vis`, `external_body`, `broadcast_forall`, `broadcast_forall_only`, `rlimit_attr` (nullable, `inf` allowed), `spinoff_prover`, `integer_ring`, `bit_vector`, `nonlinear`, `has_body`, `file`, `line`, `end_line`, `body_lines`, `n_requires`, `n_ensures`, `has_default` (trait method declaration with a default body), `trait_method` (for an implementation, the declaration it implements), `type_invariant`, `generated` (compiler-made `arrow_*` field accessor) |
 | `uses` | none (multiset) | `caller_id`, `callee_path`, `callee_id` (null when the callee is outside the extracted crates), `section` (require, ensure, returns, decrease, decrease_by, body, hide, module), `kind` (call, reveal, broadcast_use, fn_value, resolved_impl, hide), `in_trigger` (bool), `fuel`, `file`, `line`, `col` |
 | `module_uses` | none | `module`, `callee_path`, `callee_id`, `kind` (broadcast_use), `file`, `line` (module-level `broadcast use`, see section 4.3) |
 | `quantifiers` | none | `fn_id`, `quant` (forall, exists, choose), `trigger` (explicit, auto_annotation, none), `n_triggers`, `section`, `file`, `line` |
 | `trusted` | none | `fn_id` (nullable), `kind` (assume, admit, external_body, external_fn, external_type, assume_specification, broadcast_axiom), `file`, `line`, `text` |
-| `trait_impls` | `impl_path` | `trait_path`, `self_type`, `file`, `line` (from `--log impl-names`) |
+| `trait_impls` | `impl_path` | `trait_path`, `self_type`, `crate`, `file`, `line` (from `--log impl-names`) |
 | `verify_fn` | `run_id, fn_id` | `friendly`, `rlimit`, `time_us`, `success`, `seed` |
 | `verify_module` | `run_id, module` | `rlimit`, `smt_time_ms`, `session_time_ms` |
 | `broadcast_groups` | `path` | `crate` (groups defined by an extracted crate, from `(group_id ..)` forms) |
+| `group_members` | none | `group_path`, `member_path`, `member_id` (null outside the extracted crates), `file`, `line` (source scan of `broadcast group` items) |
+| `root_patterns` | none | `pattern`, `like_pattern`, `by_name` (from `[roots] patterns`) |
+| `api_pins` | none | `entry`, `file`, `line`, `fn_id` (null when the entry matched nothing) |
+| `dead_scc` | `fn_id` | `scc_id`, `scc_size` (components of the dead subgraph) |
 | `warnings` | none | `crate`, `what`, `detail` (extraction problems, for `verus/extraction-health`) |
 | `runs` | `run_id` | `crate`, `seed`, `verus_args`, `source_commit`, `started_at`, `wall_s` |
 
@@ -59,7 +63,7 @@ function that is not opaque and whose body visibility is wider than its own
 module (`pub open`, `open(crate)` and `open(in ancestor)` all record a body
 visibility restricted to `None` or an ancestor module).
 
-Derived views shipped with the schema: `edges` (uses with resolved
+Derived views shipped with the schema: `roots`, `graph_edges` and `live_nodes` (section 6), `edges` (uses with resolved
 `callee_id`, de-duplicated per caller, callee and section), `open_spec`
 (spec functions with a public body and not opaque), `verify_latest` (latest
 run per function at the default seed), `verify_worst` (maximum rlimit over
@@ -372,14 +376,21 @@ impl Rule for NoBigOpaqueReveal {
 }
 ```
 
-Default roots (used by `Facts::roots` and the `roots` view): exec functions;
-`#[test]` functions; functions matched by config root patterns (top theorems
-and negative controls); API pin entries are not roots, they are reported in the
-separate "unused public API" category; trait method
-implementations whose trait declaration is live; when `roots.public_api` is
-on (for libraries with users outside the workspace), every `pub` function of
-the listed crates. Uses through triggers, reveals, `hide`, and cross-crate
-calls are ordinary edges.
+Default roots (the `roots` view, and `Facts::roots` once the SDK exists):
+exec functions; functions matched by config root patterns (top theorems and
+negative controls; a pattern without `::` matches the bare name); trait impl
+methods of traits declared outside the extracted crates (callers may dispatch
+to them generically); type invariants; when `roots.public_api` is on (for
+libraries with users outside the workspace), every `pub` function. API pin
+entries are not roots: a pinned function that nothing reaches is reported by
+`verus/unused-public-api` instead of `verus/dead-proof-code`. Trait methods
+need no root: the `graph_edges` view leads from a trait method declaration to
+its implementations, from a group to its members, and from a function to its
+module's `broadcast use` items. Uses through triggers, reveals, `hide`, and
+cross-crate calls are ordinary edges. `#[test]` functions and anything under
+`cfg(feature = ..)` that the extracted build does not enable are not in the
+log, so references from them are invisible; list their callees as patterns.
+Compiler-generated `arrow_*` field accessors are never reported.
 
 ## 7. Configuration
 
@@ -388,7 +399,8 @@ calls are ordinary edges.
 ```toml
 [extract]
 toolchain = ["./coral/verify"]          # command prefix for cargo verus; default none
-crates = ["coral/crates/**"]            # members to extract; default all verified members
+crates = ["coral/crates/**"]            # members to extract (package names or manifest directory globs); default all verified members
+exclude = ["sea-lion-cuda-sys"]        # verify = true members Verus cannot build
 
 [roots]
 patterns = ["theorem_*", "neg_*", "fixture_*"]   # bare names; with `::` the pattern matches the path
@@ -466,6 +478,7 @@ one thread; `--no-verify` extraction takes about 42 s of Verus time.
 | Rule id | What it reports |
 | --- | --- |
 | `verus/dead-proof-code` | Proof and spec functions unreachable from roots, dead cycles grouped by SCC |
+| `verus/unused-public-api` | Pinned public proof and spec functions that no root reaches (the category dead-proof-code leaves out) |
 | `verus/dead-exec-ghost` | Exec functions only reachable from dead functions (off by default) |
 | `verus/fanin-open-spec` | Open spec definitions by fan-in outside their module (functions, modules, crates) |
 | `verus/fanin-reveal` | Closed or opaque definitions by reveal sites outside their module |
@@ -475,7 +488,7 @@ one thread; `--no-verify` extraction takes about 42 s of Verus time.
 | `verus/seed-instability` | Functions whose worst-seed rlimit exceeds the default-seed rlimit by a ratio, or which fail under some seed |
 | `verus/hotspot-growth` | Modules whose total rlimit grew by a fraction and an absolute amount since the baseline |
 | `verus/spinoff-candidate` | Heavy functions in a heavy module that lack `spinoff_prover` |
-| `verus/quantifier-no-trigger` | Quantifiers with no explicit trigger (`#[trigger]` or `#![trigger]`); a warning |
+| `verus/quantifier-auto-trigger` | Functions with quantifiers that have no explicit trigger (`#[trigger]` or `#![trigger]`; `#![auto]` counts as explicit); a warning |
 | `verus/quantifier-auto-trigger-note` | Verus's own "automatically chose triggers" notes, from the build log; informational, separate from the rule above |
 | `verus/trait-spec-default` | Trait spec functions with a default body that implementations may override, and the implementations that do |
 | `verus/trusted-inventory` | Every `assume`, `admit`, `external_body`, `external_fn`, `assume_specification` and broadcast axiom, with a count per crate (a set ratchet keeps the trusted surface from growing silently) |
@@ -576,3 +589,39 @@ function; trait-impl methods such as `ExecModelGraph::view` (177 functions)
 appear in our table and not in `fanin.py`, which skips them; the log has no
 `#[cfg(test)]` items. No semantic-mode results are recorded in Coral's
 `findings`, so the comparison is against syntactic mode only.
+
+Phase 2 status (2026-10-06): done. New facts (schema 1.1.0): `quantifiers`,
+`trusted`, `trait_impls`, `group_members`, and `functions.has_default`,
+`trait_method`, `type_invariant`. `--exclude` and `verus-lint.toml` (`[extract]`
+and `[roots]`; other sections are ignored until phase 6) are in. The parser is
+tested against a real Verus log of `tests/fixtures/crate` (regenerate with
+`tests/fixtures/regen.sh`, needs Docker and the oracle image). Findings from
+the log: `#![auto]` is `Unary Trigger(AutoTrigger)` around the body, an explicit
+trigger is `WithTriggers` with a nonempty `:triggers` or `Unary Trigger(Trigger
+g)` on a subterm; `assume(false)` is how `admit()` appears; a function with a
+non-null `:proxy` is an `assume_specification`; `AssertAssumeUserDefinedTypeInvariant`
+is compiler-inserted and not a trusted item; `external_fn` and `external_type`
+ids are mostly vstd's (own-crate ones only are stored); `#[verifier::external]`
+items have no body in the log. A trait method implementation names its
+declaration in `:method`, so dispatch needs no name matching. On Coral:
+224 functions with untriggered quantifiers, 712 trusted rows, 2 trait spec
+functions with defaults. CI had been failing since phase 1 because `*.vir` in
+`.gitignore` hid `mini.vir`; fixed.
+
+Phase 3 status (2026-10-06): done. `roots`, `graph_edges` and `live_nodes`
+views, `dead_scc` (Tarjan in Rust, written by `extract`), `verus/dead-proof-code`
+and `verus/unused-public-api`. The recursive query runs over path nodes
+(functions, groups, `mod:` module nodes) and takes 0.3 s on Coral's 214k uses.
+Coral dogfood (12 crates, `[roots]` mirroring `dead_fns.py`'s name patterns and
+`tools/pins/*.pin`): 876 dead proof and spec functions (14,537 body lines), 229
+unused public API items, no dead cycles. `dead_fns.py` reports 500 in the
+same crates: all 500 are in our 876, none is missing. Of our 361 extra: 113
+have a name that appears under `tools/` (`dead_fns.py` roots every such name;
+we need a root-names file for that, see phase 4 and 6), 167 are
+referenced only from `use` re-exports or from other dead functions (the Python
+script counts an import line as a use), and 81 are referenced from code the
+build does not compile (`cfg(feature = "neg_*")` negative controls, tests,
+crates outside the extraction) or share a name with an unrelated item (it
+merges by name; for example `numel` and `in_range` are also used elsewhere). `dead_fns.py` pinned names are live; ours are reported in the
+separate API category (229). `arrow_*` field accessors were 662 of the first
+run's 1,437 findings and are now excluded.
