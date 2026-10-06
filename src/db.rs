@@ -62,6 +62,20 @@ impl Db {
         })
     }
 
+    /// Open an existing database file read-only.
+    ///
+    /// # Errors
+    /// Fails when the file cannot be opened.
+    pub fn open_read_only(path: &Path) -> Result<Self> {
+        let cfg = duckdb::Config::default().access_mode(duckdb::AccessMode::ReadOnly)?;
+        let conn = Connection::open_with_flags(path, cfg)
+            .with_context(|| format!("opening {} read-only", path.display()))?;
+        Ok(Self {
+            conn,
+            next_fn_id: 0,
+        })
+    }
+
     /// Create an in-memory database with the schema installed.
     ///
     /// # Errors
