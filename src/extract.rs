@@ -328,11 +328,24 @@ fn scan_module_uses(
         };
         for u in scan_file(&src, file, facts) {
             let cands = candidates(&u.path, &u.module, &facts.krate);
-            let callee = cands
-                .iter()
-                .find(|c| fn_paths.contains(c.as_str()))
-                .cloned()
-                .unwrap_or(cands[0].clone());
+            let own = |c: &String| fn_paths.contains(c.as_str()) || facts.groups.contains(c);
+            let callee = match cands.iter().find(|c| own(c)) {
+                Some(c) => c.clone(),
+                None => {
+                    // Not an item of this crate: keep the path as written (`crate::` expanded).
+                    let root = u.path.split("::").next().unwrap_or("");
+                    if !matches!(root, "vstd" | "core" | "alloc" | "std" | "builtin") {
+                        db.warn(
+                            &facts.krate,
+                            "unresolved_broadcast_use",
+                            &format!("{file}:{}: {}", u.line, u.path),
+                        )?;
+                    }
+                    u.path
+                        .strip_prefix("crate::")
+                        .map_or(u.path.clone(), |r| format!("{}::{r}", facts.krate))
+                }
+            };
             db.conn.execute(
                 "INSERT INTO module_uses VALUES (?, ?, NULL, 'broadcast_use', ?, ?)",
                 duckdb::params![u.module, callee, file, u.line],
