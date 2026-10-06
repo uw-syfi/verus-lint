@@ -7,7 +7,10 @@ description = "Lint and analysis for Verus codebases, from Verus VIR logs and ve
 keywords = ["verus", "lint", "verification", "duckdb"]
 categories = ["development-tools"]
 repository = "https://github.com/uw-syfi/verus-lint"
+readme = "README.md"
 rust-version = "1.88"
+# The spike prototype and the fixture's Verus source crate (rebuilt with Docker) stay out of the package.
+exclude = ["spike/", "tests/fixtures/crate/", "tests/fixtures/regen.sh", "target/"]
 
 [dependencies]
 anyhow = "1.0.104"

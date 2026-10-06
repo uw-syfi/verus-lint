@@ -16,7 +16,8 @@ cargo install --git https://github.com/uw-syfi/verus-lint
 
 Needs Rust 1.88 or newer and a Verus toolchain that provides `cargo verus`
 (a container wrapper works; see `toolchain` below). Only the Verus releases in
-`src/version.rs` are accepted; any other exits with status 3.
+`src/version.rs` are accepted; any other exits with status 3. The supported
+release is 0.2026.07.18.3a4d30b.
 
 ## Quickstart
 
@@ -64,6 +65,20 @@ min_fns = 30
 [baseline]
 file = "verus-lint-baseline.json"     # the default
 ```
+
+## Dynamic facts: `verify`
+
+`verus-lint verify [--seeds 1,2,3]` runs `cargo verus build --time-expanded
+--output-json` per crate (and per seed, via `smt.random_seed`), cleans the
+crate first (a fresh crate prints no report), and loads `runs`, `verify_fn`
+and `verify_module`. Rows join to `functions` by friendly name, then path, with
+the module as tie-break; unjoined rows keep a null `fn_id` and are counted in
+`meta.unjoined_verify_rows`. A report from a different Verus than the facts is
+refused. `verify --report FILE` ingests an existing report, `--reuse-reports`
+re-ingests saved ones. Views: `verify_latest` (each crate's default run),
+`verify_worst` (maximum across seeds), `verify_module_latest`. Rules that read
+them carry the header `needs: dynamic` and are skipped with a note until a run
+exists.
 
 `extract` and `check` are also separate commands (`extract` is the slow one;
 `check` reads the database and takes seconds). `extract --reuse-logs` re-parses

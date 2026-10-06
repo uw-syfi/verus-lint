@@ -144,11 +144,12 @@ cores.
 
 `verus-lint verify [--seeds 1,2,3]` runs the same per-crate command with
 `--time-expanded --output-json` (and `-V smt.random_seed=N` per seed), or
-`extract --report FILE` ingests an existing report. Rows join to `functions`
+`verify --report FILE` ingests an existing report. Rows join to `functions`
 by the friendly name: direct match, then trait impls through `trait_impls`,
-then inherent impls through the type of `self`, then the return type. The
-spike leaves 2 of 98 coral-effects functions unjoined (associated `new`
-functions); unjoined rows are kept with a null `fn_id` and counted in
+then inherent impls through the type of `self` (also `&mut self`, and the
+impl's sibling methods), then the return type and parameters, with the module
+as tie-break for same-named impls. Coral, 12 crates: 4 of 5,209 rows stay
+unjoined (two names shared by two trait impls in one module); unjoined rows are kept with a null `fn_id` and counted in
 `meta.unjoined_verify_rows` so rules can refuse to trust a low join rate.
 
 ### 4.3 Gaps filled outside the log
@@ -748,3 +749,28 @@ removing one set entry and halving one metric entry gives exactly 2 uncovered
 gated findings, SARIF has 3,359 results. Not done: the `verify_*` tables and
 `needs: dynamic` rules wait for phase 5 (a rule that needs them is skipped with
 a note while `verify_fn` is missing or empty); no Parquet cache yet (phase 7).
+
+Phase 5 status (2026-10-06): done. `verify` command, schema 1.3.0 (`runs`,
+`verify_fn`, `verify_module`, views `verify_default_runs`, `verify_latest`,
+`verify_module_latest`, `verify_worst`), example rules `rlimit-headroom`
+(default budget 30M, Verus's own failure point; Coral passes 10M),
+`rlimit-hotspot`, `seed-instability` (Coral's 2x warn, 5x error thresholds),
+`hotspot-growth` (metric ratchet) and `spinoff-candidate`. Crates with no
+verified function (coral-bootstrap) are skipped with a note. Compared with
+`coral/tools/budget.py` and `stability.py`: the rules read the same per-function
+rlimit and seed data; seed-instability checks every function at or above the
+floor where stability.py checks the 20 heaviest.
+
+Dead-code sample check (release bar, 2026-10-06): 3 reported items per crate
+across Coral's 12 crates (seed 20261006), closed over dead callers and trait
+declaration/implementation pairs, deleted with their imports in a scratch
+llm-eq worktree (nothing committed). Verus: 0 errors on the affected crates
+after the closure. The first attempt broke only on callers and trait pairs
+that the sample itself had left behind; the reported items were truly dead.
+
+Phase 8 status (2026-10-06): done. Second codebase: three example crates built
+from verus-lang/verus `examples/` (962 functions). Genericity bugs found and
+fixed: `broadcast use Type::assoc_fn` names resolved by unique suffix match;
+dashed module names and generic and parameter-typed impl names in the friendly
+join. Coral counts unchanged (774 dead, 206 unused public API, 711 trusted).
+Release: `cargo publish --dry-run` passes; license is MIT only.

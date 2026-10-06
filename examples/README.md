@@ -14,6 +14,8 @@ a directory (`verus-lint check --rules DIR`, or `[rules] dirs` in
 | `trait-spec-default.sql` | Joining `trait_impls` and `functions.trait_method` |
 | `fanin-open-spec.sql`, `fanin-reveal.sql` | Fan-in over `edges` with a metric ratchet |
 | `extraction-health.sql` | Reading `warnings`: feature gates and unresolved names |
+| `rlimit-headroom.sql`, `rlimit-hotspot.sql`, `seed-instability.sql`, `spinoff-candidate.sql` | `needs: dynamic` rules over `verify_latest` and `verify_worst` |
+| `hotspot-growth.sql` | A dynamic metric ratchet on per-function rlimit |
 | `rust-rules/` | A complete Rust rules crate (`verus-lint-example-rules`): one rule with a metric ratchet, run through `[rules] rust` |
 
 The mechanisms these rules use (the `roots`, `graph_edges` and `live_nodes`
