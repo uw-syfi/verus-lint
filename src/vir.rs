@@ -425,7 +425,8 @@ fn typ_path(t: &Node) -> Option<String> {
                 let dt = v.get(2)?.list()?;
                 return Some(dt.get(2)?.atom()?.to_string());
             }
-            "Decorate" => return v.iter().skip(2).find_map(typ_path),
+            // `&T` is `Decorate Ref`; `&mut T` (an exec method taking `&mut self`) is `MutRef`.
+            "Decorate" | "MutRef" => return v.iter().skip(2).find_map(typ_path),
             _ => return None,
         }
     }
@@ -754,7 +755,30 @@ pub fn parse_log(text: &str, krate: &str, names: &ImplNames) -> Result<CrateFact
             _ => {}
         }
     }
+    name_from_impl_siblings(&mut facts);
     Ok(facts)
+}
+
+/// Friendly name of an associated function without `self` from a sibling in the same `impl`
+/// block that has one: `impl&%3::lemma_pages_fit(k, n, s)` is `T::lemma_pages_fit` when
+/// `impl&%3::reserve(&self)` is a method of `T`. This beats the return-type guess.
+fn name_from_impl_siblings(facts: &mut CrateFacts) {
+    let mut ty: HashMap<String, String> = HashMap::new();
+    for f in &facts.functions {
+        if let (Some(t), Some((imp, _))) = (&f.self_type, f.path.rsplit_once("::"))
+            && imp.contains("::impl&%")
+        {
+            ty.entry(imp.to_string()).or_insert_with(|| t.clone());
+        }
+    }
+    for f in &mut facts.functions {
+        if f.self_type.is_none()
+            && let Some((imp, name)) = f.path.rsplit_once("::")
+            && let Some(t) = ty.get(imp)
+        {
+            f.friendly = format!("{t}::{name}");
+        }
+    }
 }
 
 #[cfg(test)]
@@ -762,6 +786,43 @@ mod tests {
     use super::*;
 
     const FIXTURE: &str = include_str!("../tests/fixtures/mini.vir");
+
+    /// An inherent-impl function Verus prints as `T::name`: a `&mut self` method names `T` by its
+    /// receiver, a constructor by the own-crate type inside the type it returns.
+    #[test]
+    fn friendly_names_of_inherent_functions() {
+        let f = |path: &str, params: &str, ret: &str| {
+            format!(
+                r#"(@ "src/m.rs:3:1: 5:2 (#0)" (Function
+  :name (Fun :path {path}) :proxy None :kind (FunctionKind Static) :visibility (Visibility :restricted_to None)
+  :body_visibility (BodyVisibility Visibility (Visibility :restricted_to None))
+  :opaqueness (Opaqueness Opaque) :owning_module mini::m :mode Exec :typ_params () :typ_bounds () :params ({params})
+  :ret (@ "src/m.rs:3:9: 3:12 (#0)" (Param :name (VarIdent "r" (VarIdentDisambiguate RustcId 1)) :typ {ret} :mode Exec :user_mut false :unwrapped_info None))
+  :require () :ensure (tuple () ()) :returns None :decrease () :decrease_by None
+  :item_kind (ItemKind Function) :attrs (FunctionAttrs :uses_ghost_blocks true :inline false :hidden () :broadcast_forall false :broadcast_forall_only false :no_auto_trigger false :bit_vector false :atomic false :integer_ring false :nonlinear false :spinoff_prover false :rlimit None :is_external_body false) :body None :extra_dependencies ()))
+"#
+            )
+        };
+        let self_param = r#"(@ "src/m.rs:3:2: 3:3 (#0)" (Param :name (VarIdent "self" (VarIdentDisambiguate RustcId 0)) :typ (Typ MutRef (Typ Datatype (Dt Path mini::m::Pool) () ())) :mode Exec :user_mut false :unwrapped_info None))"#;
+        let ret_opt = "(Typ Datatype (Dt Path core::option::Option) ((Typ Datatype (Dt Path mini::m::Cap) ((Typ TypParam \"E\")) ())) ())";
+        let text = format!(
+            "(module_id mini::m)\n{}\n{}",
+            f("mini::m::impl&%0::alloc", self_param, "(Typ Bool)"),
+            f("mini::m::impl&%1::new", "", ret_opt),
+        );
+        let facts = parse_log(&text, "mini", &ImplNames::new()).unwrap();
+        let name = |p: &str| {
+            facts
+                .functions
+                .iter()
+                .find(|x| x.path == p)
+                .unwrap()
+                .friendly
+                .clone()
+        };
+        assert_eq!(name("mini::m::impl&%0::alloc"), "mini::m::Pool::alloc");
+        assert_eq!(name("mini::m::impl&%1::new"), "mini::m::Cap::new");
+    }
 
     #[test]
     fn span_parsing() {
