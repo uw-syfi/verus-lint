@@ -46,7 +46,7 @@ struct CheckArgs {
     /// Database written by `extract`.
     #[arg(long)]
     db: Option<PathBuf>,
-    /// Extra directory of SQL rules.
+    /// Directory of SQL rules (repeatable); also `[rules] dirs` in the config. No rules are built in.
     #[arg(long)]
     rules: Vec<PathBuf>,
     /// Only run rules whose id contains this text.
@@ -131,11 +131,16 @@ fn do_extract(a: &ExtractArgs) -> Result<PathBuf> {
     Ok(s.db)
 }
 
-fn do_check(a: &CheckArgs, db: PathBuf) -> Result<ExitCode> {
+fn do_check(a: &CheckArgs, db: PathBuf, cfg: &Config, base: &std::path::Path) -> Result<ExitCode> {
     let db = Db::open(&db)?;
-    let mut all = rules::builtin()?;
-    for d in &a.rules {
-        all.extend(rules::load_dir(d)?);
+    let mut all = Vec::new();
+    let dirs = a
+        .rules
+        .iter()
+        .cloned()
+        .chain(cfg.rules.dirs.iter().map(|d| base.join(d)));
+    for d in dirs {
+        all.extend(rules::load_dir(&d)?);
     }
     let mut overrides = BTreeMap::new();
     for p in &a.params {
@@ -143,6 +148,11 @@ fn do_check(a: &CheckArgs, db: PathBuf) -> Result<ExitCode> {
             .split_once('=')
             .ok_or_else(|| anyhow::anyhow!("--param needs name=value, got `{p}`"))?;
         overrides.insert(k.to_string(), v.to_string());
+    }
+    if all.is_empty() {
+        eprintln!(
+            "no rules: pass --rules DIR or set [rules] dirs in verus-lint.toml (see examples/rules)"
+        );
     }
     for r in all
         .iter()
@@ -173,7 +183,12 @@ fn run(cli: Cli) -> Result<ExitCode> {
             let db =
                 a.db.clone()
                     .unwrap_or_else(|| PathBuf::from(".verus-lint/facts.duckdb"));
-            do_check(&a, db)
+            let cfg = if std::path::Path::new("verus-lint.toml").exists() {
+                Config::load(std::path::Path::new("verus-lint.toml"))?
+            } else {
+                Config::default()
+            };
+            do_check(&a, db, &cfg, std::path::Path::new("."))
         }
         Cmd::Query { db, sql } => {
             let db = Db::open(&db)?;
@@ -184,7 +199,8 @@ fn run(cli: Cli) -> Result<ExitCode> {
         }
         Cmd::Run { extract, check } => {
             let db = do_extract(&extract)?;
-            do_check(&check, db)
+            let cfg = load_config(&extract)?;
+            do_check(&check, db, &cfg, &extract.workspace)
         }
     }
 }

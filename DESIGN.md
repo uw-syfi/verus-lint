@@ -4,8 +4,12 @@ verus-lint is a lint and analysis tool for Verus codebases. It extracts facts
 about functions and their uses from Verus's own intermediate representation
 (VIR) and from Verus's verification reports, stores them in an embedded DuckDB
 database, and runs rules written in SQL or in Rust against that database.
-Coral (`llm-eq/coral/crates`) is the first user; nothing in the core or the
-built-in rules is specific to Coral.
+The tool is mechanism only: fact extraction, the database and its views, the
+SQL runner, the Rust SDK, the CLI, configuration, baselines and output. It
+contains no rules. Rules live in the user's repository; `examples/` holds
+sample lints to copy, and nothing loads them unless the user points at them.
+Coral (`llm-eq/coral/crates`) is the first user and writes its own rules in
+its own tree; nothing in the tool is specific to Coral.
 
 Evidence for the choices below is in `spike/notes.md` (Verus
 0.2026.07.18.3a4d30b, measured on coral-spec and coral-effects).
@@ -16,7 +20,7 @@ Evidence for the choices below is in `spike/notes.md` (Verus
 verus-lint extract  ->  cargo verus build -p C -- --no-verify --log vir --log impl-names   (per crate)
                         cargo verus build -p C -- --time-expanded --output-json            (optional, dynamic)
                     ->  parse logs and reports  ->  facts.duckdb (one database per workspace commit)
-verus-lint check    ->  build lints/ (if present)  ->  run SQL rules and Rust rules
+verus-lint check    ->  build the user's rules crate (if configured)  ->  run the user's SQL rules and Rust rules
                     ->  apply config levels and the ratchet baseline  ->  text / JSON / SARIF
 ```
 
@@ -197,6 +201,11 @@ per-crate Parquet files in under a second.
 
 ## 5. SQL rules
 
+The tool ships no rules. The examples in this section and the files under
+`examples/rules/` show the format and the available mechanisms; a user
+copies what they need into their own repository and lists the directory under
+`[rules] dirs`.
+
 A SQL rule is one `.sql` file with a comment header and one `SELECT`.
 
 ```sql
@@ -312,8 +321,7 @@ fn main() -> std::process::ExitCode {
 `verus-lint check` runs `cargo build --release --manifest-path lints/Cargo.toml`
 and executes the result with the database path and resolved config. Without a
 `lints/` crate it runs its own binary, which is `verus_lint::run(&[])`. `run`
-always includes the built-in rules and the SQL rule directories, so a user
-crate only adds rules. No dynamic libraries are loaded.
+also loads the SQL rule directories from the config; no rules are built in. No dynamic libraries are loaded.
 
 API:
 
@@ -409,7 +417,7 @@ pins = ["tools/pins/*.pin"]             # API pin files, one function path or fr
                                         # not roots: listed items are reported as "unused public API"
 
 [rules]
-dirs = ["lints/sql"]                    # SQL rule directories, in addition to built-ins
+dirs = ["lints/sql"]                    # SQL rule directories (the tool has no built-in rules)
 rust = "lints"                          # Rust rule crate; omitted if absent
 
 [rules.levels]                          # off, note, warn, gate
@@ -469,11 +477,17 @@ one thread; `--no-verify` extraction takes about 42 s of Verus time.
 | --- | --- |
 | Parse and load all logs, cold cache | under 10 s on 8 cores, under 2 GB memory |
 | Load from Parquet cache, nothing changed | under 1 s |
-| All built-in SQL and Rust rules | under 5 s total; any single rule under 1 s |
+| The example SQL and Rust rules | under 5 s total; any single rule under 1 s |
 | `check` after a one-crate change | Verus `--no-verify` time of that crate and its dependents plus 5 s |
 | Logging overhead in a verify run | under 5% of Verus time (measured 1.8%) |
 
-## 10. Built-in rules
+## 10. Example lints
+
+These are sample rules, kept under `examples/` (SQL files now, an example Rust
+rules crate with the SDK in phase 4). They are documentation and test input,
+not part of the tool. The mechanisms they rely on are in the tool: the
+`roots`, `graph_edges` and `live_nodes` views, `dead_scc`, `[roots]`
+patterns and pins, the baseline ratchets.
 
 | Rule id | What it reports |
 | --- | --- |
@@ -494,14 +508,18 @@ one thread; `--no-verify` extraction takes about 42 s of Verus time.
 | `verus/trusted-inventory` | Every `assume`, `admit`, `external_body`, `external_fn`, `assume_specification` and broadcast axiom, with a count per crate (a set ratchet keeps the trusted surface from growing silently) |
 | `verus/extraction-health` | Unjoined verification rows, unresolved `broadcast use` names, crates without logs |
 
-## 11. Coral's Python tools as rules
+## 11. Coral's Python tools as Coral-owned rules
+
+Coral rewrites these as rules in its own tree (`coral/lints/`), written against
+the schema; they may start from the examples but never reference them. Tool
+mechanisms they need (roots, SCCs, baselines) are in verus-lint.
 
 | Tool | Becomes | Notes |
 | --- | --- | --- |
-| `tools/fanin.py` (syntactic mode) | `verus/fanin-open-spec`, `verus/fanin-reveal` | Exact paths replace import-evidence matching, so the `amb` column and the method and trait-impl blind spots go away. `--compare` becomes the metric ratchet. `--detail NAME` becomes `verus-lint query fanin --entity NAME`. The semantic mode (close a definition, re-verify) stays a separate experiment driver; the rule's count is the input to it. |
+| `tools/fanin.py` (syntactic mode) | Coral rules like `examples/rules/fanin-*.sql` | Exact paths replace import-evidence matching, so the `amb` column and the method and trait-impl blind spots go away. `--compare` becomes the metric ratchet. `--detail NAME` becomes `verus-lint query fanin --entity NAME`. The semantic mode (close a definition, re-verify) stays a separate experiment driver; the rule's count is the input to it. |
 | `tools/provenance_sites.py` | A Coral SQL rule in `lints/sql/` plus a small table of the old-form names and the path to phase buckets | Counts uses (and source lines) naming each listed fact, bucketed by caller path. Uses replace grep, so comments and strings no longer need special handling. Its phase table is Coral data, not core. |
 | `tools/budget.py` | `verus/rlimit-headroom`, `verus/rlimit-function`, `verus/rlimit-module`, `verus/seed-instability`, `verus/hotspot-growth`, `verus/spinoff-candidate` | `baseline.json` and `rlimit_exceptions.txt` become the baseline file and per-entity param overrides. `--run` becomes `verus-lint verify`. |
-| `tools/dead_fns.py` (also present) | `verus/dead-proof-code` | Its `ROOTS` list moves to `[roots]`; name merging across modules disappears. |
+| `tools/dead_fns.py` (also present) | A Coral rule like `examples/rules/dead-proof-code.sql` | Its `ROOTS` list moves to `[roots]` in Coral's config; name merging across modules disappears. |
 
 ## 12. Risks and open questions
 
@@ -558,14 +576,14 @@ Estimates are agent hours.
 
 | Phase | Content | Hours |
 | --- | --- | --- |
-| 1 | Workspace (`verus-lint` core, CLI, SDK in one crate to start); version table and check; streaming parser to `functions` and `uses`; DuckDB load; `extract` driving `./coral/verify` per crate; SQL runner with header parsing; `verus/fanin-open-spec` and `verus/fanin-reveal`. Ends with a run on Coral (llm-eq, read-only) whose top fan-in table is compared to `fanin.py --top 20`, with every difference explained. | 1.5 |
-| 2 | Remaining static facts: `quantifiers`, `trusted`, `trait_impls`, module `broadcast use` scan; fixture crate and parser fixture tests; `verus/quantifier-auto-trigger`, `verus/trusted-inventory`, `verus/trait-spec-default`. | 1.5 |
-| 3 | Roots config, `roots` view, `verus/dead-proof-code` in SQL and Rust (with SCC grouping); compare against `dead_fns.py` on Coral. | 1.0 |
-| 4 | Rust SDK surface (`Facts`, `Graph`, `Rule`, `Findings`, `run`), `lints/` crate build and execution by the CLI, one example user rule. | 1.5 |
-| 5 | Dynamic facts: `verify` command, report ingestion, friendly-name join, seeds; `verus/rlimit-*`, `verus/seed-instability`, `verus/hotspot-growth`, `verus/spinoff-candidate`; compare with `budget.py` on Coral. | 1.5 |
+| 1 | Workspace (`verus-lint` core, CLI, SDK in one crate to start); version table and check; streaming parser to `functions` and `uses`; DuckDB load; `extract` driving `./coral/verify` per crate; SQL runner with header parsing; example lints `fanin-open-spec` and `fanin-reveal`. Ends with a run on Coral (llm-eq, read-only) whose top fan-in table is compared to `fanin.py --top 20`, with every difference explained. | 1.5 |
+| 2 | Remaining static facts: `quantifiers`, `trusted`, `trait_impls`, module `broadcast use` scan; fixture crate and parser fixture tests; example lints `quantifier-auto-trigger`, `trusted-inventory`, `trait-spec-default`. | 1.5 |
+| 3 | Mechanisms: roots config, `roots`, `graph_edges` and `live_nodes` views, SCCs (`dead_scc`, later an SDK `Graph::sccs`); example lint `dead-proof-code` in SQL; compare against `dead_fns.py` on Coral. | 1.0 |
+| 4 | Rust SDK surface (`Facts`, `Graph`, `Rule`, `Findings`, `run`), `lints/` crate build and execution by the CLI, one example user rules crate under `examples/`. | 1.5 |
+| 5 | Dynamic facts: `verify` command, report ingestion, friendly-name join, seeds; example lints for rlimit, seed instability, hotspot growth and spinoff candidates; compare with `budget.py` on Coral. | 1.5 |
 | 6 | Config levels, baseline file, set and metric ratchets, `--update-baseline`; text, JSON and SARIF output; exit statuses. | 1.5 |
-| 7 | Caching by input hash with Parquet, parallel parse, performance targets measured on Coral; `verus/extraction-health`. | 1.0 |
-| 8 | Second codebase (a public Verus project, for example a vstd-only example crate set or a published Verus verification project) to check genericity; docs; Coral `provenance_sites` rule as a worked example of a project rule. | 1.0 |
+| 7 | Caching by input hash with Parquet, parallel parse, performance targets measured on Coral; extraction-health facts (unjoined rows, unresolved names) as a view. | 1.0 |
+| 8 | Second codebase (a public Verus project, for example a vstd-only example crate set or a published Verus verification project) to check genericity; docs; Coral's own `provenance_sites` rule, in Coral's tree, as a worked project rule. | 1.0 |
 
 Total: about 10.5 agent hours.
 
@@ -625,3 +643,10 @@ crates outside the extraction) or share a name with an unrelated item (it
 merges by name; for example `numel` and `in_range` are also used elsewhere). `dead_fns.py` pinned names are live; ours are reported in the
 separate API category (229). `arrow_*` field accessors were 662 of the first
 run's 1,437 findings and are now excluded.
+
+Design change (2026-10-06): the tool contains no rules. The `verus/...` rules
+written in phases 1 to 3 moved from `rules/` to `examples/rules/`; `check`
+loads only directories given by `--rules` or `[rules] dirs`, and prints a hint
+when there are none. The Rust types behind `rules::examples()` are used by tests
+only. `roots`, `graph_edges`, `live_nodes` and `dead_scc` stay in the tool as
+mechanisms so a user can write the dead-code rule themselves.

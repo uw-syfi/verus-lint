@@ -31,10 +31,18 @@ pub struct RootsCfg {
 }
 
 #[derive(Debug, Default, Clone, Deserialize)]
+#[serde(default, deny_unknown_fields)]
+pub struct RulesCfg {
+    /// Directories of SQL rules, relative to the workspace. No rules are built in.
+    pub dirs: Vec<String>,
+}
+
+#[derive(Debug, Default, Clone, Deserialize)]
 #[serde(default)]
 pub struct Config {
     pub extract: ExtractCfg,
     pub roots: RootsCfg,
+    pub rules: RulesCfg,
 }
 
 impl Config {
@@ -92,11 +100,12 @@ mod tests {
     #[test]
     fn parses_sections() {
         let c = Config::parse(
-            "[extract]\ntoolchain=[\"./v\"]\nexclude=[\"sea-lion-cuda-sys\"]\n[roots]\npatterns=[\"*::neg_*\"]\n[rules]\ndirs=[\"x\"]\n",
+            "[extract]\ntoolchain=[\"./v\"]\nexclude=[\"sea-lion-cuda-sys\"]\n[roots]\npatterns=[\"*::neg_*\"]\n[rules]\ndirs=[\"x\"]\n[baseline]\nfile=\"b.json\"\n",
         )
         .unwrap();
         assert_eq!(c.extract.exclude, ["sea-lion-cuda-sys"]);
         assert_eq!(c.roots.patterns, ["*::neg_*"]);
+        assert_eq!(c.rules.dirs, ["x"]);
         assert!(Config::parse("[extract]\nbogus=1\n").is_err());
     }
 }

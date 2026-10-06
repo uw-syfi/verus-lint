@@ -34,42 +34,10 @@ pub struct Finding {
     pub props: BTreeMap<String, String>,
 }
 
-const BUILTIN: &[(&str, &str)] = &[
-    (
-        "fanin-open-spec.sql",
-        include_str!("../rules/fanin-open-spec.sql"),
-    ),
-    (
-        "fanin-reveal.sql",
-        include_str!("../rules/fanin-reveal.sql"),
-    ),
-    (
-        "quantifier-auto-trigger.sql",
-        include_str!("../rules/quantifier-auto-trigger.sql"),
-    ),
-    (
-        "trusted-inventory.sql",
-        include_str!("../rules/trusted-inventory.sql"),
-    ),
-    (
-        "dead-proof-code.sql",
-        include_str!("../rules/dead-proof-code.sql"),
-    ),
-    (
-        "unused-public-api.sql",
-        include_str!("../rules/unused-public-api.sql"),
-    ),
-    (
-        "trait-spec-default.sql",
-        include_str!("../rules/trait-spec-default.sql"),
-    ),
-];
-
-pub fn builtin() -> Result<Vec<Rule>> {
-    BUILTIN
-        .iter()
-        .map(|(n, t)| parse_rule(t).with_context(|| format!("built-in rule {n}")))
-        .collect()
+/// The example rules shipped in `examples/rules` (for tests and documentation; the tool
+/// itself loads no rules unless a directory is given).
+pub fn examples() -> Result<Vec<Rule>> {
+    load_dir(&Path::new(env!("CARGO_MANIFEST_DIR")).join("examples/rules"))
 }
 
 /// Load all `*.sql` files of a directory, sorted by name.
@@ -296,18 +264,18 @@ mod tests {
     }
 
     #[test]
-    fn builtins_parse() {
-        let rs = builtin().unwrap();
+    fn examples_parse() {
+        let rs = examples().unwrap();
         assert_eq!(
             rs.iter().map(|r| r.id.as_str()).collect::<Vec<_>>(),
             [
+                "verus/dead-proof-code",
                 "verus/fanin-open-spec",
                 "verus/fanin-reveal",
                 "verus/quantifier-auto-trigger",
+                "verus/trait-spec-default",
                 "verus/trusted-inventory",
-                "verus/dead-proof-code",
-                "verus/unused-public-api",
-                "verus/trait-spec-default"
+                "verus/unused-public-api"
             ]
         );
     }
@@ -331,7 +299,11 @@ mod tests {
     #[test]
     fn fanin_rules_on_fixture() {
         let db = fixture_db();
-        let rules = builtin().unwrap();
+        let rules: Vec<_> = examples()
+            .unwrap()
+            .into_iter()
+            .filter(|r| r.id.starts_with("verus/fanin"))
+            .collect();
         let ov = BTreeMap::from([("min_fns".to_string(), "1".to_string())]);
         let open = run_rule(&db.conn, &rules[0], &ov).unwrap();
         assert_eq!(open.len(), 1);

@@ -117,7 +117,7 @@ fn group_members_from_source_scan() {
 }
 
 fn run(db: &Db, id: &str) -> Vec<verus_lint::rules::Finding> {
-    let rule = verus_lint::rules::builtin()
+    let rule = verus_lint::rules::examples()
         .unwrap()
         .into_iter()
         .find(|r| r.id == id)
