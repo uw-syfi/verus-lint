@@ -19,6 +19,8 @@ pub struct Options {
     pub toolchain: Vec<String>,
     /// Restrict to these crates (package names); empty means all verified members.
     pub crates: Vec<String>,
+    /// Cargo target directory for the extraction builds (default: the toolchain's own).
+    pub target_dir: Option<PathBuf>,
     /// Reuse an existing log instead of running Verus.
     pub reuse_logs: bool,
 }
@@ -100,21 +102,20 @@ fn cargo_metadata(ws: &Path) -> Result<String> {
     Ok(String::from_utf8_lossy(&out.stdout).into_owned())
 }
 
-/// Arguments after the toolchain prefix for one crate's extraction run.
-pub fn verus_args(krate: &str, log_dir: &Path) -> Vec<String> {
-    let mut a: Vec<String> = [
-        "cargo",
-        "verus",
-        "build",
-        "-p",
-        krate,
-        "--fwd-verus-args-to",
-        "roots",
-        "--",
-    ]
-    .iter()
-    .map(|s| s.to_string())
-    .collect();
+/// `cargo verus build` arguments for one crate's extraction run (after the toolchain prefix).
+pub fn verus_args(krate: &str, log_dir: &Path, target_dir: Option<&Path>) -> Vec<String> {
+    let mut a: Vec<String> = ["cargo", "verus", "build", "-p", krate]
+        .iter()
+        .map(|s| s.to_string())
+        .collect();
+    if let Some(t) = target_dir {
+        a.extend(["--target-dir".to_string(), t.display().to_string()]);
+    }
+    a.extend(
+        ["--fwd-verus-args-to", "roots", "--"]
+            .iter()
+            .map(|s| s.to_string()),
+    );
     a.extend(
         [
             "--no-verify",
@@ -129,6 +130,26 @@ pub fn verus_args(krate: &str, log_dir: &Path) -> Vec<String> {
     );
     a.push(log_dir.display().to_string());
     a
+}
+
+pub fn clean_args(krate: &str, target_dir: Option<&Path>) -> Vec<String> {
+    let mut a: Vec<String> = ["cargo", "clean", "-p", krate]
+        .iter()
+        .map(|s| s.to_string())
+        .collect();
+    if let Some(t) = target_dir {
+        a.extend(["--target-dir".to_string(), t.display().to_string()]);
+    }
+    a
+}
+
+/// `<toolchain prefix> <args>`; without a prefix the first argument is the program.
+fn toolchain_command(toolchain: &[String], args: Vec<String>) -> Command {
+    let mut all: Vec<String> = toolchain.to_vec();
+    all.extend(args);
+    let mut c = Command::new(&all[0]);
+    c.args(&all[1..]);
+    c
 }
 
 fn git(ws: &Path, args: &[&str]) -> Option<String> {
@@ -208,19 +229,22 @@ pub fn extract(o: &Options) -> Result<Summary> {
         let vir = log_dir.join("crate.vir");
         if !(o.reuse_logs && vir.exists()) {
             let t = Instant::now();
-            let mut cmd = match o.toolchain.split_first() {
-                Some((p, rest)) => {
-                    let mut c = Command::new(p);
-                    c.args(rest);
-                    c
-                }
-                None => Command::new("cargo"),
-            };
-            if o.toolchain.is_empty() {
-                cmd.args(&verus_args(&m.name, &log_dir)[1..]);
-            } else {
-                cmd.args(verus_args(&m.name, &log_dir));
+            // Cargo treats a root crate as fresh when only the forwarded Verus
+            // arguments changed, which would leave no log; clean it first.
+            let mut clean =
+                toolchain_command(&o.toolchain, clean_args(&m.name, o.target_dir.as_deref()));
+            eprintln!("extract {}: cargo clean -p {}", m.name, m.name);
+            let st = clean
+                .current_dir(&ws)
+                .status()
+                .with_context(|| format!("cleaning {}", m.name))?;
+            if !st.success() {
+                bail!("cargo clean failed for crate {} ({st})", m.name);
             }
+            let mut cmd = toolchain_command(
+                &o.toolchain,
+                verus_args(&m.name, &log_dir, o.target_dir.as_deref()),
+            );
             eprintln!("extract {}: running Verus --no-verify", m.name);
             let st = cmd
                 .current_dir(&ws)
@@ -230,6 +254,9 @@ pub fn extract(o: &Options) -> Result<Summary> {
                 bail!("Verus failed for crate {} ({st})", m.name);
             }
             verus_s += t.elapsed().as_secs_f64();
+            if !vir.exists() {
+                bail!("Verus wrote no {} for crate {}", vir.display(), m.name);
+            }
             std::fs::write(
                 log_dir.join("version.json"),
                 format!(
@@ -339,7 +366,7 @@ mod tests {
 
     #[test]
     fn per_crate_log_dir_args() {
-        let a = verus_args("c", Path::new("/o/c/log"));
+        let a = verus_args("c", Path::new("/o/c/log"), None);
         let s = a.join(" ");
         assert!(s.contains("-p c --fwd-verus-args-to roots -- --no-verify --log vir --log impl-names --log-dir /o/c/log"));
     }

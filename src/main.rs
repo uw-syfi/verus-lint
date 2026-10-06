@@ -26,6 +26,9 @@ struct ExtractArgs {
     /// Extract only this package (repeatable); default: all verified members.
     #[arg(long = "crate")]
     crates: Vec<String>,
+    /// Cargo target directory for the extraction builds.
+    #[arg(long)]
+    target_dir: Option<PathBuf>,
     /// Reuse existing per-crate logs instead of running Verus.
     #[arg(long)]
     reuse_logs: bool,
@@ -71,6 +74,7 @@ fn do_extract(a: &ExtractArgs) -> Result<PathBuf> {
         out: a.out.clone(),
         toolchain: a.toolchain.split_whitespace().map(String::from).collect(),
         crates: a.crates.clone(),
+        target_dir: a.target_dir.clone(),
         reuse_logs: a.reuse_logs,
     })?;
     eprintln!(
