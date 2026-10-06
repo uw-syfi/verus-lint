@@ -384,7 +384,12 @@ mod tests {
                 "verus/extraction-health",
                 "verus/fanin-open-spec",
                 "verus/fanin-reveal",
+                "verus/hotspot-growth",
                 "verus/quantifier-auto-trigger",
+                "verus/rlimit-headroom",
+                "verus/rlimit-hotspot",
+                "verus/seed-instability",
+                "verus/spinoff-candidate",
                 "verus/trait-spec-default",
                 "verus/trusted-inventory",
                 "verus/unused-public-api"

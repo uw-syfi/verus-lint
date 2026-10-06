@@ -144,14 +144,15 @@ pub struct Ingested {
     pub modules: usize,
 }
 
-fn id_map(db: &Db, column: &str, krate: &str) -> Result<HashMap<String, Vec<i64>>> {
+/// `column` value to the `(fn_id, module)` of each function of the crate that has it.
+fn id_map(db: &Db, column: &str, krate: &str) -> Result<HashMap<String, Vec<(i64, String)>>> {
     let mut stmt = db.conn.prepare(&format!(
-        "SELECT {column}, fn_id FROM functions WHERE crate = ? ORDER BY fn_id"
+        "SELECT {column}, fn_id, module FROM functions WHERE crate = ? ORDER BY fn_id"
     ))?;
     let mut rows = stmt.query(params![krate])?;
-    let mut m: HashMap<String, Vec<i64>> = HashMap::new();
+    let mut m: HashMap<String, Vec<(i64, String)>> = HashMap::new();
     while let Some(r) = rows.next()? {
-        m.entry(r.get(0)?).or_default().push(r.get(1)?);
+        m.entry(r.get(0)?).or_default().push((r.get(1)?, r.get(2)?));
     }
     Ok(m)
 }
@@ -227,19 +228,21 @@ fn insert_functions(db: &Db, obj: &Value, info: &RunInfo, out: &mut Ingested) ->
         let Some(name) = f["function"].as_str() else {
             continue;
         };
-        let ids = by_friendly
+        let mut ids: Vec<&(i64, String)> = by_friendly
             .get(name)
             .or_else(|| by_path.get(name))
-            .map_or(&[][..], Vec::as_slice);
-        let fn_id = (ids.len() == 1).then(|| ids[0]);
+            .map_or_else(Vec::new, |v| v.iter().collect());
+        let candidates = ids.len();
+        if candidates > 1 {
+            // Two impls of one type print the same name; the report says which module owns each.
+            let module = qualify(&info.krate, module);
+            ids.retain(|(_, m)| *m == module);
+        }
+        let fn_id = (ids.len() == 1).then(|| ids[0].0);
         out.functions += 1;
-        match ids.len() {
-            0 => out.unjoined += 1,
-            1 => {}
-            _ => {
-                out.unjoined += 1;
-                out.ambiguous += 1;
-            }
+        if fn_id.is_none() {
+            out.unjoined += 1;
+            out.ambiguous += usize::from(candidates > 1);
         }
         // Verus spells the key "mode:" (with the colon) in this release.
         let mode = f["mode:"].as_str().or_else(|| f["mode"].as_str());
@@ -618,6 +621,97 @@ mod tests {
             .unwrap();
         let v = db.query_rows("SELECT rlimit FROM verify_latest").unwrap();
         assert_eq!(v[1][0], "300");
+    }
+
+    #[test]
+    fn same_name_in_two_modules_joins_by_module() {
+        let db = db();
+        for (id, m) in [(100, "mini::a"), (101, "mini::b"), (102, "mini::b")] {
+            db.conn
+                .execute(
+                    "INSERT INTO functions (fn_id, path, friendly, crate, module) VALUES (?, ?, 'mini::T::f', 'mini', ?)",
+                    params![id, format!("{m}::impl&%{id}::f"), m],
+                )
+                .unwrap();
+        }
+        let text = r#"{"times-ms":{"smt":{"smt-run-module-times":[
+          {"module":"a","rlimit":1,"function-breakdown":[{"function":"mini::T::f","mode:":"exec","rlimit":7,"time-micros":1,"success":true}]},
+          {"module":"b","rlimit":1,"function-breakdown":[{"function":"mini::T::f","mode:":"exec","rlimit":8,"time-micros":1,"success":true}]}]}},
+          "verus":{"version":"0.2026.07.18.3a4d30b","commit":"3a4d30bcdc4571e7927af97be9c4664973083eda"}}"#;
+        let objs = parse_reports(text).unwrap();
+        let n = ingest(&db, &objs[0], &info(None)).unwrap();
+        assert_eq!((n.functions, n.unjoined, n.ambiguous), (2, 1, 1));
+        let r = db
+            .query_rows("SELECT rlimit, fn_id FROM verify_fn ORDER BY rlimit")
+            .unwrap();
+        assert_eq!(r[1], ["7", "100"]);
+        assert_eq!(r[2], ["8", ""], "two functions in module b share the name");
+    }
+
+    #[test]
+    fn example_rules_read_the_dynamic_tables() {
+        use std::collections::BTreeMap;
+        let db = db();
+        // lemma_u: 100k..3.5M across seeds; open_a: cheap, fails under seed 2.
+        for (seed, lemma, open, ok) in [
+            (None, 4_000_000, 20, true),
+            (Some(1), 100_000, 20, true),
+            (Some(2), 3_500_000, 20, false),
+        ] {
+            let text = report(
+                OK_COMMIT,
+                &[
+                    ("mini::n::lemma_u", "proof", lemma, true),
+                    ("mini::m::open_a", "spec", open, ok),
+                ],
+            );
+            let objs = parse_reports(&text).unwrap();
+            ingest(
+                &db,
+                select_crate_report(&objs, "mini").unwrap(),
+                &info(seed),
+            )
+            .unwrap();
+        }
+        let run = |id: &str| {
+            let r = crate::rules::examples()
+                .unwrap()
+                .into_iter()
+                .find(|r| r.id == id)
+                .unwrap();
+            crate::rules::run_rule(&db.conn, &r, &BTreeMap::new()).unwrap()
+        };
+        // Default run: lemma_u 4M (40% of the budget, under warn_pct) and spinoff-worthy.
+        assert!(run("verus/rlimit-headroom").is_empty());
+        let hot = run("verus/rlimit-hotspot");
+        assert_eq!(
+            hot.iter().map(|f| f.entity.as_str()).collect::<Vec<_>>(),
+            ["mini::n::lemma_u"]
+        );
+        let spin = run("verus/spinoff-candidate");
+        assert_eq!((spin.len(), spin[0].metric), (1, Some(4_000_000.0)));
+        let seeds = run("verus/seed-instability");
+        assert_eq!(seeds.len(), 2);
+        assert!(
+            seeds
+                .iter()
+                .any(|f| f.entity == "mini::m::open_a" && f.severity == "error")
+        );
+        assert!(
+            seeds
+                .iter()
+                .any(|f| f.entity == "mini::n::lemma_u" && f.message.contains("40.0x"))
+        );
+        assert_eq!(run("verus/hotspot-growth").len(), 1);
+        let low = crate::rules::examples()
+            .unwrap()
+            .into_iter()
+            .find(|r| r.id == "verus/rlimit-headroom")
+            .unwrap();
+        let ov = BTreeMap::from([("warn_pct".to_string(), "30".to_string())]);
+        let head = crate::rules::run_rule(&db.conn, &low, &ov).unwrap();
+        assert_eq!(head.len(), 1);
+        assert_eq!(head[0].severity, "warning");
     }
 
     #[test]
