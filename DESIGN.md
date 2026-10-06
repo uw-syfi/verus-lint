@@ -442,7 +442,7 @@ Compiler-generated `arrow_*` field accessors are never reported.
 [extract]
 toolchain = ["./verify"]          # command prefix for cargo verus; default none
 crates = ["crates/**"]            # members to extract (package names or manifest directory globs); default all verified members
-exclude = ["sea-lion-cuda-sys"]        # verify = true members Verus cannot build
+exclude = ["my-cuda-sys"]        # verify = true members Verus cannot build
 
 [roots]
 patterns = ["theorem_*", "neg_*", "fixture_*"]   # bare names; with `::` the pattern matches the path

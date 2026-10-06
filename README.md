@@ -43,7 +43,7 @@ stays short:
 [extract]
 toolchain = ["./verify"]        # command prefix for `cargo verus`
 crates = ["crates/**"]          # package names or manifest-directory globs
-exclude = ["sea-lion-cuda-sys"]       # verified members Verus cannot build
+exclude = ["my-cuda-sys"]       # verified members Verus cannot build
 
 [roots]                               # live by definition, for dead-code rules
 patterns = ["theorem_*", "neg_*"]     # bare name globs; with `::` they match paths

@@ -238,10 +238,10 @@ mod tests {
     #[test]
     fn parses_sections() {
         let c = Config::parse(
-            "[extract]\ntoolchain=[\"./v\"]\nexclude=[\"sea-lion-cuda-sys\"]\n[roots]\npatterns=[\"*::neg_*\"]\n[rules]\ndirs=[\"x\"]\n[baseline]\nfile=\"b.json\"\n",
+            "[extract]\ntoolchain=[\"./v\"]\nexclude=[\"my-cuda-sys\"]\n[roots]\npatterns=[\"*::neg_*\"]\n[rules]\ndirs=[\"x\"]\n[baseline]\nfile=\"b.json\"\n",
         )
         .unwrap();
-        assert_eq!(c.extract.exclude, ["sea-lion-cuda-sys"]);
+        assert_eq!(c.extract.exclude, ["my-cuda-sys"]);
         assert_eq!(c.roots.patterns, ["*::neg_*"]);
         assert_eq!(c.rules.dirs, ["x"]);
         assert!(Config::parse("[extract]\nbogus=1\n").is_err());
