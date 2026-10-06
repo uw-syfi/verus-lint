@@ -70,31 +70,38 @@ fn blank(src: &str) -> String {
 /// Names of one `broadcast use` item body (text between `use` and `;`):
 /// `a::b::c`, `{a::b, c::d}`, `a::{b, c}`.
 fn expand(body: &str) -> Vec<String> {
+    fn split_top(s: &str) -> Vec<&str> {
+        let (mut depth, mut start, mut parts) = (0, 0, Vec::new());
+        for (i, c) in s.char_indices() {
+            match c {
+                '{' => depth += 1,
+                '}' => depth -= 1,
+                ',' if depth == 0 => {
+                    parts.push(&s[start..i]);
+                    start = i + 1;
+                }
+                _ => {}
+            }
+        }
+        parts.push(&s[start..]);
+        parts
+    }
     fn rec(prefix: &str, s: &str, out: &mut Vec<String>) {
         let s = s.trim();
         if let Some(open) = s.find('{') {
             let close = s.rfind('}').unwrap_or(s.len());
             let pre = format!("{prefix}{}", s[..open].trim());
-            let inner = &s[open + 1..close];
-            let (mut depth, mut start) = (0, 0);
-            for (i, c) in inner.char_indices() {
-                match c {
-                    '{' => depth += 1,
-                    '}' => depth -= 1,
-                    ',' if depth == 0 => {
-                        rec(&pre, &inner[start..i], out);
-                        start = i + 1;
-                    }
-                    _ => {}
-                }
+            for part in split_top(&s[open + 1..close]) {
+                rec(&pre, part, out);
             }
-            rec(&pre, &inner[start..], out);
         } else if !s.is_empty() {
             out.push(format!("{prefix}{s}"));
         }
     }
     let mut out = Vec::new();
-    rec("", body, &mut out);
+    for part in split_top(body) {
+        rec("", part, &mut out);
+    }
     out.into_iter()
         .map(|p| p.split_whitespace().collect::<String>())
         .collect()
@@ -192,6 +199,11 @@ mod tests {
         assert_eq!(expand(" vstd::a::b "), ["vstd::a::b"]);
         assert_eq!(expand(" {vstd::a::b, x::y}"), ["vstd::a::b", "x::y"]);
         assert_eq!(expand(" vstd::{a::b,\n c}"), ["vstd::a::b", "vstd::c"]);
+        assert_eq!(
+            expand(" vstd::a::b, vstd::c::d"),
+            ["vstd::a::b", "vstd::c::d"]
+        );
+        assert_eq!(expand(" {x::{y, z}, w}"), ["x::y", "x::z", "w"]);
     }
 
     #[test]
