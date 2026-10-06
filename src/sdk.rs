@@ -366,6 +366,7 @@ pub struct Facts {
     from: HashMap<FnId, Vec<usize>>,
     of: HashMap<FnId, Vec<usize>>,
     roots: Vec<FnId>,
+    live: FnSet,
 }
 
 impl Facts {
@@ -437,6 +438,16 @@ impl Facts {
             }
             v
         };
+        let live: FnSet = {
+            let mut st = conn
+                .prepare("SELECT f.fn_id FROM live_nodes l JOIN functions f ON f.path = l.path")?;
+            let mut rows = st.query([])?;
+            let mut v = FnSet::new();
+            while let Some(r) = rows.next()? {
+                v.insert(FnId(r.get(0)?));
+            }
+            v
+        };
         let by_id = functions
             .iter()
             .enumerate()
@@ -464,6 +475,7 @@ impl Facts {
             from,
             of,
             roots,
+            live,
         })
     }
 
@@ -518,6 +530,14 @@ impl Facts {
     #[must_use]
     pub fn roots(&self) -> &[FnId] {
         &self.roots
+    }
+
+    /// Functions reachable from the roots over the full dependency graph (the `live_nodes`
+    /// view): uses of every kind, modules' `broadcast use` items, group membership and
+    /// trait-method dispatch. [`Graph::reachable`] over [`Facts::graph`] sees only use edges.
+    #[must_use]
+    pub const fn live(&self) -> &FnSet {
+        &self.live
     }
 
     /// Graph over functions with an edge for every resolved use that `keep` accepts.
@@ -741,6 +761,7 @@ mod tests {
         let g = f.graph(|u| u.kind == UseKind::Call);
         assert_eq!(g.callers(open.id), callers);
         assert!(g.reachable(&callers).contains(&open.id));
+        assert!(f.roots().iter().all(|r| f.live().contains(r)));
         let comps = g.sccs();
         assert_eq!(comps.iter().map(Vec::len).sum::<usize>(), 4);
     }
