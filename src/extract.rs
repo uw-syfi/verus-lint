@@ -360,19 +360,71 @@ pub fn extract(o: &Options) -> Result<Summary> {
     })
 }
 
-/// Module-level `broadcast use` from a scan of the crate's source files.
-fn scan_module_uses(db: &Db, ws: &Path, facts: &crate::vir::CrateFacts) -> Result<()> {
-    use crate::scan::{candidates, scan_file};
-    let files: BTreeSet<&str> = facts.functions.iter().map(|f| f.file.as_str()).collect();
+/// `.rs` files under the crate's `src` directory, as workspace-relative paths.
+fn crate_sources(ws: &Path, manifest: &str) -> Vec<String> {
+    let dir = ws.join(manifest).parent().map(|d| d.join("src"));
+    let mut out = Vec::new();
+    let mut stack: Vec<PathBuf> = dir.into_iter().collect();
+    while let Some(p) = stack.pop() {
+        let Ok(rd) = std::fs::read_dir(&p) else {
+            continue;
+        };
+        for e in rd.filter_map(std::result::Result::ok) {
+            let q = e.path();
+            if q.is_dir() {
+                stack.push(q);
+            } else if q.extension().is_some_and(|x| x == "rs")
+                && let Ok(rel) = q.strip_prefix(ws)
+            {
+                out.push(rel.display().to_string());
+            }
+        }
+    }
+    out.sort();
+    out
+}
+
+/// Module-level `broadcast use` and `broadcast group` items, and feature gates, from a scan of
+/// the crate's source files, including files that hold no function (their groups and gates
+/// matter; a module-level `broadcast use` there has no known module and is only noted).
+fn scan_module_uses(
+    db: &Db,
+    ws: &Path,
+    manifest: &str,
+    facts: &crate::vir::CrateFacts,
+) -> Result<()> {
+    use crate::scan::{candidates, scan_cfg_features, scan_file};
+    let with_fns: BTreeSet<&str> = facts.functions.iter().map(|f| f.file.as_str()).collect();
+    let mut files: BTreeSet<String> = with_fns.iter().map(|f| (*f).to_string()).collect();
+    files.extend(crate_sources(ws, manifest));
     let fn_paths: BTreeSet<&str> = facts.functions.iter().map(|f| f.path.as_str()).collect();
-    for file in files {
+    for file in &files {
+        let file = file.as_str();
         let p = ws.join(file);
         let Ok(src) = std::fs::read_to_string(&p) else {
             db.warn(&facts.krate, "scan_unreadable_file", file)?;
             continue;
         };
+        for (line, text) in scan_cfg_features(&src) {
+            db.warn(
+                &facts.krate,
+                "feature_gated_item",
+                &format!("{file}:{line}: {text}"),
+            )?;
+        }
         scan_group_members(db, file, &src, facts, &fn_paths)?;
-        for u in scan_file(&src, file, facts) {
+        let uses = scan_file(&src, file, facts);
+        if !with_fns.contains(file) {
+            for u in uses {
+                db.warn(
+                    &facts.krate,
+                    "module_use_in_function_less_file",
+                    &format!("{file}:{}: {}", u.line, u.path),
+                )?;
+            }
+            continue;
+        }
+        for u in uses {
             let cands = candidates(&u.path, &u.module, &facts.krate);
             let own = |c: &String| fn_paths.contains(c.as_str()) || facts.groups.contains(c);
             let callee = if let Some(c) = cands.iter().find(|c| own(c)) {
@@ -423,7 +475,7 @@ pub fn load_crate_logs(
             log_bytes: vir_text.len() as u64,
         },
     )?;
-    scan_module_uses(db, ws, &facts)?;
+    scan_module_uses(db, ws, manifest, &facts)?;
     Ok(facts)
 }
 

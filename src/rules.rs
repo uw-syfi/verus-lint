@@ -306,6 +306,7 @@ mod tests {
             rs.iter().map(|r| r.id.as_str()).collect::<Vec<_>>(),
             [
                 "verus/dead-proof-code",
+                "verus/extraction-health",
                 "verus/fanin-open-spec",
                 "verus/fanin-reveal",
                 "verus/quantifier-auto-trigger",

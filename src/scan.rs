@@ -167,6 +167,26 @@ pub fn scan_file(src: &str, file: &str, facts: &CrateFacts) -> Vec<ScanUse> {
     out
 }
 
+/// Attribute lines that gate an item on a cargo feature (`#[cfg(feature = ..)]`, also inside
+/// `not(..)` and `any(..)`): `(line, trimmed source line)`.
+///
+/// Verus's log holds only the items of the one build it ran, so an item behind a feature the
+/// extraction did not enable is missing from the facts, and so are its references to other items.
+pub fn scan_cfg_features(src: &str) -> Vec<(u32, String)> {
+    let text = blank(src);
+    text.lines()
+        .zip(src.lines())
+        .enumerate()
+        .filter_map(|(i, (blanked, orig))| {
+            let b = blanked.trim_start();
+            ((b.starts_with("#[cfg(") || b.starts_with("#![cfg("))
+                && b.contains("feature")
+                && !b.contains("cfg_attr"))
+            .then(|| (to_u32(i).saturating_add(1), orig.trim().to_string()))
+        })
+        .collect()
+}
+
 #[derive(Debug, PartialEq, Eq)]
 pub struct ScanGroup {
     pub name: String,
@@ -294,6 +314,18 @@ mod tests {
                 "lemma_a",
                 "crate::m::lemma_b",
                 "vstd::seq::group_seq_lemmas"
+            ]
+        );
+    }
+
+    #[test]
+    fn finds_feature_gates() {
+        let src = "#[cfg(feature = \"neg_a\")]\nfn a() {}\n// #[cfg(feature = \"x\")]\n#[cfg(test)]\n  #[cfg(not(feature = \"b\"))]\nfn b() {}\n";
+        assert_eq!(
+            scan_cfg_features(src),
+            [
+                (1, "#[cfg(feature = \"neg_a\")]".to_string()),
+                (5, "#[cfg(not(feature = \"b\"))]".to_string())
             ]
         );
     }
