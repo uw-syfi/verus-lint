@@ -45,6 +45,8 @@ pub struct FunctionRow {
     pub trait_method: Option<String>,
     /// `#[verifier::type_invariant]` function: used implicitly by the verifier.
     pub type_invariant: bool,
+    /// Compiler-generated datatype field accessor (`arrow_Variant_0`): no source item to delete.
+    pub generated: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -528,6 +530,7 @@ fn parse_function(
     } else {
         None
     };
+    let generated = name.starts_with("arrow_") && path.contains("::impl&%") && mode == "spec";
     let has_proxy = f.get("proxy").is_some_and(|n| n.atom() != Some("None"));
     let row = FunctionRow {
         path: path.to_string(),
@@ -562,6 +565,7 @@ fn parse_function(
         has_default,
         trait_method,
         type_invariant: flag(&a, "is_type_invariant_fn"),
+        generated,
     };
     let caller = facts.functions.len();
     let mut edges = Vec::new();

@@ -207,3 +207,17 @@ fn dead_proof_code_roots_groups_and_dispatch() {
     assert!(pair.iter().all(|f| f.message.contains("dead cycle of 2")));
     assert_eq!(pair[0].props["scc"], pair[1].props["scc"]);
 }
+
+#[test]
+fn generated_accessors_are_not_dead_code() {
+    let db = fixture_db();
+    assert_eq!(
+        rows(
+            &db,
+            "SELECT name FROM functions WHERE generated ORDER BY name"
+        ),
+        ["arrow_0", "arrow_A_0", "arrow_B_w", "arrow_w"]
+    );
+    let dead = run(&db, "verus/dead-proof-code");
+    assert!(dead.iter().all(|f| !f.entity.contains("arrow_")));
+}

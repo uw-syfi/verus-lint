@@ -10,6 +10,6 @@ SELECT DISTINCT f.path AS entity, f.file, f.line,
        format('pinned {} fn {} is unreachable from every root', f.mode, f.friendly) AS message
 FROM api_pins p
 JOIN functions f ON f.fn_id = p.fn_id
-WHERE f.mode IN ('proof', 'spec')
+WHERE f.mode IN ('proof', 'spec') AND NOT f.generated
   AND f.path NOT IN (SELECT path FROM live_nodes)
 ORDER BY f.file, f.line;

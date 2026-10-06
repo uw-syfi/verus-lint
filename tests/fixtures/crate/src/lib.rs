@@ -64,6 +64,13 @@ pub mod tr {
     pub open spec fn use_shape<S: Shape>(s: S) -> int { s.twice() }
 }
 
+pub mod dt {
+    use vstd::prelude::*;
+
+    pub enum E { A(int), B { w: int } }
+    pub open spec fn e_val(e: E) -> int { match e { E::A(x) => x, E::B { w } => w } }
+}
+
 pub mod live {
     use vstd::prelude::*;
     use crate::q::*;

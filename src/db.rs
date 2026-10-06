@@ -115,7 +115,8 @@ impl Db {
                     r.n_ensures,
                     r.has_default,
                     r.trait_method,
-                    r.type_invariant
+                    r.type_invariant,
+                    r.generated
                 ])?;
             }
         }

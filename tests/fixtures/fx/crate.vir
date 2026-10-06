@@ -14,6 +14,16 @@
     (CtorPrintStyle Parens))
   ) :mode Exec :ext_equal false :user_defined_invariant_fn None :sized_constraint None :destructor false))
 
+(@ "src/lib.rs:70:5: 70:40 (#0)" (Datatype :name (Dt Path fx::dt::E) :proxy None :owning_module fx::dt :visibility (Visibility
+   :restricted_to None
+  ) :transparency (DatatypeTransparency WhenVisible (Visibility :restricted_to None)) :typ_params () :typ_bounds () :variants
+  (
+   (Variant :name "A" :fields ((-> 0 (tuple (Typ Int (IntRange Int)) Exec (Visibility :restricted_to None)))) :ctor_style (CtorPrintStyle
+     Parens))
+   (Variant :name "B" :fields ((-> w (tuple (Typ Int (IntRange Int)) Exec (Visibility :restricted_to None)))) :ctor_style (CtorPrintStyle
+     Braces))
+  ) :mode Exec :ext_equal false :user_defined_invariant_fn None :sized_constraint None :destructor false))
+
 (@ "/cargo/git/checkouts/verus-e4ebf515fa1de14c/3a4d30b/source/vstd/function.rs:135:1: 138:2 (#0)" (Function
   :name (Fun :path vstd::function::axiom_fn_mut_call_requires) :proxy None :kind (FunctionKind Static) :visibility (Visibility
    :restricted_to None
@@ -1086,10 +1096,203 @@
    ) (Typ Int (IntRange Int))
   ) :extra_dependencies () :async_ret None))
 
-(@ "src/lib.rs:71:5: 71:30 (#0)" (Function
+(@ "src/lib.rs:70:5: 70:36 (#0)" (Function
+  :name (Fun :path fx::dt::impl&%0::arrow_w) :proxy None :kind (FunctionKind Static) :visibility (Visibility :restricted_to
+   None
+  ) :body_visibility (BodyVisibility Visibility (Visibility :restricted_to None)) :opaqueness (Opaqueness Revealed :visibility
+   (Visibility :restricted_to None)
+  ) :owning_module fx::dt :mode Spec :typ_params () :typ_bounds () :params (
+   (@ "src/lib.rs:70:5: 70:40 (#0)" (Param :name (VarIdent "self" (VarIdentDisambiguate RustcId 2)) :typ (Typ Datatype (Dt Path
+       fx::dt::E
+      ) () ()
+     ) :mode Spec :user_mut false :unwrapped_info None))
+  ) :ret (@ "src/lib.rs:70:33: 70:36 (#0)" (Param :name (VarIdent "%return" (VarIdentDisambiguate AirLocal)) :typ (Typ Int (IntRange
+      Int)
+    ) :mode Spec :user_mut false :unwrapped_info None)
+  ) :ens_has_return true :require () :ensure (
+   tuple
+   ()
+   ()
+  ) :returns None :decrease () :decrease_when None :decrease_by None :fndef_axioms None :mask_spec None :atomic_update None
+  :unwind_spec None :item_kind (ItemKind Function) :attrs (FunctionAttrs :uses_ghost_blocks true :inline true :hidden () :broadcast_forall
+   false :broadcast_forall_only false :no_auto_trigger false :auto_ext_equal (AutoExtEqual :assert true :assert_by true :ensures
+    true :invariant true
+   ) :autospec None :bit_vector false :atomic false :integer_ring false :is_decrease_by false :check_recommends false :nonlinear
+   false :spinoff_prover false :memoize false :rlimit None :print_zero_args false :print_as_method true :prophecy_dependent
+   false :size_of_broadcast_proof false :is_type_invariant_fn false :is_external_body false :is_unsafe false :exec_assume_termination
+   false :exec_allows_no_decreases_clause false :tracked_swap false :tracked_take_option false :is_async false
+  ) :body (@@ "src/lib.rs:70:5: 70:40 (#0)" (> Block () (@@ "src/lib.rs:70:5: 70:40 (#0)" (> UnaryOpr (UnaryOpr Field (FieldOpr :datatype
+        (Dt Path fx::dt::E) :variant "B" :field "w" :get_variant true :check (VariantCheck None))
+      ) (@@ "src/lib.rs:70:5: 70:40 (#0)" (> ReadPlace (@@ "src/lib.rs:70:5: 70:40 (#0)" (Place Local (VarIdent "self" (VarIdentDisambiguate
+            RustcId 2))
+         ) (Typ Datatype (Dt Path fx::dt::E) () ())
+        ) (UnfinalizedReadKind :preliminary_kind (ReadKind Move) :id 29)
+       ) (Typ Datatype (Dt Path fx::dt::E) () ()))
+     ) (Typ Int (IntRange Int)))
+   ) (Typ Int (IntRange Int))
+  ) :extra_dependencies () :async_ret None))
+
+(@ "src/lib.rs:70:5: 70:23 (#0)" (Function
+  :name (Fun :path fx::dt::impl&%0::arrow_0) :proxy None :kind (FunctionKind Static) :visibility (Visibility :restricted_to
+   None
+  ) :body_visibility (BodyVisibility Visibility (Visibility :restricted_to None)) :opaqueness (Opaqueness Revealed :visibility
+   (Visibility :restricted_to None)
+  ) :owning_module fx::dt :mode Spec :typ_params () :typ_bounds () :params (
+   (@ "src/lib.rs:70:5: 70:40 (#0)" (Param :name (VarIdent "self" (VarIdentDisambiguate RustcId 2)) :typ (Typ Datatype (Dt Path
+       fx::dt::E
+      ) () ()
+     ) :mode Spec :user_mut false :unwrapped_info None))
+  ) :ret (@ "src/lib.rs:70:20: 70:23 (#0)" (Param :name (VarIdent "%return" (VarIdentDisambiguate AirLocal)) :typ (Typ Int (IntRange
+      Int)
+    ) :mode Spec :user_mut false :unwrapped_info None)
+  ) :ens_has_return true :require () :ensure (
+   tuple
+   ()
+   ()
+  ) :returns None :decrease () :decrease_when None :decrease_by None :fndef_axioms None :mask_spec None :atomic_update None
+  :unwind_spec None :item_kind (ItemKind Function) :attrs (FunctionAttrs :uses_ghost_blocks true :inline true :hidden () :broadcast_forall
+   false :broadcast_forall_only false :no_auto_trigger false :auto_ext_equal (AutoExtEqual :assert true :assert_by true :ensures
+    true :invariant true
+   ) :autospec None :bit_vector false :atomic false :integer_ring false :is_decrease_by false :check_recommends false :nonlinear
+   false :spinoff_prover false :memoize false :rlimit None :print_zero_args false :print_as_method true :prophecy_dependent
+   false :size_of_broadcast_proof false :is_type_invariant_fn false :is_external_body false :is_unsafe false :exec_assume_termination
+   false :exec_allows_no_decreases_clause false :tracked_swap false :tracked_take_option false :is_async false
+  ) :body (@@ "src/lib.rs:70:5: 70:40 (#0)" (> Block () (@@ "src/lib.rs:70:5: 70:40 (#0)" (> UnaryOpr (UnaryOpr Field (FieldOpr :datatype
+        (Dt Path fx::dt::E) :variant "A" :field "0" :get_variant true :check (VariantCheck None))
+      ) (@@ "src/lib.rs:70:5: 70:40 (#0)" (> ReadPlace (@@ "src/lib.rs:70:5: 70:40 (#0)" (Place Local (VarIdent "self" (VarIdentDisambiguate
+            RustcId 2))
+         ) (Typ Datatype (Dt Path fx::dt::E) () ())
+        ) (UnfinalizedReadKind :preliminary_kind (ReadKind Move) :id 30)
+       ) (Typ Datatype (Dt Path fx::dt::E) () ()))
+     ) (Typ Int (IntRange Int)))
+   ) (Typ Int (IntRange Int))
+  ) :extra_dependencies () :async_ret None))
+
+(@ "src/lib.rs:70:5: 70:23 (#0)" (Function
+  :name (Fun :path fx::dt::impl&%0::arrow_A_0) :proxy None :kind (FunctionKind Static) :visibility (Visibility :restricted_to
+   None
+  ) :body_visibility (BodyVisibility Visibility (Visibility :restricted_to None)) :opaqueness (Opaqueness Revealed :visibility
+   (Visibility :restricted_to None)
+  ) :owning_module fx::dt :mode Spec :typ_params () :typ_bounds () :params (
+   (@ "src/lib.rs:70:5: 70:40 (#0)" (Param :name (VarIdent "self" (VarIdentDisambiguate RustcId 2)) :typ (Typ Datatype (Dt Path
+       fx::dt::E
+      ) () ()
+     ) :mode Spec :user_mut false :unwrapped_info None))
+  ) :ret (@ "src/lib.rs:70:20: 70:23 (#0)" (Param :name (VarIdent "%return" (VarIdentDisambiguate AirLocal)) :typ (Typ Int (IntRange
+      Int)
+    ) :mode Spec :user_mut false :unwrapped_info None)
+  ) :ens_has_return true :require () :ensure (
+   tuple
+   ()
+   ()
+  ) :returns None :decrease () :decrease_when None :decrease_by None :fndef_axioms None :mask_spec None :atomic_update None
+  :unwind_spec None :item_kind (ItemKind Function) :attrs (FunctionAttrs :uses_ghost_blocks true :inline true :hidden () :broadcast_forall
+   false :broadcast_forall_only false :no_auto_trigger false :auto_ext_equal (AutoExtEqual :assert true :assert_by true :ensures
+    true :invariant true
+   ) :autospec None :bit_vector false :atomic false :integer_ring false :is_decrease_by false :check_recommends false :nonlinear
+   false :spinoff_prover false :memoize false :rlimit None :print_zero_args false :print_as_method true :prophecy_dependent
+   false :size_of_broadcast_proof false :is_type_invariant_fn false :is_external_body false :is_unsafe false :exec_assume_termination
+   false :exec_allows_no_decreases_clause false :tracked_swap false :tracked_take_option false :is_async false
+  ) :body (@@ "src/lib.rs:70:5: 70:40 (#0)" (> Block () (@@ "src/lib.rs:70:5: 70:40 (#0)" (> UnaryOpr (UnaryOpr Field (FieldOpr :datatype
+        (Dt Path fx::dt::E) :variant "A" :field "0" :get_variant true :check (VariantCheck None))
+      ) (@@ "src/lib.rs:70:5: 70:40 (#0)" (> ReadPlace (@@ "src/lib.rs:70:5: 70:40 (#0)" (Place Local (VarIdent "self" (VarIdentDisambiguate
+            RustcId 2))
+         ) (Typ Datatype (Dt Path fx::dt::E) () ())
+        ) (UnfinalizedReadKind :preliminary_kind (ReadKind Move) :id 31)
+       ) (Typ Datatype (Dt Path fx::dt::E) () ()))
+     ) (Typ Int (IntRange Int)))
+   ) (Typ Int (IntRange Int))
+  ) :extra_dependencies () :async_ret None))
+
+(@ "src/lib.rs:70:5: 70:36 (#0)" (Function
+  :name (Fun :path fx::dt::impl&%0::arrow_B_w) :proxy None :kind (FunctionKind Static) :visibility (Visibility :restricted_to
+   None
+  ) :body_visibility (BodyVisibility Visibility (Visibility :restricted_to None)) :opaqueness (Opaqueness Revealed :visibility
+   (Visibility :restricted_to None)
+  ) :owning_module fx::dt :mode Spec :typ_params () :typ_bounds () :params (
+   (@ "src/lib.rs:70:5: 70:40 (#0)" (Param :name (VarIdent "self" (VarIdentDisambiguate RustcId 2)) :typ (Typ Datatype (Dt Path
+       fx::dt::E
+      ) () ()
+     ) :mode Spec :user_mut false :unwrapped_info None))
+  ) :ret (@ "src/lib.rs:70:33: 70:36 (#0)" (Param :name (VarIdent "%return" (VarIdentDisambiguate AirLocal)) :typ (Typ Int (IntRange
+      Int)
+    ) :mode Spec :user_mut false :unwrapped_info None)
+  ) :ens_has_return true :require () :ensure (
+   tuple
+   ()
+   ()
+  ) :returns None :decrease () :decrease_when None :decrease_by None :fndef_axioms None :mask_spec None :atomic_update None
+  :unwind_spec None :item_kind (ItemKind Function) :attrs (FunctionAttrs :uses_ghost_blocks true :inline true :hidden () :broadcast_forall
+   false :broadcast_forall_only false :no_auto_trigger false :auto_ext_equal (AutoExtEqual :assert true :assert_by true :ensures
+    true :invariant true
+   ) :autospec None :bit_vector false :atomic false :integer_ring false :is_decrease_by false :check_recommends false :nonlinear
+   false :spinoff_prover false :memoize false :rlimit None :print_zero_args false :print_as_method true :prophecy_dependent
+   false :size_of_broadcast_proof false :is_type_invariant_fn false :is_external_body false :is_unsafe false :exec_assume_termination
+   false :exec_allows_no_decreases_clause false :tracked_swap false :tracked_take_option false :is_async false
+  ) :body (@@ "src/lib.rs:70:5: 70:40 (#0)" (> Block () (@@ "src/lib.rs:70:5: 70:40 (#0)" (> UnaryOpr (UnaryOpr Field (FieldOpr :datatype
+        (Dt Path fx::dt::E) :variant "B" :field "w" :get_variant true :check (VariantCheck None))
+      ) (@@ "src/lib.rs:70:5: 70:40 (#0)" (> ReadPlace (@@ "src/lib.rs:70:5: 70:40 (#0)" (Place Local (VarIdent "self" (VarIdentDisambiguate
+            RustcId 2))
+         ) (Typ Datatype (Dt Path fx::dt::E) () ())
+        ) (UnfinalizedReadKind :preliminary_kind (ReadKind Move) :id 32)
+       ) (Typ Datatype (Dt Path fx::dt::E) () ()))
+     ) (Typ Int (IntRange Int)))
+   ) (Typ Int (IntRange Int))
+  ) :extra_dependencies () :async_ret None))
+
+(@ "src/lib.rs:71:5: 71:40 (#0)" (Function
+  :name (Fun :path fx::dt::e_val) :proxy None :kind (FunctionKind Static) :visibility (Visibility :restricted_to None) :body_visibility
+  (BodyVisibility Visibility (Visibility :restricted_to None)) :opaqueness (Opaqueness Revealed :visibility (Visibility :restricted_to
+    None)
+  ) :owning_module fx::dt :mode Spec :typ_params () :typ_bounds () :params (
+   (@ "src/lib.rs:71:28: 71:32 (#0)" (Param :name (VarIdent "e" (VarIdentDisambiguate RustcId 2)) :typ (Typ Datatype (Dt Path fx::dt::E)
+      () ()
+     ) :mode Spec :user_mut false :unwrapped_info None))
+  ) :ret (@ "src/lib.rs:71:37: 71:40 (#0)" (Param :name (VarIdent "%return" (VarIdentDisambiguate AirLocal)) :typ (Typ Int (IntRange
+      Int)
+    ) :mode Spec :user_mut false :unwrapped_info None)
+  ) :ens_has_return true :require () :ensure (
+   tuple
+   ()
+   ()
+  ) :returns None :decrease () :decrease_when None :decrease_by None :fndef_axioms None :mask_spec None :atomic_update None
+  :unwind_spec None :item_kind (ItemKind Function) :attrs (FunctionAttrs :uses_ghost_blocks true :inline false :hidden () :broadcast_forall
+   false :broadcast_forall_only false :no_auto_trigger false :auto_ext_equal (AutoExtEqual :assert true :assert_by true :ensures
+    true :invariant true
+   ) :autospec None :bit_vector false :atomic false :integer_ring false :is_decrease_by false :check_recommends false :nonlinear
+   false :spinoff_prover false :memoize false :rlimit None :print_zero_args false :print_as_method false :prophecy_dependent
+   false :size_of_broadcast_proof false :is_type_invariant_fn false :is_external_body false :is_unsafe false :exec_assume_termination
+   false :exec_allows_no_decreases_clause false :tracked_swap false :tracked_take_option false :is_async false
+  ) :body (@@ "src/lib.rs:71:41: 71:86 (#0)" (> Block () (@@ "src/lib.rs:71:43: 71:84 (#0)" (> Match (@@ "src/lib.rs:71:49: 71:50 (#0)"
+       (Place Local (VarIdent "e" (VarIdentDisambiguate RustcId 2))) (Typ Datatype (Dt Path fx::dt::E) () ())
+      ) ((@ "src/lib.rs:71:53: 71:65 (#0)" (Arm :pattern (@@ "src/lib.rs:71:53: 71:60 (#0)" (Pattern Constructor (Dt Path fx::dt::E)
+           "A" ((-> 0 (@@ "src/lib.rs:71:58: 71:59 (#0)" (Pattern Var (PatternBinding :name (VarIdent "x" (VarIdentDisambiguate RustcId 10))
+                :by_ref (ByRef No) :typ (Typ Int (IntRange Int)) :user_mut false :copy true)
+              ) (Typ Int (IntRange Int)))))
+          ) (Typ Datatype (Dt Path fx::dt::E) () ())
+         ) :guard (@@ "src/lib.rs:71:49: 71:50 (#0)" (> Const (Constant Bool true)) (Typ Bool)) :body (@@ "src/lib.rs:71:64: 71:65 (#0)"
+          (> ReadPlace (@@ "src/lib.rs:71:64: 71:65 (#0)" (Place Local (VarIdent "x" (VarIdentDisambiguate RustcId 10))) (Typ Int (IntRange
+              Int))
+           ) (UnfinalizedReadKind :preliminary_kind (ReadKind Copy) :id 33)
+          ) (Typ Int (IntRange Int))))
+       ) (@ "src/lib.rs:71:67: 71:82 (#0)" (Arm :pattern (@@ "src/lib.rs:71:67: 71:77 (#0)" (Pattern Constructor (Dt Path fx::dt::E)
+           "B" ((-> w (@@ "src/lib.rs:71:74: 71:75 (#0)" (Pattern Var (PatternBinding :name (VarIdent "w" (VarIdentDisambiguate RustcId 18))
+                :by_ref (ByRef No) :typ (Typ Int (IntRange Int)) :user_mut false :copy true)
+              ) (Typ Int (IntRange Int)))))
+          ) (Typ Datatype (Dt Path fx::dt::E) () ())
+         ) :guard (@@ "src/lib.rs:71:49: 71:50 (#0)" (> Const (Constant Bool true)) (Typ Bool)) :body (@@ "src/lib.rs:71:81: 71:82 (#0)"
+          (> ReadPlace (@@ "src/lib.rs:71:81: 71:82 (#0)" (Place Local (VarIdent "w" (VarIdentDisambiguate RustcId 18))) (Typ Int (IntRange
+              Int))
+           ) (UnfinalizedReadKind :preliminary_kind (ReadKind Copy) :id 34)
+          ) (Typ Int (IntRange Int))))))
+     ) (Typ Int (IntRange Int)))
+   ) (Typ Int (IntRange Int))
+  ) :extra_dependencies () :async_ret None))
+
+(@ "src/lib.rs:78:5: 78:30 (#0)" (Function
   :name (Fun :path fx::live::lemma_used) :proxy None :kind (FunctionKind Static) :visibility (Visibility :restricted_to None)
   :body_visibility (BodyVisibility Visibility (Visibility :restricted_to fx::live)) :opaqueness (Opaqueness Opaque) :owning_module
-  fx::live :mode Proof :typ_params () :typ_bounds () :params () :ret (@ "src/lib.rs:71:30: 71:30 (#0)" (Param :name (VarIdent
+  fx::live :mode Proof :typ_params () :typ_bounds () :params () :ret (@ "src/lib.rs:78:30: 78:30 (#0)" (Param :name (VarIdent
      "%return" (VarIdentDisambiguate AirLocal)
     ) :typ (Typ Datatype (Dt Tuple 0) () ()) :mode Proof :user_mut false :unwrapped_info None)
   ) :ens_has_return false :require () :ensure (
@@ -1104,12 +1307,12 @@
    false :spinoff_prover false :memoize false :rlimit None :print_zero_args true :print_as_method false :prophecy_dependent
    false :size_of_broadcast_proof false :is_type_invariant_fn false :is_external_body false :is_unsafe false :exec_assume_termination
    false :exec_allows_no_decreases_clause false :tracked_swap false :tracked_take_option false :is_async false
-  ) :body (@@ "src/lib.rs:71:31: 71:48 (#0)" (> Block (
-     (@ "src/lib.rs:71:33: 71:39 (#0)" (Stmt Expr (@@ "src/lib.rs:71:33: 71:39 (#0)" (> AssertAssume :is_assume false :expr (@@ "src/lib.rs:71:40: 71:44 (#0)"
+  ) :body (@@ "src/lib.rs:78:31: 78:48 (#0)" (> Block (
+     (@ "src/lib.rs:78:33: 78:39 (#0)" (Stmt Expr (@@ "src/lib.rs:78:33: 78:39 (#0)" (> AssertAssume :is_assume false :expr (@@ "src/lib.rs:78:40: 78:44 (#0)"
           (> Call :target (CallTarget Fun (CallTargetKind Static) (Fun :path fx::q::p) () () (CallTargetAttrs :autospec (AutospecUsage
               IfMarked
              ) :const_var false :assume_external_allowed false)
-           ) :args ((@@ "src/lib.rs:71:42: 71:43 (#0)" (> Const (Constant Int 1)) (Typ Int (IntRange Int)))) :post_args None :body None
+           ) :args ((@@ "src/lib.rs:78:42: 78:43 (#0)" (> Const (Constant Int 1)) (Typ Int (IntRange Int)))) :post_args None :body None
           ) (Typ Bool)
          ) :msg None
         ) (Typ Datatype (Dt Tuple 0) () ()))))
@@ -1117,11 +1320,11 @@
    ) (Typ Datatype (Dt Tuple 0) () ())
   ) :extra_dependencies () :async_ret None))
 
-(@ "src/lib.rs:72:5: 72:35 (#0)" (Function
+(@ "src/lib.rs:79:5: 79:35 (#0)" (Function
   :name (Fun :path fx::live::lemma_dead_leaf) :proxy None :kind (FunctionKind Static) :visibility (Visibility :restricted_to
    None
   ) :body_visibility (BodyVisibility Visibility (Visibility :restricted_to fx::live)) :opaqueness (Opaqueness Opaque) :owning_module
-  fx::live :mode Proof :typ_params () :typ_bounds () :params () :ret (@ "src/lib.rs:72:35: 72:35 (#0)" (Param :name (VarIdent
+  fx::live :mode Proof :typ_params () :typ_bounds () :params () :ret (@ "src/lib.rs:79:35: 79:35 (#0)" (Param :name (VarIdent
      "%return" (VarIdentDisambiguate AirLocal)
     ) :typ (Typ Datatype (Dt Tuple 0) () ()) :mode Proof :user_mut false :unwrapped_info None)
   ) :ens_has_return false :require () :ensure (
@@ -1136,12 +1339,12 @@
    false :spinoff_prover false :memoize false :rlimit None :print_zero_args true :print_as_method false :prophecy_dependent
    false :size_of_broadcast_proof false :is_type_invariant_fn false :is_external_body false :is_unsafe false :exec_assume_termination
    false :exec_allows_no_decreases_clause false :tracked_swap false :tracked_take_option false :is_async false
-  ) :body (@@ "src/lib.rs:72:36: 72:53 (#0)" (> Block (
-     (@ "src/lib.rs:72:38: 72:44 (#0)" (Stmt Expr (@@ "src/lib.rs:72:38: 72:44 (#0)" (> AssertAssume :is_assume false :expr (@@ "src/lib.rs:72:45: 72:49 (#0)"
+  ) :body (@@ "src/lib.rs:79:36: 79:53 (#0)" (> Block (
+     (@ "src/lib.rs:79:38: 79:44 (#0)" (Stmt Expr (@@ "src/lib.rs:79:38: 79:44 (#0)" (> AssertAssume :is_assume false :expr (@@ "src/lib.rs:79:45: 79:49 (#0)"
           (> Call :target (CallTarget Fun (CallTargetKind Static) (Fun :path fx::q::p) () () (CallTargetAttrs :autospec (AutospecUsage
               IfMarked
              ) :const_var false :assume_external_allowed false)
-           ) :args ((@@ "src/lib.rs:72:47: 72:48 (#0)" (> Const (Constant Int 2)) (Typ Int (IntRange Int)))) :post_args None :body None
+           ) :args ((@@ "src/lib.rs:79:47: 79:48 (#0)" (> Const (Constant Int 2)) (Typ Int (IntRange Int)))) :post_args None :body None
           ) (Typ Bool)
          ) :msg None
         ) (Typ Datatype (Dt Tuple 0) () ()))))
@@ -1149,10 +1352,10 @@
    ) (Typ Datatype (Dt Tuple 0) () ())
   ) :extra_dependencies () :async_ret None))
 
-(@ "src/lib.rs:73:5: 73:32 (#0)" (Function
+(@ "src/lib.rs:80:5: 80:32 (#0)" (Function
   :name (Fun :path fx::live::lemma_dead_a) :proxy None :kind (FunctionKind Static) :visibility (Visibility :restricted_to None)
   :body_visibility (BodyVisibility Visibility (Visibility :restricted_to fx::live)) :opaqueness (Opaqueness Opaque) :owning_module
-  fx::live :mode Proof :typ_params () :typ_bounds () :params () :ret (@ "src/lib.rs:73:32: 73:32 (#0)" (Param :name (VarIdent
+  fx::live :mode Proof :typ_params () :typ_bounds () :params () :ret (@ "src/lib.rs:80:32: 80:32 (#0)" (Param :name (VarIdent
      "%return" (VarIdentDisambiguate AirLocal)
     ) :typ (Typ Datatype (Dt Tuple 0) () ()) :mode Proof :user_mut false :unwrapped_info None)
   ) :ens_has_return false :require () :ensure (
@@ -1167,8 +1370,8 @@
    false :spinoff_prover false :memoize false :rlimit None :print_zero_args true :print_as_method false :prophecy_dependent
    false :size_of_broadcast_proof false :is_type_invariant_fn false :is_external_body false :is_unsafe false :exec_assume_termination
    false :exec_allows_no_decreases_clause false :tracked_swap false :tracked_take_option false :is_async false
-  ) :body (@@ "src/lib.rs:73:33: 73:52 (#0)" (> Block (
-     (@ "src/lib.rs:73:35: 73:49 (#0)" (Stmt Expr (@@ "src/lib.rs:73:35: 73:49 (#0)" (> Call :target (CallTarget Fun (CallTargetKind
+  ) :body (@@ "src/lib.rs:80:33: 80:52 (#0)" (> Block (
+     (@ "src/lib.rs:80:35: 80:49 (#0)" (Stmt Expr (@@ "src/lib.rs:80:35: 80:49 (#0)" (> Call :target (CallTarget Fun (CallTargetKind
            Static
           ) (Fun :path fx::live::lemma_dead_b) () () (CallTargetAttrs :autospec (AutospecUsage IfMarked) :const_var false :assume_external_allowed
            false)
@@ -1178,10 +1381,10 @@
    ) (Typ Datatype (Dt Tuple 0) () ())
   ) :extra_dependencies () :async_ret None))
 
-(@ "src/lib.rs:74:5: 74:32 (#0)" (Function
+(@ "src/lib.rs:81:5: 81:32 (#0)" (Function
   :name (Fun :path fx::live::lemma_dead_b) :proxy None :kind (FunctionKind Static) :visibility (Visibility :restricted_to None)
   :body_visibility (BodyVisibility Visibility (Visibility :restricted_to fx::live)) :opaqueness (Opaqueness Opaque) :owning_module
-  fx::live :mode Proof :typ_params () :typ_bounds () :params () :ret (@ "src/lib.rs:74:32: 74:32 (#0)" (Param :name (VarIdent
+  fx::live :mode Proof :typ_params () :typ_bounds () :params () :ret (@ "src/lib.rs:81:32: 81:32 (#0)" (Param :name (VarIdent
      "%return" (VarIdentDisambiguate AirLocal)
     ) :typ (Typ Datatype (Dt Tuple 0) () ()) :mode Proof :user_mut false :unwrapped_info None)
   ) :ens_has_return false :require () :ensure (
@@ -1196,8 +1399,8 @@
    false :spinoff_prover false :memoize false :rlimit None :print_zero_args true :print_as_method false :prophecy_dependent
    false :size_of_broadcast_proof false :is_type_invariant_fn false :is_external_body false :is_unsafe false :exec_assume_termination
    false :exec_allows_no_decreases_clause false :tracked_swap false :tracked_take_option false :is_async false
-  ) :body (@@ "src/lib.rs:74:33: 74:52 (#0)" (> Block (
-     (@ "src/lib.rs:74:35: 74:49 (#0)" (Stmt Expr (@@ "src/lib.rs:74:35: 74:49 (#0)" (> Call :target (CallTarget Fun (CallTargetKind
+  ) :body (@@ "src/lib.rs:81:33: 81:52 (#0)" (> Block (
+     (@ "src/lib.rs:81:35: 81:49 (#0)" (Stmt Expr (@@ "src/lib.rs:81:35: 81:49 (#0)" (> Call :target (CallTarget Fun (CallTargetKind
            Static
           ) (Fun :path fx::live::lemma_dead_a) () () (CallTargetAttrs :autospec (AutospecUsage IfMarked) :const_var false :assume_external_allowed
            false)
@@ -1207,10 +1410,10 @@
    ) (Typ Datatype (Dt Tuple 0) () ())
   ) :extra_dependencies () :async_ret None))
 
-(@ "src/lib.rs:75:5: 75:31 (#0)" (Function
+(@ "src/lib.rs:82:5: 82:31 (#0)" (Function
   :name (Fun :path fx::live::theorem_top) :proxy None :kind (FunctionKind Static) :visibility (Visibility :restricted_to None)
   :body_visibility (BodyVisibility Visibility (Visibility :restricted_to fx::live)) :opaqueness (Opaqueness Opaque) :owning_module
-  fx::live :mode Proof :typ_params () :typ_bounds () :params () :ret (@ "src/lib.rs:75:31: 75:31 (#0)" (Param :name (VarIdent
+  fx::live :mode Proof :typ_params () :typ_bounds () :params () :ret (@ "src/lib.rs:82:31: 82:31 (#0)" (Param :name (VarIdent
      "%return" (VarIdentDisambiguate AirLocal)
     ) :typ (Typ Datatype (Dt Tuple 0) () ()) :mode Proof :user_mut false :unwrapped_info None)
   ) :ens_has_return false :require () :ensure (
@@ -1225,43 +1428,43 @@
    false :spinoff_prover false :memoize false :rlimit None :print_zero_args true :print_as_method false :prophecy_dependent
    false :size_of_broadcast_proof false :is_type_invariant_fn false :is_external_body false :is_unsafe false :exec_assume_termination
    false :exec_allows_no_decreases_clause false :tracked_swap false :tracked_take_option false :is_async false
-  ) :body (@@ "src/lib.rs:75:32: 79:6 (#0)" (> Block (
-     (@ "src/lib.rs:76:9: 76:21 (#0)" (Stmt Expr (@@ "src/lib.rs:76:9: 76:21 (#0)" (> Call :target (CallTarget Fun (CallTargetKind Static)
+  ) :body (@@ "src/lib.rs:82:32: 86:6 (#0)" (> Block (
+     (@ "src/lib.rs:83:9: 83:21 (#0)" (Stmt Expr (@@ "src/lib.rs:83:9: 83:21 (#0)" (> Call :target (CallTarget Fun (CallTargetKind Static)
           (Fun :path fx::live::lemma_used) () () (CallTargetAttrs :autospec (AutospecUsage IfMarked) :const_var false :assume_external_allowed
            false)
          ) :args () :post_args None :body None
         ) (Typ Datatype (Dt Tuple 0) () ()))))
-     (@ "src/lib.rs:77:13: 77:14 (#0)" (Stmt Decl :pattern (@@ "src/lib.rs:77:13: 77:14 (#0)" (Pattern Var (PatternBinding :name (VarIdent
+     (@ "src/lib.rs:84:13: 84:14 (#0)" (Stmt Decl :pattern (@@ "src/lib.rs:84:13: 84:14 (#0)" (Pattern Var (PatternBinding :name (VarIdent
            "s" (VarIdentDisambiguate RustcId 20)
           ) :by_ref (ByRef No) :typ (Typ Datatype (Dt Path fx::tr::Sq) () ()) :user_mut false :copy false)
         ) (Typ Datatype (Dt Path fx::tr::Sq) () ())
-       ) :mode (tuple Spec (DeclProph Default)) :init (@@ "src/lib.rs:77:17: 77:33 (#0)" (Place Temporary (@@ "src/lib.rs:77:17: 77:33 (#0)"
-          (> Ctor (Dt Path fx::tr::Sq) "Sq" ((-> 0 (@@ "src/lib.rs:77:31: 77:32 (#0)" (> Const (Constant Int 2)) (Typ Int (IntRange Int)))))
+       ) :mode (tuple Spec (DeclProph Default)) :init (@@ "src/lib.rs:84:17: 84:33 (#0)" (Place Temporary (@@ "src/lib.rs:84:17: 84:33 (#0)"
+          (> Ctor (Dt Path fx::tr::Sq) "Sq" ((-> 0 (@@ "src/lib.rs:84:31: 84:32 (#0)" (> Const (Constant Int 2)) (Typ Int (IntRange Int)))))
            None
           ) (Typ Datatype (Dt Path fx::tr::Sq) () ()))
         ) (Typ Datatype (Dt Path fx::tr::Sq) () ())
        ) :els None))
-     (@ "src/lib.rs:78:9: 78:15 (#0)" (Stmt Expr (@@ "src/lib.rs:78:9: 78:15 (#0)" (> AssertAssume :is_assume false :expr (@@ "src/lib.rs:78:16: 78:66 (#0)"
-          (> Binary (BinaryOp Eq Spec) (@@ "src/lib.rs:78:16: 78:39 (#0)" (> Call :target (CallTarget Fun (CallTargetKind Static) (Fun :path
+     (@ "src/lib.rs:85:9: 85:15 (#0)" (Stmt Expr (@@ "src/lib.rs:85:9: 85:15 (#0)" (> AssertAssume :is_assume false :expr (@@ "src/lib.rs:85:16: 85:66 (#0)"
+          (> Binary (BinaryOp Eq Spec) (@@ "src/lib.rs:85:16: 85:39 (#0)" (> Call :target (CallTarget Fun (CallTargetKind Static) (Fun :path
                fx::tr::use_shape
               ) ((Typ Datatype (Dt Path fx::tr::Sq) () ())) ((ImplPath TraitImplPath fx::tr::impl&%0)) (CallTargetAttrs :autospec (AutospecUsage
                 IfMarked
                ) :const_var false :assume_external_allowed false)
-             ) :args ((@@ "src/lib.rs:78:37: 78:38 (#0)" (> ReadPlace (@@ "src/lib.rs:78:37: 78:38 (#0)" (Place Local (VarIdent "s" (VarIdentDisambiguate
+             ) :args ((@@ "src/lib.rs:85:37: 85:38 (#0)" (> ReadPlace (@@ "src/lib.rs:85:37: 85:38 (#0)" (Place Local (VarIdent "s" (VarIdentDisambiguate
                     RustcId 20))
                  ) (Typ Datatype (Dt Path fx::tr::Sq) () ())
-                ) (UnfinalizedReadKind :preliminary_kind (ReadKind Move) :id 29)
+                ) (UnfinalizedReadKind :preliminary_kind (ReadKind Move) :id 35)
                ) (Typ Datatype (Dt Path fx::tr::Sq) () ()))
              ) :post_args None :body None
             ) (Typ Int (IntRange Int))
-           ) (@@ "src/lib.rs:78:43: 78:66 (#0)" (> Call :target (CallTarget Fun (CallTargetKind Static) (Fun :path fx::tr::use_shape) (
+           ) (@@ "src/lib.rs:85:43: 85:66 (#0)" (> Call :target (CallTarget Fun (CallTargetKind Static) (Fun :path fx::tr::use_shape) (
                (Typ Datatype (Dt Path fx::tr::Sq) () ())
               ) ((ImplPath TraitImplPath fx::tr::impl&%0)) (CallTargetAttrs :autospec (AutospecUsage IfMarked) :const_var false :assume_external_allowed
                false)
-             ) :args ((@@ "src/lib.rs:78:64: 78:65 (#0)" (> ReadPlace (@@ "src/lib.rs:78:64: 78:65 (#0)" (Place Local (VarIdent "s" (VarIdentDisambiguate
+             ) :args ((@@ "src/lib.rs:85:64: 85:65 (#0)" (> ReadPlace (@@ "src/lib.rs:85:64: 85:65 (#0)" (Place Local (VarIdent "s" (VarIdentDisambiguate
                     RustcId 20))
                  ) (Typ Datatype (Dt Path fx::tr::Sq) () ())
-                ) (UnfinalizedReadKind :preliminary_kind (ReadKind Move) :id 30)
+                ) (UnfinalizedReadKind :preliminary_kind (ReadKind Move) :id 36)
                ) (Typ Datatype (Dt Path fx::tr::Sq) () ()))
              ) :post_args None :body None
             ) (Typ Int (IntRange Int)))
@@ -1272,36 +1475,36 @@
    ) (Typ Datatype (Dt Tuple 0) () ())
   ) :extra_dependencies () :async_ret None))
 
-(@ "src/lib.rs:80:5: 80:50 (#0)" (Function
+(@ "src/lib.rs:87:5: 87:50 (#0)" (Function
   :name (Fun :path fx::live::lemma_in_group) :proxy None :kind (FunctionKind Static) :visibility (Visibility :restricted_to
    None
   ) :body_visibility (BodyVisibility Visibility (Visibility :restricted_to fx::live)) :opaqueness (Opaqueness Opaque) :owning_module
   fx::live :mode Proof :typ_params () :typ_bounds () :params (
-   (@ "src/lib.rs:80:43: 80:49 (#0)" (Param :name (VarIdent "i" (VarIdentDisambiguate RustcId 2)) :typ (Typ Int (IntRange Int))
+   (@ "src/lib.rs:87:43: 87:49 (#0)" (Param :name (VarIdent "i" (VarIdentDisambiguate RustcId 2)) :typ (Typ Int (IntRange Int))
      :mode Spec :user_mut false :unwrapped_info None))
-  ) :ret (@ "src/lib.rs:80:50: 80:50 (#0)" (Param :name (VarIdent "%return" (VarIdentDisambiguate AirLocal)) :typ (Typ Datatype
+  ) :ret (@ "src/lib.rs:87:50: 87:50 (#0)" (Param :name (VarIdent "%return" (VarIdentDisambiguate AirLocal)) :typ (Typ Datatype
      (Dt Tuple 0) () ()
     ) :mode Proof :user_mut false :unwrapped_info None)
   ) :ens_has_return false :require () :ensure (
    tuple
-   ((@@ "src/lib.rs:80:59: 80:96 (#0)" (> Binary (BinaryOp Eq Spec) (@@ "src/lib.rs:80:70: 80:84 (#0)" (> Unary (UnaryOp Trigger (
+   ((@@ "src/lib.rs:87:59: 87:96 (#0)" (> Binary (BinaryOp Eq Spec) (@@ "src/lib.rs:87:70: 87:84 (#0)" (> Unary (UnaryOp Trigger (
           TriggerAnnotation Trigger None)
-        ) (@@ "src/lib.rs:80:70: 80:84 (#0)" (> Call :target (CallTarget Fun (CallTargetKind Static) (Fun :path fx::q::p) () () (CallTargetAttrs
+        ) (@@ "src/lib.rs:87:70: 87:84 (#0)" (> Call :target (CallTarget Fun (CallTargetKind Static) (Fun :path fx::q::p) () () (CallTargetAttrs
             :autospec (AutospecUsage IfMarked) :const_var false :assume_external_allowed false)
-          ) :args ((@@ "src/lib.rs:80:82: 80:83 (#0)" (> ReadPlace (@@ "src/lib.rs:80:82: 80:83 (#0)" (Place Local (VarIdent "i" (VarIdentDisambiguate
+          ) :args ((@@ "src/lib.rs:87:82: 87:83 (#0)" (> ReadPlace (@@ "src/lib.rs:87:82: 87:83 (#0)" (Place Local (VarIdent "i" (VarIdentDisambiguate
                  RustcId 2))
               ) (Typ Int (IntRange Int))
-             ) (UnfinalizedReadKind :preliminary_kind (ReadKind Copy) :id 31)
+             ) (UnfinalizedReadKind :preliminary_kind (ReadKind Copy) :id 37)
             ) (Typ Int (IntRange Int)))
           ) :post_args None :body None
          ) (Typ Bool))
        ) (Typ Bool)
-      ) (@@ "src/lib.rs:80:88: 80:96 (#0)" (> Binary (BinaryOp Inequality (InequalityOp Ge)) (@@ "src/lib.rs:80:89: 80:90 (#0)" (>
-          ReadPlace (@@ "src/lib.rs:80:89: 80:90 (#0)" (Place Local (VarIdent "i" (VarIdentDisambiguate RustcId 2))) (Typ Int (IntRange
+      ) (@@ "src/lib.rs:87:88: 87:96 (#0)" (> Binary (BinaryOp Inequality (InequalityOp Ge)) (@@ "src/lib.rs:87:89: 87:90 (#0)" (>
+          ReadPlace (@@ "src/lib.rs:87:89: 87:90 (#0)" (Place Local (VarIdent "i" (VarIdentDisambiguate RustcId 2))) (Typ Int (IntRange
              Int))
-          ) (UnfinalizedReadKind :preliminary_kind (ReadKind Copy) :id 32)
+          ) (UnfinalizedReadKind :preliminary_kind (ReadKind Copy) :id 38)
          ) (Typ Int (IntRange Int))
-        ) (@@ "src/lib.rs:80:94: 80:95 (#0)" (> Const (Constant Int 0)) (Typ Int (IntRange Nat)))
+        ) (@@ "src/lib.rs:87:94: 87:95 (#0)" (> Const (Constant Int 0)) (Typ Int (IntRange Nat)))
        ) (Typ Bool))
      ) (Typ Bool)))
    ()
@@ -1313,14 +1516,14 @@
    false :spinoff_prover false :memoize false :rlimit None :print_zero_args false :print_as_method false :prophecy_dependent
    false :size_of_broadcast_proof false :is_type_invariant_fn false :is_external_body false :is_unsafe false :exec_assume_termination
    false :exec_allows_no_decreases_clause false :tracked_swap false :tracked_take_option false :is_async false
-  ) :body (@@ "src/lib.rs:80:97: 80:100 (#0)" (> Block () None) (Typ Datatype (Dt Tuple 0) () ())) :extra_dependencies () :async_ret
+  ) :body (@@ "src/lib.rs:87:97: 87:100 (#0)" (> Block () None) (Typ Datatype (Dt Tuple 0) () ())) :extra_dependencies () :async_ret
   None))
 
-(@ "src/lib.rs:82:5: 82:41 (#0)" (Function
+(@ "src/lib.rs:89:5: 89:41 (#0)" (Function
   :name (Fun :path fx::live::dead_spec) :proxy None :kind (FunctionKind Static) :visibility (Visibility :restricted_to None)
   :body_visibility (BodyVisibility Visibility (Visibility :restricted_to None)) :opaqueness (Opaqueness Revealed :visibility
    (Visibility :restricted_to None)
-  ) :owning_module fx::live :mode Spec :typ_params () :typ_bounds () :params () :ret (@ "src/lib.rs:82:37: 82:41 (#0)" (Param
+  ) :owning_module fx::live :mode Spec :typ_params () :typ_bounds () :params () :ret (@ "src/lib.rs:89:37: 89:41 (#0)" (Param
     :name (VarIdent "%return" (VarIdentDisambiguate AirLocal)) :typ (Typ Bool) :mode Spec :user_mut false :unwrapped_info None)
   ) :ens_has_return true :require () :ensure (
    tuple
@@ -1334,20 +1537,20 @@
    false :spinoff_prover false :memoize false :rlimit None :print_zero_args true :print_as_method false :prophecy_dependent
    false :size_of_broadcast_proof false :is_type_invariant_fn false :is_external_body false :is_unsafe false :exec_assume_termination
    false :exec_allows_no_decreases_clause false :tracked_swap false :tracked_take_option false :is_async false
-  ) :body (@@ "src/lib.rs:82:42: 82:50 (#0)" (> Block () (@@ "src/lib.rs:82:44: 82:48 (#0)" (> Call :target (CallTarget Fun (CallTargetKind
+  ) :body (@@ "src/lib.rs:89:42: 89:50 (#0)" (> Block () (@@ "src/lib.rs:89:44: 89:48 (#0)" (> Call :target (CallTarget Fun (CallTargetKind
         Static
        ) (Fun :path fx::q::p) () () (CallTargetAttrs :autospec (AutospecUsage IfMarked) :const_var false :assume_external_allowed
         false)
-      ) :args ((@@ "src/lib.rs:82:46: 82:47 (#0)" (> Const (Constant Int 3)) (Typ Int (IntRange Int)))) :post_args None :body None
+      ) :args ((@@ "src/lib.rs:89:46: 89:47 (#0)" (> Const (Constant Int 3)) (Typ Int (IntRange Int)))) :post_args None :body None
      ) (Typ Bool))
    ) (Typ Bool)
   ) :extra_dependencies () :async_ret None))
 
-(@ "src/lib.rs:83:11: 83:35 (#0)" (Function
+(@ "src/lib.rs:90:11: 90:35 (#0)" (Function
   :name (Fun :path fx::live::lemma_via_broadcast) :proxy None :kind (FunctionKind Static) :visibility (Visibility :restricted_to
    fx::live
   ) :body_visibility (BodyVisibility Visibility (Visibility :restricted_to fx::live)) :opaqueness (Opaqueness Opaque) :owning_module
-  fx::live :mode Proof :typ_params () :typ_bounds () :params () :ret (@ "src/lib.rs:83:35: 83:35 (#0)" (Param :name (VarIdent
+  fx::live :mode Proof :typ_params () :typ_bounds () :params () :ret (@ "src/lib.rs:90:35: 90:35 (#0)" (Param :name (VarIdent
      "%return" (VarIdentDisambiguate AirLocal)
     ) :typ (Typ Datatype (Dt Tuple 0) () ()) :mode Proof :user_mut false :unwrapped_info None)
   ) :ens_has_return false :require () :ensure (
@@ -1362,18 +1565,18 @@
    false :spinoff_prover false :memoize false :rlimit None :print_zero_args true :print_as_method false :prophecy_dependent
    false :size_of_broadcast_proof false :is_type_invariant_fn false :is_external_body false :is_unsafe false :exec_assume_termination
    false :exec_allows_no_decreases_clause false :tracked_swap false :tracked_take_option false :is_async false
-  ) :body (@@ "src/lib.rs:83:36: 83:65 (#0)" (> Block () (@@ "src/lib.rs:83:38: 83:63 (#0)" (> Block (
-       (@ "src/lib.rs:83:38: 83:63 (#0)" (Stmt Expr (@@ "src/lib.rs:83:38: 83:63 (#0)" (> Fuel (Fun :path fx::live::group_live) 1 true)
+  ) :body (@@ "src/lib.rs:90:36: 90:65 (#0)" (> Block () (@@ "src/lib.rs:90:38: 90:63 (#0)" (> Block (
+       (@ "src/lib.rs:90:38: 90:63 (#0)" (Stmt Expr (@@ "src/lib.rs:90:38: 90:63 (#0)" (> Fuel (Fun :path fx::live::group_live) 1 true)
           (Typ Datatype (Dt Tuple 0) () ()))))
       ) None
      ) (Typ Datatype (Dt Tuple 0) () ()))
    ) (Typ Datatype (Dt Tuple 0) () ())
   ) :extra_dependencies () :async_ret None))
 
-(@ "src/lib.rs:85:5: 85:22 (#0)" (Function
+(@ "src/lib.rs:92:5: 92:22 (#0)" (Function
   :name (Fun :path fx::live::run) :proxy None :kind (FunctionKind Static) :visibility (Visibility :restricted_to None) :body_visibility
   (BodyVisibility Visibility (Visibility :restricted_to fx::live)) :opaqueness (Opaqueness Opaque) :owning_module fx::live
-  :mode Exec :typ_params () :typ_bounds () :params () :ret (@ "src/lib.rs:85:22: 85:22 (#0)" (Param :name (VarIdent "%return"
+  :mode Exec :typ_params () :typ_bounds () :params () :ret (@ "src/lib.rs:92:22: 92:22 (#0)" (Param :name (VarIdent "%return"
      (VarIdentDisambiguate AirLocal)
     ) :typ (Typ Datatype (Dt Tuple 0) () ()) :mode Exec :user_mut false :unwrapped_info None)
   ) :ens_has_return false :require () :ensure (
@@ -1388,9 +1591,9 @@
    false :spinoff_prover false :memoize false :rlimit None :print_zero_args true :print_as_method false :prophecy_dependent
    false :size_of_broadcast_proof false :is_type_invariant_fn false :is_external_body false :is_unsafe false :exec_assume_termination
    false :exec_allows_no_decreases_clause false :tracked_swap false :tracked_take_option false :is_async false
-  ) :body (@@ "src/lib.rs:85:23: 85:59 (#0)" (> Block () (@@ "src/lib.rs:85:31: 85:57 (#0)" (> Ghost :alloc_wrapper false :tracked
-      false :expr (@@ "src/lib.rs:85:31: 85:57 (#0)" (> Block (
-         (@ "src/lib.rs:85:33: 85:54 (#0)" (Stmt Expr (@@ "src/lib.rs:85:33: 85:54 (#0)" (> Call :target (CallTarget Fun (CallTargetKind
+  ) :body (@@ "src/lib.rs:92:23: 92:59 (#0)" (> Block () (@@ "src/lib.rs:92:31: 92:57 (#0)" (> Ghost :alloc_wrapper false :tracked
+      false :expr (@@ "src/lib.rs:92:31: 92:57 (#0)" (> Block (
+         (@ "src/lib.rs:92:33: 92:54 (#0)" (Stmt Expr (@@ "src/lib.rs:92:33: 92:54 (#0)" (> Call :target (CallTarget Fun (CallTargetKind
                Static
               ) (Fun :path fx::live::lemma_via_broadcast) () () (CallTargetAttrs :autospec (AutospecUsage IfMarked) :const_var false :assume_external_allowed
                false)
@@ -2013,6 +2216,8 @@
 (module_id fx::t)
 
 (module_id fx::tr)
+
+(module_id fx::dt)
 
 (module_id fx::live)
 

@@ -8,7 +8,7 @@ CREATE TABLE functions (
     broadcast_forall BOOLEAN, broadcast_forall_only BOOLEAN, rlimit_attr VARCHAR, spinoff_prover BOOLEAN,
     integer_ring BOOLEAN, bit_vector BOOLEAN, nonlinear BOOLEAN, has_body BOOLEAN,
     file VARCHAR, line INTEGER, end_line INTEGER, body_lines INTEGER, n_requires INTEGER, n_ensures INTEGER,
-    has_default BOOLEAN, trait_method VARCHAR, type_invariant BOOLEAN
+    has_default BOOLEAN, trait_method VARCHAR, type_invariant BOOLEAN, generated BOOLEAN
 );
 CREATE TABLE uses (
     caller_id BIGINT, callee_path VARCHAR, callee_id BIGINT, section VARCHAR, kind VARCHAR,

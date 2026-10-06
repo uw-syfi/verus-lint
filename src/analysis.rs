@@ -176,7 +176,7 @@ pub fn sccs(n: usize, adj: &[Vec<usize>]) -> Vec<usize> {
 /// Fill `dead_scc` with the components of the dead proof and spec functions.
 pub fn store_dead_sccs(db: &Db) -> Result<()> {
     let dead: Vec<i64> = db.query_ids(
-        "SELECT fn_id FROM functions WHERE mode IN ('proof', 'spec') AND path NOT IN (SELECT path FROM live_nodes)",
+        "SELECT fn_id FROM functions WHERE mode IN ('proof', 'spec') AND NOT generated AND path NOT IN (SELECT path FROM live_nodes)",
         &[],
     )?;
     let idx: HashMap<i64, usize> = dead.iter().enumerate().map(|(i, &f)| (f, i)).collect();

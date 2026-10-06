@@ -17,7 +17,7 @@ SELECT f.path AS entity, f.file, f.line,
             ELSE format('{} fn {} is unreachable from every root', f.mode, f.friendly) END AS message
 FROM functions f
 LEFT JOIN dead_scc s ON s.fn_id = f.fn_id
-WHERE f.mode IN ('proof', 'spec')
+WHERE f.mode IN ('proof', 'spec') AND NOT f.generated
   AND f.path NOT IN (SELECT path FROM live_nodes)
   AND f.fn_id NOT IN (SELECT fn_id FROM api_pins WHERE fn_id IS NOT NULL)
 ORDER BY f.file, f.line;
