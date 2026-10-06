@@ -1,9 +1,8 @@
-//! `verus-lint.toml`: extraction and roots settings.
-//!
-//! Sections the later phases own (`rules`, `baseline`) are accepted and ignored.
+//! `verus-lint.toml`: extraction, roots, rule, level and baseline settings.
 
 use anyhow::{Context, Result};
 use serde::Deserialize;
+use std::collections::BTreeMap;
 use std::path::Path;
 
 #[allow(
@@ -51,6 +50,66 @@ pub struct RootsCfg {
 pub struct RulesCfg {
     /// Directories of SQL rules, relative to the workspace. No rules are built in.
     pub dirs: Vec<String>,
+    /// Directory of a Rust rules crate (holds a `Cargo.toml`), relative to the workspace.
+    /// `check` and `run` build it and let its binary do the checking.
+    pub rust: Option<String>,
+    /// Cargo profile for building the rules crate (default `release`).
+    pub rust_profile: Option<String>,
+    /// Level per rule id: `off`, `note`, `warn` or `gate`. Rules not listed are `warn`.
+    pub levels: BTreeMap<String, String>,
+    /// Parameter values per rule id (numbers), overriding the rule's defaults.
+    pub params: BTreeMap<String, BTreeMap<String, toml::Value>>,
+}
+
+#[allow(
+    missing_docs,
+    reason = "plain data row; field names match the schema columns"
+)]
+#[derive(Debug, Default, Clone, Deserialize)]
+#[serde(default, deny_unknown_fields)]
+pub struct BaselineCfg {
+    /// Baseline file, relative to the workspace (default `verus-lint-baseline.json`).
+    pub file: Option<String>,
+}
+
+/// What a rule's findings do to the exit status.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Level {
+    /// The rule is not run.
+    Off,
+    /// Findings are printed as notes and never change the exit status.
+    Note,
+    /// Findings are printed at the rule's severity and never change the exit status.
+    Warn,
+    /// Findings the baseline does not cover make `check` exit with status 1.
+    Gate,
+}
+
+impl Level {
+    /// Parse `off`, `note`, `warn` or `gate`.
+    ///
+    /// # Errors
+    /// Fails on any other text.
+    pub fn parse(s: &str) -> Result<Self> {
+        match s {
+            "off" => Ok(Self::Off),
+            "note" => Ok(Self::Note),
+            "warn" => Ok(Self::Warn),
+            "gate" => Ok(Self::Gate),
+            _ => anyhow::bail!("bad level `{s}` (off, note, warn or gate)"),
+        }
+    }
+
+    /// The text form.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Off => "off",
+            Self::Note => "note",
+            Self::Warn => "warn",
+            Self::Gate => "gate",
+        }
+    }
 }
 
 #[allow(
@@ -63,6 +122,7 @@ pub struct Config {
     pub extract: ExtractCfg,
     pub roots: RootsCfg,
     pub rules: RulesCfg,
+    pub baseline: BaselineCfg,
 }
 
 impl Config {
@@ -71,7 +131,39 @@ impl Config {
     /// # Errors
     /// Fails on invalid TOML or unknown keys in `[extract]`, `[roots]` or `[rules]`.
     pub fn parse(text: &str) -> Result<Self> {
-        toml::from_str(text).context("parsing verus-lint.toml")
+        let c: Self = toml::from_str(text).context("parsing verus-lint.toml")?;
+        for (id, l) in &c.rules.levels {
+            Level::parse(l).with_context(|| format!("[rules.levels] \"{id}\""))?;
+        }
+        for (id, ps) in &c.rules.params {
+            for (k, v) in ps {
+                if !(v.is_integer() || v.is_float()) {
+                    anyhow::bail!("[rules.params.\"{id}\"] {k} must be a number");
+                }
+            }
+        }
+        Ok(c)
+    }
+
+    /// Level of a rule (`warn` unless the config says otherwise).
+    ///
+    /// # Errors
+    /// Fails when the configured level text is invalid.
+    pub fn level(&self, rule: &str) -> Result<Level> {
+        self.rules
+            .levels
+            .get(rule)
+            .map_or(Ok(Level::Warn), |l| Level::parse(l))
+    }
+
+    /// Configured parameter values of a rule as text.
+    #[must_use]
+    pub fn rule_params(&self, rule: &str) -> BTreeMap<String, String> {
+        self.rules
+            .params
+            .get(rule)
+            .map(|m| m.iter().map(|(k, v)| (k.clone(), v.to_string())).collect())
+            .unwrap_or_default()
     }
 
     /// Read and parse a config file.
@@ -127,6 +219,19 @@ mod tests {
     }
 
     #[test]
+    fn levels_and_params() {
+        let c =
+            Config::parse("[rules.levels]\n\"a/b\"=\"gate\"\n[rules.params.\"a/b\"]\nn=3\nr=0.5\n")
+                .unwrap();
+        assert_eq!(c.level("a/b").unwrap(), Level::Gate);
+        assert_eq!(c.level("other").unwrap(), Level::Warn);
+        assert_eq!(c.rule_params("a/b")["n"], "3");
+        assert_eq!(c.rule_params("a/b")["r"], "0.5");
+        assert!(Config::parse("[rules.levels]\nx=\"loud\"\n").is_err());
+        assert!(Config::parse("[rules.params.x]\nn=\"s\"\n").is_err());
+    }
+
+    #[test]
     fn parses_sections() {
         let c = Config::parse(
             "[extract]\ntoolchain=[\"./v\"]\nexclude=[\"sea-lion-cuda-sys\"]\n[roots]\npatterns=[\"*::neg_*\"]\n[rules]\ndirs=[\"x\"]\n[baseline]\nfile=\"b.json\"\n",
@@ -136,5 +241,6 @@ mod tests {
         assert_eq!(c.roots.patterns, ["*::neg_*"]);
         assert_eq!(c.rules.dirs, ["x"]);
         assert!(Config::parse("[extract]\nbogus=1\n").is_err());
+        assert_eq!(c.baseline.file.as_deref(), Some("b.json"));
     }
 }

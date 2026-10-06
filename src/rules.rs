@@ -4,6 +4,7 @@
 //! The query must return `entity` and `message`; `file`, `line`, `metric` and
 //! `severity` are optional; other columns are kept as properties.
 
+use crate::sdk::{Function, Ratchet, RuleMeta, Severity};
 use anyhow::{Context, Result, anyhow, bail};
 use duckdb::Connection;
 use duckdb::types::Value;
@@ -26,6 +27,7 @@ pub struct Rule {
     pub sql: String,
 }
 
+/// One result of a rule. `rule` and an empty `severity` are filled in by the runner.
 #[allow(
     missing_docs,
     reason = "plain data row; field names match the schema columns"
@@ -40,6 +42,79 @@ pub struct Finding {
     pub line: Option<i64>,
     pub metric: Option<f64>,
     pub props: BTreeMap<String, String>,
+}
+
+impl Rule {
+    /// The rule's static description.
+    ///
+    /// # Errors
+    /// Fails on an invalid severity, ratchet or `needs` header.
+    pub fn meta(&self) -> Result<RuleMeta> {
+        let mut m = RuleMeta::new(&self.id, &self.summary)
+            .severity(Severity::parse(&self.severity).with_context(|| self.id.clone())?);
+        m.params.clone_from(&self.params);
+        m.schema.clone_from(&self.schema);
+        match self.needs.as_deref() {
+            None => {}
+            Some("dynamic") => m.needs_dynamic = true,
+            Some(o) => bail!("rule {}: unknown needs `{o}`", self.id),
+        }
+        if let Some(r) = &self.ratchet {
+            m.ratchet = Ratchet::parse(r).with_context(|| format!("rule {}", self.id))?;
+        }
+        Ok(m)
+    }
+}
+
+impl Finding {
+    /// A finding for `entity` (the stable key the baseline uses; never a line number).
+    #[must_use]
+    pub fn new(entity: &str, message: impl Into<String>) -> Self {
+        Self {
+            entity: entity.to_string(),
+            message: message.into(),
+            ..Self::default()
+        }
+    }
+
+    /// A finding about a function: entity is its path, location is its definition.
+    #[must_use]
+    pub fn at(f: &Function, message: impl Into<String>) -> Self {
+        Self::new(&f.path, message).location(&f.file, f.line)
+    }
+
+    /// Set the source location.
+    #[must_use]
+    pub fn location(mut self, file: &str, line: u32) -> Self {
+        self.file = Some(file.to_string());
+        self.line = Some(i64::from(line));
+        self
+    }
+
+    /// Set the number compared by metric ratchets.
+    #[must_use]
+    pub const fn metric(mut self, m: f64) -> Self {
+        self.metric = Some(m);
+        self
+    }
+
+    /// Override the rule's severity for this finding.
+    #[must_use]
+    pub fn severity(mut self, s: Severity) -> Self {
+        self.severity = s.as_str().to_string();
+        self
+    }
+
+    /// Attach a property (kept in JSON and SARIF output).
+    #[must_use]
+    #[allow(
+        clippy::needless_pass_by_value,
+        reason = "builder argument: any displayable value"
+    )]
+    pub fn prop(mut self, key: &str, value: impl ToString) -> Self {
+        self.props.insert(key.to_string(), value.to_string());
+        self
+    }
 }
 
 /// The example rules shipped in `examples/rules` (for tests and documentation; the tool

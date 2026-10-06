@@ -6,6 +6,7 @@ pub mod db;
 pub mod extract;
 pub(crate) mod num;
 pub mod rules;
+pub mod sdk;
 pub(crate) mod scan;
 pub(crate) mod sexp;
 pub mod version;
