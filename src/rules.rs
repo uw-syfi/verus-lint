@@ -33,6 +33,22 @@ pub struct Rule {
 }
 
 /// One result of a rule. `rule` and an empty `severity` are filled in by the runner.
+///
+/// Build findings with [`Finding::new`] or [`Finding::at`] and the builder methods.
+///
+/// ```
+/// use verus_lint::rules::Finding;
+/// use verus_lint::sdk::Severity;
+///
+/// let f = Finding::new("crate::m::f", "too many requires")
+///     .location("src/m.rs", 42)
+///     .metric(12.0)
+///     .severity(Severity::Error)
+///     .prop("n_requires", 12);
+/// assert_eq!(f.entity, "crate::m::f");
+/// assert_eq!(f.line, Some(42));
+/// assert_eq!(f.props["n_requires"], "12");
+/// ```
 #[derive(Debug, Clone, Default)]
 pub struct Finding {
     /// Id of the rule that produced the finding.

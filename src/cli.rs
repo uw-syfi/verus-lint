@@ -479,6 +479,27 @@ fn dispatch(native: &[&dyn Rule], cli: Cli) -> Result<ExitCode> {
 ///
 /// Exit status: 0 clean, 1 gated findings the baseline does not cover, 2 rule, config or
 /// runtime error, 3 unsupported Verus version.
+///
+/// This is the whole command line of a rules crate's binary: `extract`, `verify`, `check`,
+/// `query` and `run`, with the same arguments as `verus-lint`. Pass `&[]` for no Rust rules.
+///
+/// ```no_run
+/// use verus_lint::sdk::{Cx, Findings, Rule, RuleMeta};
+///
+/// struct NoOp;
+/// impl Rule for NoOp {
+///     fn meta(&self) -> RuleMeta {
+///         RuleMeta::new("my/no-op", "Reports nothing.")
+///     }
+///     fn check(&self, _cx: &Cx, _out: &mut Findings) -> anyhow::Result<()> {
+///         Ok(())
+///     }
+/// }
+///
+/// fn main() -> std::process::ExitCode {
+///     verus_lint::run(&[&NoOp])
+/// }
+/// ```
 #[must_use]
 pub fn run(native: &[&dyn Rule]) -> ExitCode {
     match dispatch(native, Cli::parse()) {

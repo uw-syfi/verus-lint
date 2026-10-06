@@ -11,7 +11,7 @@ use verus_lint::extract::load_crate_logs;
 
 const DOC: &str = include_str!("../docs/schema.md");
 
-/// Table or view name to its columns (name, type) in order, as DuckDB reports them.
+/// Table or view name to its columns (name, type) in order, as `DuckDB` reports them.
 fn schema(db: &Db) -> BTreeMap<String, Vec<(String, String)>> {
     let rows = db
         .query_rows(
@@ -28,7 +28,7 @@ fn schema(db: &Db) -> BTreeMap<String, Vec<(String, String)>> {
     out
 }
 
-/// Text of each `### \`name\`` section (up to the next heading of level 2 or 3), keyed by name.
+/// Text of each level-3 section headed by a backticked name, up to the next level-2 or 3 heading.
 fn sections() -> BTreeMap<String, String> {
     let mut out = BTreeMap::new();
     let mut cur: Option<(String, String)> = None;
