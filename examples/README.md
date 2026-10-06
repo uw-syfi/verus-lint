@@ -1,6 +1,6 @@
 # Example lints
 
-verus-lint ships no rules. The SQL files in `rules/` are examples to copy into
+verus-lint ships no rules. The SQL files in `rules/` and the crate in `rust-rules/` are examples to copy into
 your own repository and adapt; the tool never loads them unless you point it at
 a directory (`verus-lint check --rules DIR`, or `[rules] dirs` in
 `verus-lint.toml`). Keep your rules in your own tree and do not reference these.
@@ -13,7 +13,9 @@ a directory (`verus-lint check --rules DIR`, or `[rules] dirs` in
 | `trusted-inventory.sql` | Reading `trusted` with a set ratchet |
 | `trait-spec-default.sql` | Joining `trait_impls` and `functions.trait_method` |
 | `fanin-open-spec.sql`, `fanin-reveal.sql` | Fan-in over `edges` with a metric ratchet |
+| `extraction-health.sql` | Reading `warnings`: feature gates and unresolved names |
+| `rust-rules/` | A complete Rust rules crate (`verus-lint-example-rules`): one rule with a metric ratchet, run through `[rules] rust` |
 
 The mechanisms these rules use (the `roots`, `graph_edges` and `live_nodes`
 views, the `dead_scc` table, root patterns and pins in `[roots]`) are part of
-the tool. An example Rust rules crate comes with the SDK (phase 4).
+the tool. The Rust SDK is `verus_lint::sdk`; `rust-rules/` is a minimal crate using it.
