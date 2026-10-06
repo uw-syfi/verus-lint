@@ -20,7 +20,8 @@ pub struct ExtractCfg {
 #[derive(Debug, Default, Clone, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct RootsCfg {
-    /// Glob patterns over function paths: top theorems, negative controls, fixtures.
+    /// Glob patterns for top theorems, negative controls and fixtures. A pattern with `::` matches
+    /// the function path (or its friendly path); one without matches the bare function name.
     pub patterns: Vec<String>,
     /// Treat every `pub` function of the extracted crates as a root.
     pub public_api: bool,

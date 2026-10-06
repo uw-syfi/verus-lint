@@ -39,8 +39,9 @@ WHERE mode = 'spec' AND item_kind = 'function' AND NOT opaque
   AND body_vis <> 'none' AND body_vis <> module;
 
 -- Dead-code analysis inputs, stored by `extract` from the config. `like_pattern` is the glob
--- converted to SQL LIKE with `\` as the escape character.
-CREATE TABLE root_patterns (pattern VARCHAR, like_pattern VARCHAR);
+-- converted to SQL LIKE with `\` as the escape character. A pattern without `::` matches the
+-- function's own name (`by_name`); one with `::` matches its path or friendly path.
+CREATE TABLE root_patterns (pattern VARCHAR, like_pattern VARCHAR, by_name BOOLEAN);
 -- API pin entries and the functions they name (fn_id null when nothing matched).
 CREATE TABLE api_pins (entry VARCHAR, file VARCHAR, line INTEGER, fn_id BIGINT);
 -- Strongly connected components of the dead subgraph (filled by `extract`); scc_id is the
@@ -55,7 +56,8 @@ CREATE VIEW roots AS
 SELECT fn_id, 'exec' AS reason FROM functions WHERE mode = 'exec'
 UNION ALL
 SELECT f.fn_id, 'pattern' FROM functions f JOIN root_patterns p
-  ON f.path LIKE p.like_pattern ESCAPE '\' OR f.friendly LIKE p.like_pattern ESCAPE '\'
+  ON CASE WHEN p.by_name THEN f.name LIKE p.like_pattern ESCAPE '\'
+          ELSE f.path LIKE p.like_pattern ESCAPE '\' OR f.friendly LIKE p.like_pattern ESCAPE '\' END
 UNION ALL
 SELECT fn_id, 'foreign_trait_impl' FROM functions
 WHERE kind IN ('trait_impl', 'foreign_trait_impl')

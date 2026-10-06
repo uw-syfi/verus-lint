@@ -78,8 +78,8 @@ fn glob_files(ws: &Path, pattern: &str) -> Vec<PathBuf> {
 pub fn store_roots(db: &Db, ws: &Path, cfg: &RootsCfg) -> Result<()> {
     for p in &cfg.patterns {
         db.conn.execute(
-            "INSERT INTO root_patterns VALUES (?, ?)",
-            params![p, glob_to_like(p)],
+            "INSERT INTO root_patterns VALUES (?, ?, ?)",
+            params![p, glob_to_like(p), !p.contains("::")],
         )?;
     }
     db.set_meta("roots_public_api", &cfg.public_api.to_string())?;

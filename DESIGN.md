@@ -391,7 +391,7 @@ toolchain = ["./coral/verify"]          # command prefix for cargo verus; defaul
 crates = ["coral/crates/**"]            # members to extract; default all verified members
 
 [roots]
-patterns = ["*::theorem_*", "*::neg_*", "*::fixture_*"]   # top theorems, negative controls
+patterns = ["theorem_*", "neg_*", "fixture_*"]   # bare names; with `::` the pattern matches the path
 public_api = false
 pins = ["tools/pins/*.pin"]             # API pin files, one function path or friendly name per line;
                                         # not roots: listed items are reported as "unused public API"

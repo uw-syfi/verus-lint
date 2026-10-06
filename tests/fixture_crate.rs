@@ -12,7 +12,7 @@ fn fixture_db() -> Db {
     load_crate_logs(&mut db, &ws, "fx", "Cargo.toml", vir, imp).unwrap();
     db.resolve().unwrap();
     let roots = verus_lint::config::RootsCfg {
-        patterns: vec!["*::theorem_*".into()],
+        patterns: vec!["theorem_*".into()],
         public_api: false,
         pins: vec!["pins/*.pin".into()],
     };
