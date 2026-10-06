@@ -56,9 +56,10 @@ All tables are Verus-generic. Paths are VIR paths (`crate::module::impl&%N::f`);
 | `broadcast_groups` | `path` | `crate` (groups defined by an extracted crate, from `(group_id ..)` forms) |
 | `group_members` | none | `group_path`, `member_path`, `member_id` (null outside the extracted crates), `file`, `line` (source scan of `broadcast group` items) |
 | `root_patterns` | none | `pattern`, `like_pattern`, `by_name` (from `[roots] patterns`) |
+| `root_names` | none | `name`, `file` (function names found as identifier tokens in the `[roots] name_files` files; first file per name) |
 | `api_pins` | none | `entry`, `file`, `line`, `fn_id` (null when the entry matched nothing) |
 | `dead_scc` | `fn_id` | `scc_id`, `scc_size` (components of the dead subgraph) |
-| `warnings` | none | `crate`, `what`, `detail` (extraction problems, for `verus/extraction-health`) |
+| `warnings` | none | `crate`, `what` (`feature_gated_item`, `unresolved_broadcast_use`, `module_use_in_function_less_file`, `scan_unreadable_file`, `ambiguous_broadcast_group`), `detail` (`file:line: text`); extraction health, read by `examples/rules/extraction-health.sql` |
 | `runs` | `run_id` | `crate`, `seed`, `verus_args`, `source_commit`, `started_at`, `wall_s` |
 
 `functions.end_line` comes from the body expression's span: the `Function`
@@ -176,6 +177,18 @@ functions); unjoined rows are kept with a null `fn_id` and counted in
   source scan (`broadcast group name { a, b }`), and reachability must treat a
   group as a node whose members become live with it; `broadcast_groups`
   holds the group paths now, a `group_members` table is added with the scan.
+
+- What the log omits, and what the scan reports. The log is one build: items
+  under `cfg(feature = ..)` that the build did not enable and `#[cfg(test)]`
+  items are absent, and so are their references. Tests need no handling (a
+  function used only by tests is dead for a proof lint). For features, the
+  source scan covers every `.rs` file under each crate's `src/` (not only files
+  that hold functions) and records each `#[cfg(.. feature ..)]` attribute line
+  as a `feature_gated_item` warning, so a count can be read next to the list of
+  code it cannot see. On Coral: 379 such notes, mostly `neg_*` negative
+  controls. The scan also finds `broadcast group` items in files without
+  functions; a module-level `broadcast use` in such a file has no known module
+  and is recorded as `module_use_in_function_less_file`.
 
 Linking Verus's `vir` crate to read the bincode export cargo-verus already
 writes is not needed: that export drops proof and exec bodies, so it cannot
@@ -318,42 +331,63 @@ fn main() -> std::process::ExitCode {
 }
 ```
 
-`verus-lint check` runs `cargo build --release --manifest-path lints/Cargo.toml`
-and executes the result with the database path and resolved config. Without a
-`lints/` crate it runs its own binary, which is `verus_lint::run(&[])`. `run`
-also loads the SQL rule directories from the config; no rules are built in. No dynamic libraries are loaded.
+`verus_lint::run` is the complete command line (`extract`, `check`, `query`,
+`run`). When `[rules] rust` names a crate, `check` and `run` build it
+(`cargo build --manifest-path <crate>/Cargo.toml`, release profile unless
+`rust_profile` says otherwise, `CARGO_*` package variables removed from the
+child's environment) and start its binary with the same arguments and
+`VERUS_LINT_DELEGATED=1`, which stops the child from delegating again. The
+child loads the SQL rule directories from the config, adds its Rust rules, and
+produces the one report, so levels, baselines and output are identical for both
+kinds of rule. Without a `rust` entry the `verus-lint` binary is
+`verus_lint::run(&[])`. No dynamic libraries are loaded.
 
-API:
+API (module `verus_lint::sdk`; `Finding` is `verus_lint::rules::Finding`):
 
 ```rust
 pub trait Rule {
-    fn meta(&self) -> RuleMeta;                 // id, summary, severity, needs, ratchet, params
+    fn meta(&self) -> RuleMeta;        // id, summary, severity, needs_dynamic, ratchet, params, schema
     fn check(&self, cx: &Cx, out: &mut Findings) -> anyhow::Result<()>;
 }
-
-pub struct Cx<'a> { pub facts: &'a Facts, pub params: &'a Params }
+pub struct Cx<'a> { pub facts: &'a Facts, pub params: &'a Params }   // params: get_str, get_u64, get_f64
 
 impl Facts {
-    pub fn functions(&self) -> &[Function];                   // typed rows of `functions`
+    pub fn functions(&self) -> &[Function];            // typed rows of `functions` (main columns)
+    pub fn function(&self, id: FnId) -> &Function;
     pub fn by_path(&self, path: &str) -> Option<&Function>;
-    pub fn uses_from(&self, f: FnId) -> &[Use];
-    pub fn uses_of(&self, f: FnId) -> &[Use];
-    pub fn graph(&self, keep: impl Fn(&Use) -> bool) -> Graph; // filtered use graph
-    pub fn roots(&self) -> &[FnId];                             // config + implicit roots
-    pub fn verify(&self) -> Option<&VerifyFacts>;               // dynamic facts, if extracted
-    pub fn query(&self, sql: &str) -> anyhow::Result<Rows>;     // DuckDB, read-only
+    pub fn uses(&self) -> &[Use];
+    pub fn uses_from(&self, f: FnId) -> impl Iterator<Item = &Use>;
+    pub fn uses_of(&self, f: FnId) -> impl Iterator<Item = &Use>;
+    pub fn roots(&self) -> &[FnId];                    // the `roots` view
+    pub fn live(&self) -> &FnSet;                      // the `live_nodes` view, as functions
+    pub fn graph(&self, keep: impl Fn(&Use) -> bool) -> Graph;   // resolved uses only
+    pub fn query(&self, sql: &str) -> anyhow::Result<Vec<Vec<String>>>;  // SELECT or WITH only
+    pub fn connection(&self) -> &duckdb::Connection;
+    pub fn has_dynamic(&self) -> bool;
 }
-
 impl Graph {
     pub fn reachable(&self, from: &[FnId]) -> FnSet;
-    pub fn sccs(&self) -> Vec<Vec<FnId>>;
-    pub fn callers(&self, f: FnId) -> &[FnId];
+    pub fn sccs(&self) -> Vec<Vec<FnId>>;              // every function in exactly one component
+    pub fn callers(&self, f: FnId) -> Vec<FnId>;
+    pub fn callees(&self, f: FnId) -> Vec<FnId>;
 }
-
-impl Findings {
-    pub fn push(&mut self, f: Finding);   // entity, message, location, metric, properties
+impl Finding {   // builders; the runner fills in rule id and default severity
+    pub fn new(entity: &str, message: impl Into<String>) -> Self;
+    pub fn at(f: &Function, message: impl Into<String>) -> Self;  // entity = path, location = definition
+    pub fn location(self, file: &str, line: u32) -> Self;
+    pub fn metric(self, m: f64) -> Self;
+    pub fn severity(self, s: Severity) -> Self;
+    pub fn prop(self, key: &str, value: impl ToString) -> Self;
 }
 ```
+
+`Facts::graph` has an edge per resolved use. It does not include the module,
+group and trait-dispatch edges of `graph_edges`; `Facts::live` does, so a Rust
+dead-code rule starts from `live()` and uses `sccs()` to group the dead
+functions (on Coral that rule and the SQL one agree on all 774). The typed
+enums fail closed on a value the SDK does not know (`UseKind::Other` exists
+because real logs have path mentions that are neither calls nor reveals).
+`Facts::verify` (dynamic facts) arrives with phase 5.
 
 Example: opaque definitions revealed in many modules (closing a definition
 only helps if few places reveal it).
@@ -386,7 +420,8 @@ impl Rule for NoBigOpaqueReveal {
 
 Default roots (the `roots` view, and `Facts::roots` once the SDK exists):
 exec functions; functions matched by config root patterns (top theorems and
-negative controls; a pattern without `::` matches the bare name); trait impl
+negative controls; a pattern without `::` matches the bare name); functions
+named in `name_files` files (tooling outside Rust); trait impl
 methods of traits declared outside the extracted crates (callers may dispatch
 to them generically); type invariants; when `roots.public_api` is on (for
 libraries with users outside the workspace), every `pub` function. API pin
@@ -412,6 +447,8 @@ exclude = ["sea-lion-cuda-sys"]        # verify = true members Verus cannot buil
 
 [roots]
 patterns = ["theorem_*", "neg_*", "fixture_*"]   # bare names; with `::` the pattern matches the path
+name_files = ["tools/*.py", "!tools/baseline*"]  # every function named by an identifier token in these files
+                                        # is a root (globs; `*` crosses `/`; a leading `!` excludes)
 public_api = false
 pins = ["tools/pins/*.pin"]             # API pin files, one function path or friendly name per line;
                                         # not roots: listed items are reported as "unused public API"
@@ -419,6 +456,7 @@ pins = ["tools/pins/*.pin"]             # API pin files, one function path or fr
 [rules]
 dirs = ["lints/sql"]                    # SQL rule directories (the tool has no built-in rules)
 rust = "lints"                          # Rust rule crate; omitted if absent
+rust_profile = "release"                # cargo profile for that crate (default release)
 
 [rules.levels]                          # off, note, warn, gate
 "verus/dead-proof-code" = "gate"
@@ -433,8 +471,11 @@ fail = 0.8
 file = "verus-lint-baseline.json"
 ```
 
-Levels: `warn` findings are printed and do not change the exit status;
-`gate` findings that the baseline does not cover make `check` exit 1.
+Levels (default `warn`): `off` skips the rule; `note` prints its findings as
+notes; `warn` prints them at the rule's severity; none of these change the exit
+status. `gate` findings that the baseline does not cover make `check` exit 1.
+Parameter values in `[rules.params]` must be numbers (SQL rules substitute them
+as literals); the order of precedence is rule default, config, `--param`.
 
 Baseline (ratchet): a JSON file the tool writes with `check --update-baseline`
 and users commit.
@@ -452,21 +493,28 @@ and users commit.
 
 A rule with `ratchet: set` fails on entities not in its set; a rule with
 `ratchet: metric, ratio = r, abs = a` fails when an entity's metric exceeds
-`max(r * base, base + a)` or the entity is new and over the rule's threshold.
-Entities in the baseline that no longer appear are reported as fixed, so the
-baseline only shrinks unless updated on purpose.
+`max(r * base, base + a)`, or the entity is not in the baseline (the rule's own
+threshold already decided that it is a finding). A baselined finding is still
+reported in JSON and SARIF (`baselined: true`, SARIF `baselineState`) and is
+left out of the text listing. Entities in the baseline that no longer appear are
+reported as fixed, so the baseline only shrinks unless updated on purpose.
+`--update-baseline` rewrites the entries of the rules that ran (and only those
+with a ratchet header), keeps the others, and exits 0.
 
 ## 8. Output
 
-- Text (default): one line per finding, `file:line: level rule-id: message`,
-  then a summary per rule; `--top N` tables for metric rules.
-- JSON: `{ meta, findings: [{rule, level, entity, message, file, line, metric, properties, baselined}] }`, stable field order, for scripts.
+- Text (default): one line per finding not covered by the baseline,
+  `file:line: severity rule-id: message [entity]`, at most `--top N` per rule (default
+  20, 0 for all), then a summary line per rule (new, baselined, fixed) and the
+  gate verdict.
+- JSON: `{ meta, rules: [{id, level, severity, summary, findings, new, baselined, fixed}], findings: [{rule, level, severity, entity, message, file, line, metric, properties, baselined}], skipped, gate_failures }`, fixed field order, for scripts.
 - SARIF 2.1.0: one `run`, rules as `reportingDescriptor`s with their summary,
   findings as `result`s with `partialFingerprints.entity` set to the entity so
   code-scanning UIs track findings across line moves.
 
 Exit status: 0 clean, 1 gate findings, 2 rule or config error, 3 unsupported
-Verus version.
+Verus version. `--format` and `--output FILE` select the rendering; `--baseline FILE`
+overrides the baseline path.
 
 ## 9. Performance targets
 
@@ -650,3 +698,49 @@ loads only directories given by `--rules` or `[rules] dirs`, and prints a hint
 when there are none. The Rust types behind `rules::examples()` are used by tests
 only. `roots`, `graph_edges`, `live_nodes` and `dead_scc` stay in the tool as
 mechanisms so a user can write the dead-code rule themselves.
+
+Phase 3 follow-up (2026-10-06): the three precision gaps are closed.
+`[roots] name_files` roots every function whose name is an identifier token in
+a listed file (`root_names`, schema 1.2.0); feature-gated code is documented in
+section 4.3 and reported as `feature_gated_item` warnings; the source scan now
+covers files with no functions. Coral re-run (12 crates at
+`claude/coral-prov-flip` 149841ecd, `[roots]` mirroring `dead_fns.py`: name
+patterns, `tools/pins`, and `name_files` limited to the `.py`, `.toml`, `.json`
+and `.txt` files under `tools/` that the script reads, minus pins and
+baselines): 774 dead proof and spec functions, 206 unused public API items
+(the tree moved since the first comparison, which had 876 and 229).
+`dead_fns.py` reports 498 in the same crates (489 distinct file and name
+pairs): all of them are in our 774, none is missing. Our 270 extra, by class:
+157 are referenced from files that hold `cfg(test)` or `cfg(feature)` code
+(tests and feature-gated negative controls, absent from the log; the class is
+an upper bound, since a file with such code may also have live references);
+61 are reachable only from functions we treat as unused API, because we do not
+root pinned items and the script does; 41 share a name with an unrelated
+function (it merges by name); 11 appear only in `use` lines. Whether callees of
+an unused pinned function should count as live is a rule decision, not a tool
+one; an opt-in "pins are roots" switch would make the second class vanish.
+
+Phase 4 status (2026-10-06): done. `verus_lint::sdk` (`Facts`, `Graph` with
+`sccs`, `Rule`, `RuleMeta`, `Params`, `Findings`) and `verus_lint::run`; the CLI
+moved into the library. `check` and `run` build the crate named by `[rules]
+rust` and start its binary, which loads the SQL rules too, so one report covers
+both. `examples/rust-rules/` is a workspace member with one rule
+(`example/opaque-reveal-spread`); `tests/rules_crate.rs` drives the CLI through
+build, gate, baseline update and error status. Findings: a child `cargo build`
+started from a test inherits `CARGO_PKG_*` and related variables, which made
+bundled DuckDB rebuild on every run (2 minutes against 2 seconds), so the CLI
+removes them; `check` opens the database read-only; real logs have a use kind
+`other` (1,100 on Coral) that the typed enum needed. Coral dogfood with a
+scratch rules crate outside both repositories (dead-code rule on
+`Facts::live()` plus `sccs()`): 774 findings, identical to the SQL rule;
+a `check` with the Rust crate, 9 rules and the build check takes 6 to 10 s
+(development-profile DuckDB).
+
+Phase 6 status (2026-10-06): done. Levels, baseline file, set and metric
+ratchets, `--update-baseline`, text, JSON and SARIF output, exit statuses (all
+in sections 7 and 8). Coral dogfood: baseline of 9 rules (237 KB: 774 dead
+functions, 711 trusted rows, fan-in metrics and so on), second `check` exits 0,
+removing one set entry and halving one metric entry gives exactly 2 uncovered
+gated findings, SARIF has 3,359 results. Not done: the `verify_*` tables and
+`needs: dynamic` rules wait for phase 5 (a rule that needs them is skipped with
+a note while `verify_fn` is missing or empty); no Parquet cache yet (phase 7).
