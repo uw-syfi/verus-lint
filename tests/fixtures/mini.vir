@@ -1,0 +1,51 @@
+(@ "src/lib.rs:1:1: 2:2 (#0)" (Datatype :name (Dt Path mini::D) :typ_params ()))
+
+(module_id mini)
+(module_id mini::m)
+(module_id mini::n)
+(module_id vstd::seq)
+
+(@ "src/m.rs:3:1: 5:2 (#0)" (Function
+  :name (Fun :path mini::m::open_a) :proxy None :kind (FunctionKind Static) :visibility (Visibility :restricted_to None)
+  :body_visibility (BodyVisibility Visibility (Visibility :restricted_to None))
+  :opaqueness (Opaqueness Revealed :visibility (Visibility :restricted_to None)) :owning_module mini::m :mode Spec :typ_params () :typ_bounds () :params ()
+  :require () :ensure (tuple () ()) :returns None :decrease () :decrease_by None
+  :item_kind (ItemKind Function) :attrs (FunctionAttrs :uses_ghost_blocks true :inline false :hidden () :broadcast_forall false :broadcast_forall_only false :no_auto_trigger false :bit_vector false :atomic false :integer_ring false :nonlinear false :spinoff_prover false :rlimit None :is_external_body false) :body (@@ "src/m.rs:4:5: 4:9 (#0)" (> Const (Constant Int 1)) (Typ Int)) :extra_dependencies ()))
+
+(@ "src/m.rs:7:1: 9:2 (#0)" (Function
+  :name (Fun :path mini::m::opaque_b) :proxy None :kind (FunctionKind Static) :visibility (Visibility :restricted_to None)
+  :body_visibility (BodyVisibility Visibility (Visibility :restricted_to None))
+  :opaqueness (Opaqueness Opaque) :owning_module mini::m :mode Spec :typ_params () :typ_bounds () :params ()
+  :require () :ensure (tuple () ()) :returns None :decrease () :decrease_by None
+  :item_kind (ItemKind Function) :attrs (FunctionAttrs :uses_ghost_blocks true :inline false :hidden () :broadcast_forall false :broadcast_forall_only false :no_auto_trigger false :bit_vector false :atomic false :integer_ring false :nonlinear false :spinoff_prover false :rlimit None :is_external_body false) :body (@@ "src/m.rs:8:5: 8:9 (#0)" (> Const (Constant Int 2)) (Typ Int)) :extra_dependencies ()))
+
+(@ "src/m.rs:11:1: 13:2 (#0)" (Function
+  :name (Fun :path mini::m::closed_c) :proxy None :kind (FunctionKind Static) :visibility (Visibility :restricted_to None)
+  :body_visibility (BodyVisibility Visibility (Visibility :restricted_to mini::m))
+  :opaqueness (Opaqueness Revealed :visibility (Visibility :restricted_to mini::m)) :owning_module mini::m :mode Spec :typ_params () :typ_bounds () :params ()
+  :require () :ensure (tuple () ()) :returns None :decrease () :decrease_by None
+  :item_kind (ItemKind Function) :attrs (FunctionAttrs :uses_ghost_blocks true :inline false :hidden () :broadcast_forall false :broadcast_forall_only false :no_auto_trigger false :bit_vector false :atomic false :integer_ring false :nonlinear false :spinoff_prover false :rlimit None :is_external_body false) :body (@@ "src/m.rs:12:5: 12:9 (#0)" (> Const (Constant Int 3)) (Typ Int)) :extra_dependencies ()))
+
+(@ "src/n.rs:8:1: 8:30 (#0)" (Function
+  :name (Fun :path mini::n::lemma_u) :proxy None :kind (FunctionKind Static) :visibility (Visibility :restricted_to None)
+  :body_visibility (BodyVisibility Visibility (Visibility :restricted_to None))
+  :opaqueness (Opaqueness Opaque) :owning_module mini::n :mode Proof :typ_params () :typ_bounds () :params ()
+  :require ((@@ "src/n.rs:9:5: 9:9 (#0)" (> Const (Constant Bool true)) (Typ Bool))) :ensure (tuple ((@@ "src/n.rs:9:20: 9:26 (#0)" (> Call :target (CallTarget Fun (CallTargetKind Static) (Fun :path mini::m::open_a) () ()) :args ()) (Typ Bool))) ()) :returns None :decrease () :decrease_by None
+  :item_kind (ItemKind Function) :attrs (FunctionAttrs :uses_ghost_blocks true :inline false :hidden () :broadcast_forall false :broadcast_forall_only false :no_auto_trigger false :bit_vector false :atomic false :integer_ring false :nonlinear false :spinoff_prover false :rlimit None :is_external_body false) :body (@@ "src/n.rs:8:31: 16:2 (#0)" (> Block (
+   (@@ "src/n.rs:10:9: 10:15 (#0)" (> Call :target (CallTarget Fun (CallTargetKind Static) (Fun :path mini::m::open_a) () ()) :args ()) (Typ Bool))
+   (@@ "src/n.rs:12:9: 12:20 (#0)" (> Fuel (Fun :path mini::m::opaque_b) 1 false) (Typ Bool))
+   (@@ "src/n.rs:13:9: 13:20 (#0)" (> Fuel (Fun :path mini::m::group_g) 1 true) (Typ Bool))
+   (@@ "src/n.rs:14:9: 14:30 (#0)" (> Unary (UnaryOp Trigger (TriggerAnnotation Trigger None)) (@@ "src/n.rs:14:9: 14:30 (#0)" (> Call :target (CallTarget Fun (CallTargetKind Static) (Fun :path mini::m::open_a) () ()) :args ()) (Typ Bool))) (Typ Bool))
+  ) None) (Typ Datatype (Dt Tuple 0) () ())) :extra_dependencies ()))
+
+(@ "/cargo/vstd/seq.rs:1:1: 2:2 (#0)" (Function
+  :name (Fun :path vstd::seq::len) :proxy None :kind (FunctionKind Static) :visibility (Visibility :restricted_to None)
+  :body_visibility (BodyVisibility Visibility (Visibility :restricted_to None))
+  :opaqueness (Opaqueness Opaque) :owning_module vstd::seq :mode Spec :typ_params () :typ_bounds () :params ()
+  :require () :ensure (tuple () ()) :returns None :decrease () :decrease_by None
+  :item_kind (ItemKind Function) :attrs (FunctionAttrs :uses_ghost_blocks true :inline false :hidden () :broadcast_forall false :broadcast_forall_only false :no_auto_trigger false :bit_vector false :atomic false :integer_ring false :nonlinear false :spinoff_prover false :rlimit None :is_external_body false) :body None :extra_dependencies ()))
+
+
+(group_id vstd::array::group_array_axioms)
+
+(group_id mini::m::group_g)
