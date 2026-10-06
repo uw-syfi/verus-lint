@@ -580,6 +580,30 @@ mod tests {
     }
 
     #[test]
+    fn scan_notes_feature_gates_in_files_without_functions() {
+        let ws = std::env::temp_dir().join(format!("vl-scan-{}", std::process::id()));
+        std::fs::create_dir_all(ws.join("src")).unwrap();
+        std::fs::write(
+            ws.join("src/gated.rs"),
+            "// no functions here\n#[cfg(feature = \"neg_x\")]\nmod hidden;\nbroadcast use group_z;\n",
+        )
+        .unwrap();
+        let mut db = Db::in_memory().unwrap();
+        let vir = include_str!("../tests/fixtures/mini.vir");
+        load_crate_logs(&mut db, &ws, "mini", "Cargo.toml", vir, "").unwrap();
+        let rows = db
+            .query_rows("SELECT what, detail FROM warnings WHERE crate = 'mini' AND what <> 'scan_unreadable_file' ORDER BY what")
+            .unwrap();
+        std::fs::remove_dir_all(&ws).unwrap();
+        let what: Vec<&str> = rows.iter().skip(1).map(|r| r[0].as_str()).collect();
+        assert_eq!(
+            what,
+            ["feature_gated_item", "module_use_in_function_less_file"]
+        );
+        assert_eq!(rows[1][1], "src/gated.rs:2: #[cfg(feature = \"neg_x\")]");
+    }
+
+    #[test]
     fn per_crate_log_dir_args() {
         let a = verus_args("c", Path::new("/o/c/log"), None);
         let s = a.join(" ");

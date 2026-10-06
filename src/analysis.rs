@@ -109,6 +109,7 @@ pub fn store_roots(db: &Db, ws: &Path, cfg: &RootsCfg) -> Result<()> {
         )?;
     }
     db.set_meta("roots_public_api", &cfg.public_api.to_string())?;
+    db.set_meta("roots_pins", &cfg.pins_are_roots.to_string())?;
     store_root_names(db, ws, &cfg.name_files)?;
     for pat in &cfg.pins {
         for file in glob_files(ws, pat) {

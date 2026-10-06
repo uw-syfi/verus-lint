@@ -10,6 +10,10 @@ use verus_lint::db::Db;
 use verus_lint::extract::load_crate_logs;
 
 fn fixture_db() -> Db {
+    fixture_db_with(false)
+}
+
+fn fixture_db_with(pins_are_roots: bool) -> Db {
     let mut db = Db::in_memory().unwrap();
     let ws = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/crate");
     let vir = include_str!("fixtures/fx/crate.vir");
@@ -21,6 +25,7 @@ fn fixture_db() -> Db {
         public_api: false,
         pins: vec!["pins/*.pin".into()],
         name_files: vec!["tools/*".into(), "!tools/skip.txt".into()],
+        pins_are_roots,
     };
     verus_lint::analysis::store_roots(&db, &ws, &roots).unwrap();
     verus_lint::analysis::store_dead_sccs(&db).unwrap();
@@ -231,4 +236,26 @@ fn generated_accessors_are_not_dead_code() {
     );
     let dead = run(&db, "verus/dead-proof-code");
     assert!(dead.iter().all(|f| !f.entity.contains("arrow_")));
+}
+
+#[test]
+fn pins_are_roots_is_opt_in() {
+    let off = fixture_db();
+    assert_eq!(
+        rows(&off, "SELECT count(*) FROM roots WHERE reason = 'pin'"),
+        ["0"]
+    );
+    let on = fixture_db_with(true);
+    assert_eq!(
+        rows(
+            &on,
+            "SELECT f.path FROM roots r JOIN functions f USING (fn_id) WHERE r.reason = 'pin'"
+        ),
+        ["fx::live::lemma_dead_leaf"]
+    );
+    assert!(
+        run(&on, "verus/dead-proof-code")
+            .iter()
+            .all(|f| f.entity != "fx::live::lemma_dead_leaf")
+    );
 }

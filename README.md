@@ -48,6 +48,7 @@ exclude = ["sea-lion-cuda-sys"]       # verified members Verus cannot build
 patterns = ["theorem_*", "neg_*"]     # bare name globs; with `::` they match paths
 name_files = ["tools/*.py", "!tools/baseline*"]  # names mentioned by other tooling
 pins = ["tools/pins/*.pin"]           # public API pins (reported, not roots)
+pins_are_roots = false                # true: pinned functions are roots too
 public_api = false                    # true: every `pub` function is a root
 
 [rules]

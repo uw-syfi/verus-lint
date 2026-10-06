@@ -54,7 +54,7 @@ CREATE TABLE dead_scc (fn_id BIGINT, scc_id BIGINT, scc_size INTEGER);
 -- Functions that are live by definition: exec functions, functions matching a root pattern,
 -- implementations of traits declared outside the extracted crates (callers may dispatch to
 -- them generically), functions named in a `name_files` file, type invariants, and, when the config asks for it, every pub function.
--- API pin entries are not roots. The log has no `#[cfg(test)]` items, so tests need no entry.
+-- API pin entries are not roots unless `[roots] pins_are_roots` is set. The log has no `#[cfg(test)]` items, so tests need no entry.
 CREATE VIEW roots AS
 SELECT fn_id, 'exec' AS reason FROM functions WHERE mode = 'exec'
 UNION ALL
@@ -69,6 +69,9 @@ WHERE kind IN ('trait_impl', 'foreign_trait_impl')
   AND (trait_method IS NULL OR trait_method NOT IN (SELECT path FROM functions WHERE kind = 'trait_decl'))
 UNION ALL
 SELECT fn_id, 'type_invariant' FROM functions WHERE type_invariant
+UNION ALL
+SELECT fn_id, 'pin' FROM api_pins
+WHERE fn_id IS NOT NULL AND (SELECT coalesce(max(value), 'false') FROM meta WHERE key = 'roots_pins') = 'true'
 UNION ALL
 SELECT fn_id, 'public_api' FROM functions
 WHERE vis = 'pub' AND (SELECT coalesce(max(value), 'false') FROM meta WHERE key = 'roots_public_api') = 'true';

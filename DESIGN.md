@@ -449,6 +449,7 @@ exclude = ["sea-lion-cuda-sys"]        # verify = true members Verus cannot buil
 patterns = ["theorem_*", "neg_*", "fixture_*"]   # bare names; with `::` the pattern matches the path
 name_files = ["tools/*.py", "!tools/baseline*"]  # every function named by an identifier token in these files
                                         # is a root (globs; `*` crosses `/`; a leading `!` excludes)
+pins_are_roots = false                  # true: pinned functions are roots too
 public_api = false
 pins = ["tools/pins/*.pin"]             # API pin files, one function path or friendly name per line;
                                         # not roots: listed items are reported as "unused public API"
@@ -717,8 +718,11 @@ an upper bound, since a file with such code may also have live references);
 61 are reachable only from functions we treat as unused API, because we do not
 root pinned items and the script does; 41 share a name with an unrelated
 function (it merges by name); 11 appear only in `use` lines. Whether callees of
-an unused pinned function should count as live is a rule decision, not a tool
-one; an opt-in "pins are roots" switch would make the second class vanish.
+an unused pinned function should count as live is a rule decision, so
+`[roots] pins_are_roots = true` is an opt-in switch (pinned functions become
+roots with reason `pin`; they are still in `api_pins`). With it on, Coral has
+751 dead functions (247 extra), 23 fewer; the rest of the 61 are also reachable
+only from other dead code.
 
 Phase 4 status (2026-10-06): done. `verus_lint::sdk` (`Facts`, `Graph` with
 `sccs`, `Rule`, `RuleMeta`, `Params`, `Findings`) and `verus_lint::run`; the CLI
