@@ -338,7 +338,17 @@ fn parse_function(
         .get("body")
         .map(|n| n.atom() != Some("None"))
         .unwrap_or(false);
-    let (file, line, _col, end_line) = parse_span(span).ok_or_else(|| ctx("unparsable span"))?;
+    let (file, line, _col, header_end) = parse_span(span).ok_or_else(|| ctx("unparsable span"))?;
+    // The function's own span covers only its header; the body expression has its own span.
+    let body_end = f
+        .get("body")
+        .and_then(|b| b.list())
+        .filter(|l| l.first().and_then(|x| x.atom()) == Some("@@"))
+        .and_then(|l| match l.get(1) {
+            Some(Node::Str(s)) => parse_span(s).map(|x| x.3),
+            _ => None,
+        });
+    let end_line = body_end.unwrap_or(header_end).max(header_end);
     let name = path.rsplit("::").next().unwrap_or(path).to_string();
     let self_type = match (kind, impl_path) {
         ("trait_impl", Some(ip)) => names.get(ip).map(|x| x.1.clone()),
@@ -523,6 +533,11 @@ mod tests {
         assert!(by["mini::m::opaque_b"].opaque);
         assert_eq!(by["mini::m::closed_c"].body_vis, "mini::m");
         assert_eq!(by["mini::n::lemma_u"].mode, "proof");
+        // Header span is one line; the body span extends the function to line 16.
+        assert_eq!(
+            (by["mini::n::lemma_u"].line, by["mini::n::lemma_u"].end_line),
+            (8, 16)
+        );
         assert_eq!(by["mini::n::lemma_u"].n_requires, 1);
         assert_eq!(by["mini::n::lemma_u"].n_ensures, 1);
         assert_eq!(f.modules, vec!["mini", "mini::m", "mini::n"]);
