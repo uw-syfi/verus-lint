@@ -262,10 +262,40 @@ pub fn candidates(path: &str, module: &str, krate: &str) -> Vec<String> {
     c.into_iter().collect()
 }
 
+/// The one item whose friendly name or path ends with `::{path}`, for a name that reaches its
+/// item through a `use` (an imported function, or `Type::assoc_fn`, which has no path of its own
+/// in the log). `items` are `(friendly, path)` pairs; several matches give none.
+pub fn unique_suffix_match<'a>(
+    path: &str,
+    items: impl Iterator<Item = (&'a str, &'a str)>,
+) -> Option<String> {
+    let tail = format!("::{path}");
+    let mut hits = items.filter(|(f, p)| f.ends_with(&tail) || p.ends_with(&tail));
+    let first = hits.next()?;
+    hits.next().is_none().then(|| first.1.to_string())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::vir::{ImplNames, parse_log};
+
+    #[test]
+    fn suffix_match_needs_a_single_hit() {
+        let items = [
+            ("c::m::Multiple::lemma_a", "c::m::impl&%1::lemma_a"),
+            ("c::n::Other::lemma_a", "c::n::impl&%2::lemma_a"),
+            ("c::m::free", "c::m::free"),
+        ];
+        let it = || items.iter().map(|(a, b)| (*a, *b));
+        assert_eq!(
+            unique_suffix_match("Multiple::lemma_a", it()),
+            Some("c::m::impl&%1::lemma_a".into())
+        );
+        assert_eq!(unique_suffix_match("lemma_a", it()), None, "two hits");
+        assert_eq!(unique_suffix_match("free", it()), Some("c::m::free".into()));
+        assert_eq!(unique_suffix_match("nothing", it()), None);
+    }
 
     #[test]
     fn expands_braces() {

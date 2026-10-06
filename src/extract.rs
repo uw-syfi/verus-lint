@@ -393,7 +393,7 @@ fn scan_module_uses(
     manifest: &str,
     facts: &crate::vir::CrateFacts,
 ) -> Result<()> {
-    use crate::scan::{candidates, scan_cfg_features, scan_file};
+    use crate::scan::{candidates, scan_cfg_features, scan_file, unique_suffix_match};
     let with_fns: BTreeSet<&str> = facts.functions.iter().map(|f| f.file.as_str()).collect();
     let mut files: BTreeSet<String> = with_fns.iter().map(|f| (*f).to_string()).collect();
     files.extend(crate_sources(ws, manifest));
@@ -427,8 +427,20 @@ fn scan_module_uses(
         for u in uses {
             let cands = candidates(&u.path, &u.module, &facts.krate);
             let own = |c: &String| fn_paths.contains(c.as_str()) || facts.groups.contains(c);
+            let by_suffix = || {
+                unique_suffix_match(
+                    &u.path,
+                    facts
+                        .functions
+                        .iter()
+                        .map(|f| (f.friendly.as_str(), f.path.as_str()))
+                        .chain(facts.groups.iter().map(|g| (g.as_str(), g.as_str()))),
+                )
+            };
             let callee = if let Some(c) = cands.iter().find(|c| own(c)) {
                 c.clone()
+            } else if let Some(c) = by_suffix() {
+                c
             } else {
                 // Not an item of this crate: keep the path as written (`crate::` expanded).
                 let root = u.path.split("::").next().unwrap_or("");
@@ -524,6 +536,15 @@ fn scan_group_members(
                 .iter()
                 .find(|c| fn_paths.contains(c.as_str()) || facts.groups.contains(c))
                 .cloned()
+                .or_else(|| {
+                    crate::scan::unique_suffix_match(
+                        mem,
+                        facts
+                            .functions
+                            .iter()
+                            .map(|f| (f.friendly.as_str(), f.path.as_str())),
+                    )
+                })
                 .unwrap_or_else(|| {
                     mem.strip_prefix("crate::")
                         .map_or_else(|| mem.clone(), |r| format!("{}::{r}", facts.krate))
