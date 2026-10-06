@@ -49,7 +49,15 @@ All tables are Verus-generic. Paths are VIR paths (`crate::module::impl&%N::f`);
 | `trait_impls` | `impl_path` | `trait_path`, `self_type`, `file`, `line` (from `--log impl-names`) |
 | `verify_fn` | `run_id, fn_id` | `friendly`, `rlimit`, `time_us`, `success`, `seed` |
 | `verify_module` | `run_id, module` | `rlimit`, `smt_time_ms`, `session_time_ms` |
+| `broadcast_groups` | `path` | `crate` (groups defined by an extracted crate, from `(group_id ..)` forms) |
+| `warnings` | none | `crate`, `what`, `detail` (extraction problems, for `verus/extraction-health`) |
 | `runs` | `run_id` | `crate`, `seed`, `verus_args`, `source_commit`, `started_at`, `wall_s` |
+
+`functions.end_line` comes from the body expression's span: the `Function`
+form's own span covers only the header line. `open_spec` means a spec
+function that is not opaque and whose body visibility is wider than its own
+module (`pub open`, `open(crate)` and `open(in ancestor)` all record a body
+visibility restricted to `None` or an ancestor module).
 
 Derived views shipped with the schema: `edges` (uses with resolved
 `callee_id`, de-duplicated per caller, callee and section), `open_spec`
@@ -137,14 +145,29 @@ functions); unjoined rows are kept with a null `fn_id` and counted in
 ### 4.3 Gaps filled outside the log
 
 - Module-level `broadcast use` is not printed in the log (Verus's printer
-  writes module ids only). Version 1 recovers it with a source scan of the
-  files listed in `modules`: `broadcast use` items, their paths resolved
-  against the function table and broadcast group names (suffix match within
-  the `use` scope; unresolved names are reported as extraction warnings). We
-  will also propose an upstream printer change that prints `ModuleX::reveals`;
-  once released, the scan is dropped for that Verus version.
-- Broadcast group membership: to be confirmed in phase 1 how groups appear
-  (the log shows `group_id` forms); fallback is the same source scan.
+  writes module ids only). Phase 1 recovers it with a source scan of the
+  files that hold the crate's functions (`scan.rs`): every `broadcast use`
+  item outside comments and strings, minus those inside a known function span
+  (function-local ones are in the log), with brace and comma lists expanded.
+  Names resolve by exact match against the crate's functions and groups
+  (as written, `crate::` expanded, or relative to the module and its
+  ancestors); names outside the crate (`vstd::`, `core::`) are stored as
+  written with a null `callee_id`; any other unresolved name is a row in
+  `warnings`. Measured on Coral (12 crates): 14 module-level lines give 18
+  `module_uses` rows, matching a grep of the source (18 `broadcast use`
+  lines, 4 of them function-local); no warnings. The scan is dropped for a
+  Verus version whose printer emits module reveals (see Future work).
+- Broadcast groups (settled in phase 1). A group appears in the log only as a
+  `(group_id path)` form (Coral's own crates define none; vstd's appear in
+  the imported part). It carries no member list. A function-local
+  `broadcast use group_x` is a `Fuel (Fun :path group_x) 1 true` node, so it
+  is a `broadcast_use` row in `uses` whose callee is the group path
+  (`callee_id` null: groups are not functions). `broadcast proof fn` is a
+  function with `:broadcast_forall true` in its attributes (0 in Coral, many
+  in vstd). Consequence for phase 2 and 3: group membership needs the same
+  source scan (`broadcast group name { a, b }`), and reachability must treat a
+  group as a node whose members become live with it; `broadcast_groups`
+  holds the group paths now, a `group_members` table is added with the scan.
 
 Linking Verus's `vir` crate to read the bincode export cargo-verus already
 writes is not needed: that export drops proof and exec bodies, so it cannot
@@ -488,8 +511,7 @@ Open questions:
 
 1. (Resolved, see Decided and Future work.)
 2. (Resolved, see Decided.)
-3. How are broadcast group members represented in the log (only `group_id`
-   forms were seen)? Phase 1 checks this on vstd groups.
+3. (Resolved in phase 1, see section 4.3: the log has group ids only; members come from a source scan.)
 
 Decided (2026-10-06):
 
@@ -533,3 +555,24 @@ Estimates are agent hours.
 | 8 | Second codebase (a public Verus project, for example a vstd-only example crate set or a published Verus verification project) to check genericity; docs; Coral `provenance_sites` rule as a worked example of a project rule. | 1.0 |
 
 Total: about 10.5 agent hours.
+
+Phase 1 status (2026-10-06): done. `verus-lint run` extracts and checks a
+workspace; `verus-lint query` runs ad hoc SQL. Differences from the plan above:
+the SDK is not started (phase 4); the `check` command takes `--param` and
+`--rules DIR` instead of a config file (phase 6); each root crate is cleaned
+before its run (section 4.1); the module-level `broadcast use` scan is already
+in. Coral dogfood (12 crates at `claude/coral-prov-flip`): 4 m 47 s of Verus
+time for 15 verified members including cold dependency verification, 566 MB of
+logs, 10,434 own functions and 214,003 uses, parse and load 7 to 9 s on one
+thread, 8.9 MB database. The top fan-in table agrees with `fanin.py`
+(syntactic): 14 of its top 15 are in our top 15, the other (`MemManager::len`)
+is rank 16 with 124 against 217 functions. Differences:
+`fanin.py` matches method calls by name and import evidence, so it
+over-counts generic method names (`len`, and `nreq`/`inv` shared by `Engine`
+and `MemManager`, its `amb` column) while resolved paths do not; free
+functions differ by 1 to 2 per file in both directions (`ctx_at` 302 against
+319) because it parses source text and the log has one entry per compiled
+function; trait-impl methods such as `ExecModelGraph::view` (177 functions)
+appear in our table and not in `fanin.py`, which skips them; the log has no
+`#[cfg(test)]` items. No semantic-mode results are recorded in Coral's
+`findings`, so the comparison is against syntactic mode only.
