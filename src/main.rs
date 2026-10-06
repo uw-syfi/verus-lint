@@ -3,7 +3,7 @@ use clap::{Args, Parser, Subcommand};
 use std::collections::BTreeMap;
 use std::path::PathBuf;
 use std::process::ExitCode;
-use verus_lint::{db::Db, extract, rules};
+use verus_lint::{config::Config, db::Db, extract, rules};
 
 #[derive(Parser)]
 #[command(version, about = "Lint and analysis for Verus codebases")]
@@ -26,6 +26,13 @@ struct ExtractArgs {
     /// Extract only this package (repeatable); default: all verified members.
     #[arg(long = "crate")]
     crates: Vec<String>,
+    /// Skip this member (package name or manifest-directory glob; repeatable), for example a
+    /// `verify = true` crate that Verus cannot build.
+    #[arg(long)]
+    exclude: Vec<String>,
+    /// Config file (default: `verus-lint.toml` in the workspace, if present).
+    #[arg(long)]
+    config: Option<PathBuf>,
     /// Cargo target directory for the extraction builds.
     #[arg(long)]
     target_dir: Option<PathBuf>,
@@ -75,12 +82,38 @@ enum Cmd {
     },
 }
 
+fn load_config(a: &ExtractArgs) -> Result<Config> {
+    match &a.config {
+        Some(p) => Config::load(p),
+        None => {
+            let p = a.workspace.join("verus-lint.toml");
+            if p.exists() {
+                Config::load(&p)
+            } else {
+                Ok(Config::default())
+            }
+        }
+    }
+}
+
 fn do_extract(a: &ExtractArgs) -> Result<PathBuf> {
+    let cfg = load_config(a)?;
+    let mut toolchain: Vec<String> = a.toolchain.split_whitespace().map(String::from).collect();
+    if toolchain.is_empty() {
+        toolchain = cfg.extract.toolchain.clone();
+    }
+    let mut crates = a.crates.clone();
+    if crates.is_empty() {
+        crates = cfg.extract.crates.clone();
+    }
+    let mut exclude = cfg.extract.exclude.clone();
+    exclude.extend(a.exclude.iter().cloned());
     let s = extract::extract(&extract::Options {
         workspace: a.workspace.clone(),
         out: a.out.clone(),
-        toolchain: a.toolchain.split_whitespace().map(String::from).collect(),
-        crates: a.crates.clone(),
+        toolchain,
+        crates,
+        exclude,
         target_dir: a.target_dir.clone(),
         reuse_logs: a.reuse_logs,
     })?;

@@ -3,6 +3,7 @@
 //! Verus names the log `crate.vir` and deletes the log directory first, so
 //! each crate gets its own log directory under `<out>/cache/<crate>/log`.
 
+use crate::config::glob_match;
 use crate::db::{CrateInfo, Db};
 use crate::version::{self, VerusVersion};
 use crate::vir::{ImplNames, parse_impl_names, parse_log};
@@ -19,6 +20,9 @@ pub struct Options {
     pub toolchain: Vec<String>,
     /// Restrict to these crates (package names); empty means all verified members.
     pub crates: Vec<String>,
+    /// Skip these members (package names or manifest-directory globs), for example a
+    /// `verify = true` crate Verus cannot build.
+    pub exclude: Vec<String>,
     /// Cargo target directory for the extraction builds (default: the toolchain's own).
     pub target_dir: Option<PathBuf>,
     /// Reuse an existing log instead of running Verus.
@@ -85,6 +89,35 @@ pub fn members_from_metadata(json: &str) -> Result<Vec<Member>> {
         order.push(next.clone());
     }
     Ok(order)
+}
+
+fn matches_member(m: &Member, ws: &Path, pats: &[String]) -> bool {
+    let dir = m
+        .manifest
+        .parent()
+        .map(|d| d.strip_prefix(ws).unwrap_or(d).display().to_string())
+        .unwrap_or_default();
+    pats.iter()
+        .any(|p| glob_match(p, &m.name) || glob_match(p, &dir))
+}
+
+/// Apply the include list (empty means all) and the exclude list to the verified members.
+pub fn select_members(
+    mut members: Vec<Member>,
+    ws: &Path,
+    include: &[String],
+    exclude: &[String],
+) -> Result<Vec<Member>> {
+    if !include.is_empty() {
+        members.retain(|m| matches_member(m, ws, include));
+    }
+    members.retain(|m| !matches_member(m, ws, exclude));
+    if members.is_empty() {
+        bail!(
+            "no verified workspace member left after --crate {include:?} and --exclude {exclude:?}"
+        );
+    }
+    Ok(members)
 }
 
 fn cargo_metadata(ws: &Path) -> Result<String> {
@@ -184,15 +217,7 @@ pub fn extract(o: &Options) -> Result<Summary> {
     version::check(&ver)?;
 
     let mut members = members_from_metadata(&cargo_metadata(&ws)?)?;
-    if !o.crates.is_empty() {
-        members.retain(|m| o.crates.contains(&m.name));
-        if members.is_empty() {
-            bail!(
-                "no verified workspace member matches --crate {:?}",
-                o.crates
-            );
-        }
-    }
+    members = select_members(members, &ws, &o.crates, &o.exclude)?;
     std::fs::create_dir_all(&out)?;
     let db_path = out.join("facts.duckdb");
     let mut db = Db::create(&db_path)?;
@@ -375,6 +400,26 @@ mod tests {
             ["leaf-c", "mid", "top"]
         );
         assert_eq!(m[0].ident(), "leaf_c");
+    }
+
+    #[test]
+    fn include_and_exclude() {
+        let ws = Path::new("/w");
+        let all = || members_from_metadata(META).unwrap();
+        let names = |v: Vec<Member>| v.into_iter().map(|m| m.name).collect::<Vec<_>>();
+        let keep = select_members(all(), ws, &[], &["mid".into()]).unwrap();
+        assert_eq!(names(keep), ["leaf-c", "top"]);
+        let keep = select_members(
+            all(),
+            ws,
+            &["top".into(), "leaf*".into()],
+            &["leaf-c".into()],
+        )
+        .unwrap();
+        assert_eq!(names(keep), ["top"]);
+        let by_dir = select_members(all(), ws, &["mid".into()], &[]).unwrap();
+        assert_eq!(names(by_dir), ["mid"]);
+        assert!(select_members(all(), ws, &[], &["*".into()]).is_err());
     }
 
     #[test]
