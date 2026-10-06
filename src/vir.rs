@@ -5,10 +5,15 @@
 //! The parser fails closed: a form it interprets that does not have the
 //! expected shape is an error naming the function and span.
 
+use crate::num::to_u32;
 use crate::sexp::{Node, Reader, fields, fun_path};
 use std::collections::HashMap;
 
 #[derive(Debug, Default, Clone)]
+#[allow(
+    clippy::struct_excessive_bools,
+    reason = "mirrors the boolean columns of the functions table"
+)]
 pub struct FunctionRow {
     pub path: String,
     pub friendly: String,
@@ -68,7 +73,7 @@ pub struct QuantRow {
     pub caller: usize,
     /// forall, exists or choose.
     pub quant: &'static str,
-    /// explicit (`#[trigger]` or `#![trigger ..]`), auto_annotation (`#![auto]`), or none.
+    /// explicit (`#[trigger]` or `#![trigger ..]`), `auto_annotation` (`#![auto]`), or none.
     pub trigger: &'static str,
     pub n_triggers: u32,
     pub section: &'static str,
@@ -79,7 +84,7 @@ pub struct QuantRow {
 #[derive(Debug, Clone)]
 pub struct TrustedRow {
     pub caller: Option<usize>,
-    /// assume, admit, external_body, external_fn, external_type, assume_specification, broadcast_axiom.
+    /// assume, admit, `external_body`, `external_fn`, `external_type`, `assume_specification`, `broadcast_axiom`.
     pub kind: &'static str,
     pub file: String,
     pub line: u32,
@@ -147,9 +152,9 @@ pub fn parse_impl_rows(text: &str, krate: &str) -> Vec<TraitImplRow> {
     v
 }
 
-/// `file:l:c: l2:c2 (#n)` split into (file, line, col, end_line).
+/// `file:l:c: l2:c2 (#n)` split into (file, line, col, `end_line`).
 pub fn parse_span(s: &str) -> Option<(String, u32, u32, u32)> {
-    let s = s.rsplit_once(" (#").map(|x| x.0).unwrap_or(s);
+    let s = s.rsplit_once(" (#").map_or(s, |x| x.0);
     let (start, end) = s.rsplit_once(": ")?;
     let end_line = end.split(':').next()?.parse().ok()?;
     let mut it = start.rsplitn(3, ':');
@@ -178,13 +183,13 @@ struct Ctx<'a> {
 /// their annotations belong to them.
 fn scan_triggers(n: &Node, groups: &mut Vec<String>, with: &mut u32, auto: &mut bool) {
     let Some(v) = n.list() else { return };
-    if v.first().and_then(|h| h.atom()) == Some(">") {
-        match v.get(1).and_then(|h| h.atom()) {
-            Some("Quant") | Some("Choose") => return,
+    if v.first().and_then(Node::atom) == Some(">") {
+        match v.get(1).and_then(Node::atom) {
+            Some("Quant" | "Choose") => return,
             Some("WithTriggers") => {
                 let f = fields(&v[2..]);
                 if let Some(t) = f.get("triggers").and_then(|t| t.list()) {
-                    *with += t.len() as u32;
+                    *with += to_u32(t.len());
                 }
                 if let Some(b) = f.get("body") {
                     scan_triggers(b, groups, with, auto);
@@ -193,18 +198,18 @@ fn scan_triggers(n: &Node, groups: &mut Vec<String>, with: &mut u32, auto: &mut 
             }
             Some("Unary") => {
                 if let Some(op) = v.get(2).and_then(|x| x.list())
-                    && op.first().and_then(|x| x.atom()) == Some("UnaryOp")
-                    && op.get(1).and_then(|x| x.atom()) == Some("Trigger")
+                    && op.first().and_then(Node::atom) == Some("UnaryOp")
+                    && op.get(1).and_then(Node::atom) == Some("Trigger")
                     && let Some(ann) = op.get(2).and_then(|x| x.list())
                 {
-                    match ann.get(1).and_then(|x| x.atom()) {
+                    match ann.get(1).and_then(Node::atom) {
                         Some("Trigger") => {
                             let g = crate::sexp::render(&op[2]);
                             if !groups.contains(&g) {
                                 groups.push(g);
                             }
                         }
-                        Some("AutoTrigger") | Some("AllTriggers") => *auto = true,
+                        Some("AutoTrigger" | "AllTriggers") => *auto = true,
                         _ => {}
                     }
                 }
@@ -222,7 +227,7 @@ fn classify_quant(body: &[Node]) -> (&'static str, u32) {
     for n in body {
         scan_triggers(n, &mut groups, &mut with, &mut auto);
     }
-    let n = with + groups.len() as u32;
+    let n = with + to_u32(groups.len());
     if n > 0 {
         ("explicit", n)
     } else if auto {
@@ -255,20 +260,19 @@ fn walk<'a>(
     }
     let (mut kind, mut in_trigger, mut fuel) = (kind, in_trigger, fuel);
     let saved = cx.span;
-    match v.first().and_then(|h| h.atom()) {
-        Some("@@") | Some("@") => {
+    match v.first().and_then(Node::atom) {
+        Some("@@" | "@") => {
             if let Some(Node::Str(s)) = v.get(1) {
                 cx.span = s;
             }
         }
-        Some(">") => match v.get(1).and_then(|h| h.atom()) {
+        Some(">") => match v.get(1).and_then(Node::atom) {
             Some("Call") => kind = "call",
             Some("Fuel") => {
                 // (> Fuel (Fun :path P) fuel is_broadcast_use)
-                let (Some(f), Some(b)) = (
-                    v.get(3).and_then(|x| x.atom()),
-                    v.get(4).and_then(|x| x.atom()),
-                ) else {
+                let (Some(f), Some(b)) =
+                    (v.get(3).and_then(Node::atom), v.get(4).and_then(Node::atom))
+                else {
                     return Err(format!("malformed Fuel form at {}", cx.span));
                 };
                 kind = if b == "true" {
@@ -288,7 +292,7 @@ fn walk<'a>(
                         .get(2)
                         .and_then(|x| x.list())
                         .and_then(|l| l.first())
-                        .and_then(|x| x.atom())
+                        .and_then(Node::atom)
                     {
                         Some("Forall") => "forall",
                         Some("Exists") => "exists",
@@ -324,8 +328,8 @@ fn walk<'a>(
             }
             Some("Unary") => {
                 if let Some(op) = v.get(2).and_then(|x| x.list())
-                    && op.first().and_then(|x| x.atom()) == Some("UnaryOp")
-                    && op.get(1).and_then(|x| x.atom()) == Some("Trigger")
+                    && op.first().and_then(Node::atom) == Some("UnaryOp")
+                    && op.get(1).and_then(Node::atom) == Some("Trigger")
                 {
                     in_trigger = true;
                 }
@@ -352,7 +356,7 @@ fn vis_of(n: Option<&Node>) -> String {
     let Some(v) = n.and_then(|n| n.list()) else {
         return "pub".into();
     };
-    match v.get(2).and_then(|x| x.atom()) {
+    match v.get(2).and_then(Node::atom) {
         Some("None") | None => "pub".into(),
         Some(m) => m.to_string(),
     }
@@ -361,11 +365,11 @@ fn vis_of(n: Option<&Node>) -> String {
 fn count_exprs(n: Option<&&Node>) -> u32 {
     match n.and_then(|n| n.list()) {
         None => 0,
-        Some(v) if v.first().and_then(|x| x.atom()) == Some("tuple") => v[1..]
+        Some(v) if v.first().and_then(Node::atom) == Some("tuple") => v[1..]
             .iter()
-            .map(|x| x.list().map_or(0, |l| l.len() as u32))
+            .map(|x| x.list().map_or(0, |l| to_u32(l.len())))
             .sum(),
-        Some(v) => v.len() as u32,
+        Some(v) => to_u32(v.len()),
     }
 }
 
@@ -384,8 +388,7 @@ fn self_param_type(params: Option<&&Node>) -> Option<String> {
             .get("name")
             .and_then(|n| n.list())
             .and_then(|v| v.get(1))
-            .map(|x| matches!(x, Node::Str("self")))
-            .unwrap_or(false);
+            .is_some_and(|x| matches!(x, Node::Str("self")));
         if !is_self {
             continue;
         }
@@ -410,6 +413,10 @@ fn typ_path(t: &Node) -> Option<String> {
     None
 }
 
+#[allow(
+    clippy::too_many_lines,
+    reason = "one match over the function entry fields; each arm is a column"
+)]
 fn parse_function(
     top: &Node,
     span: &str,
@@ -417,7 +424,9 @@ fn parse_function(
     names: &ImplNames,
     facts: &mut CrateFacts,
 ) -> Result<(), String> {
-    let v = top.list().unwrap();
+    let v = top
+        .list()
+        .ok_or_else(|| "function entry is not a list".to_string())?;
     let f = fields(&v[1..]);
     let ctx = |what: &str| format!("{span}: function form: {what}");
     let path = f
@@ -444,7 +453,7 @@ fn parse_function(
         .and_then(|n| n.list())
         .ok_or_else(|| ctx("missing :kind"))?;
     let kf = fields(&kind_list[1..]);
-    let (kind, trait_path) = match kind_list.get(1).and_then(|x| x.atom()) {
+    let (kind, trait_path) = match kind_list.get(1).and_then(Node::atom) {
         Some("Static") => ("static", None),
         Some("TraitMethodDecl") => ("trait_decl", kf.get("trait_path").and_then(|n| n.atom())),
         Some("TraitMethodImpl") => ("trait_impl", kf.get("trait_path").and_then(|n| n.atom())),
@@ -459,7 +468,7 @@ fn parse_function(
         .get("item_kind")
         .and_then(|n| n.list())
         .and_then(|l| l.get(1))
-        .and_then(|x| x.atom())
+        .and_then(Node::atom)
     {
         Some("Function") => "function",
         Some("Const") => "const",
@@ -467,21 +476,21 @@ fn parse_function(
         other => return Err(ctx(&format!("unknown ItemKind {other:?}"))),
     };
     let (opaque, reveal_vis) = match f.get("opaqueness").and_then(|n| n.list()) {
-        Some(l) if l.get(1).and_then(|x| x.atom()) == Some("Opaque") => (true, None),
-        Some(l) if l.get(1).and_then(|x| x.atom()) == Some("Revealed") => (
+        Some(l) if l.get(1).and_then(Node::atom) == Some("Opaque") => (true, None),
+        Some(l) if l.get(1).and_then(Node::atom) == Some("Revealed") => (
             false,
             Some(vis_of(fields(&l[2..]).get("visibility").copied())),
         ),
         other => {
             return Err(ctx(&format!(
                 "unknown :opaqueness {:?}",
-                other.map(|l| l.len())
+                other.map(<[Node<'_>]>::len)
             )));
         }
     };
     let body_vis = match f.get("body_visibility").and_then(|n| n.list()) {
-        Some(l) if l.get(1).and_then(|x| x.atom()) == Some("Visibility") => vis_of(l.get(2)),
-        Some(l) if l.get(1).and_then(|x| x.atom()) == Some("Uninterpreted") => "none".into(),
+        Some(l) if l.get(1).and_then(Node::atom) == Some("Visibility") => vis_of(l.get(2)),
+        Some(l) if l.get(1).and_then(Node::atom) == Some("Uninterpreted") => "none".into(),
         _ => return Err(ctx("unknown :body_visibility")),
     };
     let a = f
@@ -489,16 +498,13 @@ fn parse_function(
         .and_then(|n| n.list())
         .map(|l| fields(&l[1..]))
         .ok_or_else(|| ctx("missing :attrs"))?;
-    let has_body = f
-        .get("body")
-        .map(|n| n.atom() != Some("None"))
-        .unwrap_or(false);
+    let has_body = f.get("body").is_some_and(|n| n.atom() != Some("None"));
     let (file, line, _col, header_end) = parse_span(span).ok_or_else(|| ctx("unparsable span"))?;
     // The function's own span covers only its header; the body expression has its own span.
     let body_end = f
         .get("body")
         .and_then(|b| b.list())
-        .filter(|l| l.first().and_then(|x| x.atom()) == Some("@@"))
+        .filter(|l| l.first().and_then(Node::atom) == Some("@@"))
         .and_then(|l| match l.get(1) {
             Some(Node::Str(s)) => parse_span(s).map(|x| x.3),
             _ => None,
@@ -684,16 +690,16 @@ pub fn parse_log(text: &str, krate: &str, names: &ImplNames) -> Result<CrateFact
     while let Some(form) = r.next_form()? {
         facts.forms += 1;
         let Some(v) = form.list() else { continue };
-        match v.first().and_then(|x| x.atom()) {
+        match v.first().and_then(Node::atom) {
             Some("module_id") => {
-                if let Some(m) = v.get(1).and_then(|x| x.atom())
+                if let Some(m) = v.get(1).and_then(Node::atom)
                     && m.split("::").next() == Some(krate)
                 {
                     facts.modules.push(m.to_string());
                 }
             }
             Some(k @ ("external_fn" | "external_type")) => {
-                let path = v.get(1).and_then(|n| fun_path(n).or(n.atom()));
+                let path = v.get(1).and_then(|n| fun_path(n).or_else(|| n.atom()));
                 if let Some(p) = path
                     && p.split("::").next() == Some(krate)
                 {
@@ -708,7 +714,7 @@ pub fn parse_log(text: &str, krate: &str, names: &ImplNames) -> Result<CrateFact
                 }
             }
             Some("group_id") => {
-                if let Some(m) = v.get(1).and_then(|x| x.atom())
+                if let Some(m) = v.get(1).and_then(Node::atom)
                     && m.split("::").next() == Some(krate)
                 {
                     facts.groups.push(m.to_string());

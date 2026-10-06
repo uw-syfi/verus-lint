@@ -1,3 +1,7 @@
+//! Command-line interface: extract, check and query commands over the fact database.
+
+#![allow(clippy::print_stdout, reason = "the CLI's output is its stdout")]
+
 use anyhow::Result;
 use clap::{Args, Parser, Subcommand};
 use std::collections::BTreeMap;
@@ -62,7 +66,7 @@ struct CheckArgs {
 
 #[derive(Subcommand)]
 enum Cmd {
-    /// Run Verus per crate and load facts into DuckDB.
+    /// Run Verus per crate and load facts into `DuckDB`.
     Extract(ExtractArgs),
     /// Run SQL rules against an extracted database.
     Check(CheckArgs),
@@ -82,29 +86,37 @@ enum Cmd {
     },
 }
 
+#[allow(
+    clippy::redundant_closure_for_method_calls,
+    reason = "p is &PathBuf and load wants &Path; deref coercion needs the closure"
+)]
 fn load_config(a: &ExtractArgs) -> Result<Config> {
-    match &a.config {
-        Some(p) => Config::load(p),
-        None => {
+    a.config.as_ref().map_or_else(
+        || {
             let p = a.workspace.join("verus-lint.toml");
             if p.exists() {
                 Config::load(&p)
             } else {
                 Ok(Config::default())
             }
-        }
-    }
+        },
+        |p| Config::load(p),
+    )
 }
 
+#[allow(
+    clippy::cast_precision_loss,
+    reason = "approximate megabytes for display"
+)]
 fn do_extract(a: &ExtractArgs) -> Result<PathBuf> {
     let cfg = load_config(a)?;
     let mut toolchain: Vec<String> = a.toolchain.split_whitespace().map(String::from).collect();
     if toolchain.is_empty() {
-        toolchain = cfg.extract.toolchain.clone();
+        toolchain.clone_from(&cfg.extract.toolchain);
     }
     let mut crates = a.crates.clone();
     if crates.is_empty() {
-        crates = cfg.extract.crates.clone();
+        crates.clone_from(&cfg.extract.crates);
     }
     let mut exclude = cfg.extract.exclude.clone();
     exclude.extend(a.exclude.iter().cloned());
@@ -114,7 +126,7 @@ fn do_extract(a: &ExtractArgs) -> Result<PathBuf> {
         toolchain,
         crates,
         exclude,
-        roots: cfg.roots.clone(),
+        roots: cfg.roots,
         target_dir: a.target_dir.clone(),
         reuse_logs: a.reuse_logs,
     })?;
@@ -131,8 +143,13 @@ fn do_extract(a: &ExtractArgs) -> Result<PathBuf> {
     Ok(s.db)
 }
 
-fn do_check(a: &CheckArgs, db: PathBuf, cfg: &Config, base: &std::path::Path) -> Result<ExitCode> {
-    let db = Db::open(&db)?;
+fn do_check(
+    a: &CheckArgs,
+    db: &std::path::Path,
+    cfg: &Config,
+    base: &std::path::Path,
+) -> Result<ExitCode> {
+    let db = Db::open(db)?;
     let mut all = Vec::new();
     let dirs = a
         .rules
@@ -188,7 +205,7 @@ fn run(cli: Cli) -> Result<ExitCode> {
             } else {
                 Config::default()
             };
-            do_check(&a, db, &cfg, std::path::Path::new("."))
+            do_check(&a, &db, &cfg, std::path::Path::new("."))
         }
         Cmd::Query { db, sql } => {
             let db = Db::open(&db)?;
@@ -200,7 +217,7 @@ fn run(cli: Cli) -> Result<ExitCode> {
         Cmd::Run { extract, check } => {
             let db = do_extract(&extract)?;
             let cfg = load_config(&extract)?;
-            do_check(&check, db, &cfg, &extract.workspace)
+            do_check(&check, &db, &cfg, &extract.workspace)
         }
     }
 }

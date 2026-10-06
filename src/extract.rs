@@ -13,6 +13,10 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::time::Instant;
 
+#[allow(
+    missing_docs,
+    reason = "plain data row; field names match the schema columns"
+)]
 pub struct Options {
     pub workspace: PathBuf,
     pub out: PathBuf,
@@ -31,6 +35,10 @@ pub struct Options {
     pub reuse_logs: bool,
 }
 
+#[allow(
+    missing_docs,
+    reason = "plain data row; field names match the schema columns"
+)]
 #[derive(Debug, Clone)]
 pub struct Member {
     pub name: String,
@@ -39,12 +47,17 @@ pub struct Member {
 }
 
 impl Member {
+    /// Package name used to name the member's log directory.
+    #[must_use]
     pub fn ident(&self) -> String {
         self.name.replace('-', "_")
     }
 }
 
 /// Verified workspace members (`[package.metadata.verus] verify = true`) in dependency order.
+///
+/// # Errors
+/// Fails when the operation's I/O, parsing or database step fails; the error says which.
 pub fn members_from_metadata(json: &str) -> Result<Vec<Member>> {
     let v: serde_json::Value = serde_json::from_str(json).context("parsing cargo metadata")?;
     let pkgs = v["packages"]
@@ -104,6 +117,9 @@ fn matches_member(m: &Member, ws: &Path, pats: &[String]) -> bool {
 }
 
 /// Apply the include list (empty means all) and the exclude list to the verified members.
+///
+/// # Errors
+/// Fails when the operation's I/O, parsing or database step fails; the error says which.
 pub fn select_members(
     mut members: Vec<Member>,
     ws: &Path,
@@ -138,10 +154,11 @@ fn cargo_metadata(ws: &Path) -> Result<String> {
 }
 
 /// `cargo verus build` arguments for one crate's extraction run (after the toolchain prefix).
+#[must_use]
 pub fn verus_args(krate: &str, log_dir: &Path, target_dir: Option<&Path>) -> Vec<String> {
     let mut a: Vec<String> = ["cargo", "verus", "build", "-p", krate]
         .iter()
-        .map(|s| s.to_string())
+        .map(std::string::ToString::to_string)
         .collect();
     if let Some(t) = target_dir {
         a.extend(["--target-dir".to_string(), t.display().to_string()]);
@@ -149,7 +166,7 @@ pub fn verus_args(krate: &str, log_dir: &Path, target_dir: Option<&Path>) -> Vec
     a.extend(
         ["--fwd-verus-args-to", "roots", "--"]
             .iter()
-            .map(|s| s.to_string()),
+            .map(std::string::ToString::to_string),
     );
     a.extend(
         [
@@ -161,16 +178,18 @@ pub fn verus_args(krate: &str, log_dir: &Path, target_dir: Option<&Path>) -> Vec
             "--log-dir",
         ]
         .iter()
-        .map(|s| s.to_string()),
+        .map(std::string::ToString::to_string),
     );
     a.push(log_dir.display().to_string());
     a
 }
 
+/// Arguments for the `cargo clean -p` step that forces a fresh Verus run for one crate.
+#[must_use]
 pub fn clean_args(krate: &str, target_dir: Option<&Path>) -> Vec<String> {
     let mut a: Vec<String> = ["cargo", "clean", "-p", krate]
         .iter()
-        .map(|s| s.to_string())
+        .map(std::string::ToString::to_string)
         .collect();
     if let Some(t) = target_dir {
         a.extend(["--target-dir".to_string(), t.display().to_string()]);
@@ -198,6 +217,10 @@ fn git(ws: &Path, args: &[&str]) -> Option<String> {
         .then(|| String::from_utf8_lossy(&o.stdout).trim().to_string())
 }
 
+#[allow(
+    missing_docs,
+    reason = "plain data row; field names match the schema columns"
+)]
 pub struct Summary {
     pub crates: usize,
     pub functions: usize,
@@ -208,6 +231,14 @@ pub struct Summary {
     pub log_bytes: u64,
 }
 
+/// Run Verus on the selected workspace members and load the facts into the database.
+///
+/// # Errors
+/// Fails when workspace metadata, Verus, log parsing or database loading fails.
+#[allow(
+    clippy::too_many_lines,
+    reason = "linear pipeline: select, run Verus, parse, load, resolve"
+)]
 pub fn extract(o: &Options) -> Result<Summary> {
     let ws = o.workspace.canonicalize().context("workspace path")?;
     let out = if o.out.is_absolute() {
@@ -234,8 +265,7 @@ pub fn extract(o: &Options) -> Result<Summary> {
     db.set_meta(
         "source_dirty",
         &git(&ws, &["status", "--porcelain"])
-            .map(|s| !s.is_empty())
-            .unwrap_or(false)
+            .is_some_and(|s| !s.is_empty())
             .to_string(),
     )?;
     let now = Command::new("date")
@@ -345,22 +375,21 @@ fn scan_module_uses(db: &Db, ws: &Path, facts: &crate::vir::CrateFacts) -> Resul
         for u in scan_file(&src, file, facts) {
             let cands = candidates(&u.path, &u.module, &facts.krate);
             let own = |c: &String| fn_paths.contains(c.as_str()) || facts.groups.contains(c);
-            let callee = match cands.iter().find(|c| own(c)) {
-                Some(c) => c.clone(),
-                None => {
-                    // Not an item of this crate: keep the path as written (`crate::` expanded).
-                    let root = u.path.split("::").next().unwrap_or("");
-                    if !matches!(root, "vstd" | "core" | "alloc" | "std" | "builtin") {
-                        db.warn(
-                            &facts.krate,
-                            "unresolved_broadcast_use",
-                            &format!("{file}:{}: {}", u.line, u.path),
-                        )?;
-                    }
-                    u.path
-                        .strip_prefix("crate::")
-                        .map_or(u.path.clone(), |r| format!("{}::{r}", facts.krate))
+            let callee = if let Some(c) = cands.iter().find(|c| own(c)) {
+                c.clone()
+            } else {
+                // Not an item of this crate: keep the path as written (`crate::` expanded).
+                let root = u.path.split("::").next().unwrap_or("");
+                if !matches!(root, "vstd" | "core" | "alloc" | "std" | "builtin") {
+                    db.warn(
+                        &facts.krate,
+                        "unresolved_broadcast_use",
+                        &format!("{file}:{}: {}", u.line, u.path),
+                    )?;
                 }
+                u.path
+                    .strip_prefix("crate::")
+                    .map_or_else(|| u.path.clone(), |r| format!("{}::{r}", facts.krate))
             };
             db.conn.execute(
                 "INSERT INTO module_uses VALUES (?, ?, NULL, 'broadcast_use', ?, ?)",
@@ -373,6 +402,9 @@ fn scan_module_uses(db: &Db, ws: &Path, facts: &crate::vir::CrateFacts) -> Resul
 
 /// Parse one crate's logs and load its facts, including the source scans for
 /// module-level `broadcast use` and `broadcast group` members.
+///
+/// # Errors
+/// Fails when the operation's I/O, parsing or database step fails; the error says which.
 pub fn load_crate_logs(
     db: &mut Db,
     ws: &Path,
@@ -423,7 +455,7 @@ fn scan_group_members(
                     .is_some_and(|(m, _)| file_modules.contains(m))
             });
         }
-        let Some(gp) = paths.first().map(|p| p.to_string()) else {
+        let Some(gp) = paths.first().map(|p| (*p).clone()) else {
             continue; // a group of an imported crate, or not extracted
         };
         if paths.len() > 1 {
@@ -433,7 +465,7 @@ fn scan_group_members(
                 &format!("{file}:{}: {}", g.line, g.name),
             )?;
         }
-        let module = gp.rsplit_once("::").map(|x| x.0).unwrap_or(&facts.krate);
+        let module = gp.rsplit_once("::").map_or(&facts.krate[..], |x| x.0);
         for mem in &g.members {
             let cands = candidates(mem, module, &facts.krate);
             let callee = cands
@@ -442,7 +474,7 @@ fn scan_group_members(
                 .cloned()
                 .unwrap_or_else(|| {
                     mem.strip_prefix("crate::")
-                        .map_or(mem.clone(), |r| format!("{}::{r}", facts.krate))
+                        .map_or_else(|| mem.clone(), |r| format!("{}::{r}", facts.krate))
                 });
             db.conn.execute(
                 "INSERT INTO group_members VALUES (?, ?, NULL, ?, ?)",

@@ -1,19 +1,29 @@
-//! DuckDB storage of extracted facts.
+//! `DuckDB` storage of extracted facts.
 
+use crate::num::to_i64;
 use crate::vir::CrateFacts;
 use anyhow::{Context, Result};
 use duckdb::{Connection, params};
 use std::collections::HashMap;
 use std::path::Path;
 
+/// Version of the fact schema stored in `meta`.
 pub const SCHEMA_VERSION: &str = "1.1.0";
 const SCHEMA_SQL: &str = include_str!("schema.sql");
 
+#[allow(
+    missing_docs,
+    reason = "plain data row; field names match the schema columns"
+)]
 pub struct Db {
     pub conn: Connection,
     next_fn_id: i64,
 }
 
+#[allow(
+    missing_docs,
+    reason = "plain data row; field names match the schema columns"
+)]
 pub struct CrateInfo<'a> {
     pub manifest: &'a str,
     pub log_bytes: u64,
@@ -21,7 +31,10 @@ pub struct CrateInfo<'a> {
 
 impl Db {
     /// Create a fresh database file (an existing one is replaced).
-    pub fn create(path: &Path) -> Result<Db> {
+    ///
+    /// # Errors
+    /// Fails when the operation's I/O, parsing or database step fails; the error says which.
+    pub fn create(path: &Path) -> Result<Self> {
         let _ = std::fs::remove_file(path);
         let _ = std::fs::remove_file(path.with_extension("duckdb.wal"));
         let conn =
@@ -31,33 +44,45 @@ impl Db {
             "INSERT INTO meta VALUES ('schema_version', ?)",
             params![SCHEMA_VERSION],
         )?;
-        Ok(Db {
+        Ok(Self {
             conn,
             next_fn_id: 0,
         })
     }
 
-    pub fn open(path: &Path) -> Result<Db> {
+    /// Create or open a database file with the schema installed.
+    ///
+    /// # Errors
+    /// Fails on I/O or `DuckDB` errors, or when an existing file has an incompatible schema.
+    pub fn open(path: &Path) -> Result<Self> {
         let conn = Connection::open(path).with_context(|| format!("opening {}", path.display()))?;
-        Ok(Db {
+        Ok(Self {
             conn,
             next_fn_id: 0,
         })
     }
 
-    pub fn in_memory() -> Result<Db> {
+    /// Create an in-memory database with the schema installed.
+    ///
+    /// # Errors
+    /// Fails on `DuckDB` errors.
+    pub fn in_memory() -> Result<Self> {
         let conn = Connection::open_in_memory()?;
         conn.execute_batch(SCHEMA_SQL)?;
         conn.execute(
             "INSERT INTO meta VALUES ('schema_version', ?)",
             params![SCHEMA_VERSION],
         )?;
-        Ok(Db {
+        Ok(Self {
             conn,
             next_fn_id: 0,
         })
     }
 
+    /// Set a `meta` key.
+    ///
+    /// # Errors
+    /// Fails on `DuckDB` errors.
     pub fn set_meta(&self, key: &str, value: &str) -> Result<()> {
         self.conn.execute(
             "INSERT OR REPLACE INTO meta VALUES (?, ?)",
@@ -67,23 +92,30 @@ impl Db {
     }
 
     /// Load one crate's facts. Callee ids stay null until `resolve`.
+    ///
+    /// # Errors
+    /// Fails when the operation's I/O, parsing or database step fails; the error says which.
+    #[allow(
+        clippy::too_many_lines,
+        reason = "one flat sequence of table appends; splitting adds indirection only"
+    )]
     pub fn load_crate(&mut self, f: &CrateFacts, info: &CrateInfo) -> Result<()> {
         let base = self.next_fn_id;
-        self.next_fn_id += f.functions.len() as i64;
+        self.next_fn_id += to_i64(f.functions.len());
         self.conn.execute(
             "INSERT INTO crates VALUES (?, ?, ?, ?, false)",
             params![
                 f.krate,
                 info.manifest,
-                info.log_bytes as i64,
-                f.functions.len() as i64
+                i64::try_from(info.log_bytes).unwrap_or(i64::MAX),
+                to_i64(f.functions.len())
             ],
         )?;
         {
             let mut a = self.conn.appender("functions")?;
             for (i, r) in f.functions.iter().enumerate() {
                 a.append_row(params![
-                    base + i as i64,
+                    base + to_i64(i),
                     r.path,
                     r.friendly,
                     r.krate,
@@ -124,7 +156,7 @@ impl Db {
             let mut a = self.conn.appender("uses")?;
             for u in &f.uses {
                 a.append_row(params![
-                    base + u.caller as i64,
+                    base + to_i64(u.caller),
                     u.callee_path,
                     None::<i64>,
                     u.section,
@@ -141,7 +173,7 @@ impl Db {
             let mut a = self.conn.appender("quantifiers")?;
             for q in &f.quants {
                 a.append_row(params![
-                    base + q.caller as i64,
+                    base + to_i64(q.caller),
                     q.quant,
                     q.trigger,
                     q.n_triggers,
@@ -153,7 +185,7 @@ impl Db {
             let mut a = self.conn.appender("trusted")?;
             for t in &f.trusted {
                 a.append_row(params![
-                    t.caller.map(|c| base + c as i64),
+                    t.caller.map(|c| base + to_i64(c)),
                     t.kind,
                     t.file,
                     t.line,
@@ -163,14 +195,16 @@ impl Db {
             // Own-crate external ids: located at the function of the same path when present.
             for (kind, path) in &f.externals {
                 let at = f.functions.iter().position(|r| &r.path == path);
-                let (id, file, line) = match at {
-                    Some(i) => (
-                        Some(base + i as i64),
-                        f.functions[i].file.clone(),
-                        f.functions[i].line,
-                    ),
-                    None => (None, String::new(), 0),
-                };
+                let (id, file, line) = at.map_or_else(
+                    || (None, String::new(), 0),
+                    |i| {
+                        (
+                            Some(base + to_i64(i)),
+                            f.functions[i].file.clone(),
+                            f.functions[i].line,
+                        )
+                    },
+                );
                 a.append_row(params![id, *kind, file, line, path])?;
             }
         }
@@ -210,6 +244,9 @@ impl Db {
     }
 
     /// Resolve `callee_id` by exact VIR path across all loaded crates. Call once after all loads.
+    ///
+    /// # Errors
+    /// Fails when the operation's I/O, parsing or database step fails; the error says which.
     pub fn resolve(&self) -> Result<()> {
         self.conn.execute_batch(
             "UPDATE uses SET callee_id = f.fn_id FROM functions f WHERE f.path = uses.callee_path;
@@ -220,10 +257,16 @@ impl Db {
     }
 
     /// Run a query and return every cell as text (header row first).
+    ///
+    /// # Errors
+    /// Fails when the operation's I/O, parsing or database step fails; the error says which.
     pub fn query_rows(&self, sql: &str) -> Result<Vec<Vec<String>>> {
         let mut stmt = self.conn.prepare(sql)?;
         let mut rows = stmt.query([])?;
-        let names: Vec<String> = rows.as_ref().map(|s| s.column_names()).unwrap_or_default();
+        let names: Vec<String> = rows
+            .as_ref()
+            .map(duckdb::Statement::column_names)
+            .unwrap_or_default();
         let mut out = vec![names.clone()];
         while let Some(r) = rows.next()? {
             let mut cells = Vec::new();
@@ -238,6 +281,9 @@ impl Db {
     }
 
     /// Run a query returning one integer column.
+    ///
+    /// # Errors
+    /// Fails when the operation's I/O, parsing or database step fails; the error says which.
     pub fn query_ids(&self, sql: &str, args: &[&String]) -> Result<Vec<i64>> {
         let mut stmt = self.conn.prepare(sql)?;
         let mut rows = stmt.query(duckdb::params_from_iter(args.iter()))?;
@@ -248,6 +294,10 @@ impl Db {
         Ok(out)
     }
 
+    /// Record an extraction warning for a crate.
+    ///
+    /// # Errors
+    /// Fails on `DuckDB` errors.
     pub fn warn(&self, krate: &str, what: &str, detail: &str) -> Result<()> {
         self.conn.execute(
             "INSERT INTO warnings VALUES (?, ?, ?)",

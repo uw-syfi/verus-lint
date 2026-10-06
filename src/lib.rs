@@ -1,11 +1,12 @@
-//! verus-lint: facts from Verus's VIR log, stored in DuckDB, checked by SQL rules.
+//! verus-lint: facts from Verus's VIR log, stored in `DuckDB`, checked by SQL rules.
 
 pub mod analysis;
 pub mod config;
 pub mod db;
 pub mod extract;
+pub(crate) mod num;
 pub mod rules;
-pub mod scan;
-pub mod sexp;
+pub(crate) mod scan;
+pub(crate) mod sexp;
 pub mod version;
-pub mod vir;
+pub(crate) mod vir;

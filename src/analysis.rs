@@ -2,12 +2,14 @@
 
 use crate::config::{RootsCfg, glob_match};
 use crate::db::Db;
+use crate::num::to_u32;
 use anyhow::Result;
 use duckdb::params;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
 /// Convert a glob (`*` matches any run) to a SQL LIKE pattern with `\` as the escape.
+#[must_use]
 pub fn glob_to_like(g: &str) -> String {
     let mut out = String::new();
     for c in g.chars() {
@@ -23,9 +25,11 @@ pub fn glob_to_like(g: &str) -> String {
     out
 }
 
-/// Entries of one pin file: `## name` headers when the file has any (the layout Coral's
-/// `apipin.py` writes), otherwise every nonblank line that does not start with `#`.
-/// Each entry carries its 1-based line.
+/// Entries of one pin file, each with its 1-based line.
+///
+/// `## name` headers when the file has any (the layout Coral's `apipin.py` writes), otherwise
+/// every nonblank line that does not start with `#`. Each entry carries its 1-based line.
+#[must_use]
 pub fn parse_pin(text: &str) -> Vec<(String, u32)> {
     let has_headers = text.lines().any(|l| l.starts_with("## "));
     text.lines()
@@ -38,7 +42,7 @@ pub fn parse_pin(text: &str) -> Vec<(String, u32)> {
             } else {
                 l.trim()
             };
-            (!e.is_empty()).then(|| (e.to_string(), i as u32 + 1))
+            (!e.is_empty()).then(|| (e.to_string(), to_u32(i) + 1))
         })
         .collect()
 }
@@ -75,6 +79,9 @@ fn glob_files(ws: &Path, pattern: &str) -> Vec<PathBuf> {
 
 /// Store the roots section of the config: patterns, pin entries (matched to functions) and
 /// the `public_api` switch.
+///
+/// # Errors
+/// Fails when the operation's I/O, parsing or database step fails; the error says which.
 pub fn store_roots(db: &Db, ws: &Path, cfg: &RootsCfg) -> Result<()> {
     for p in &cfg.patterns {
         db.conn.execute(
@@ -121,6 +128,7 @@ pub fn store_roots(db: &Db, ws: &Path, cfg: &RootsCfg) -> Result<()> {
 
 /// Strongly connected components of a directed graph on `0..n` (iterative Tarjan).
 /// Returns the component index of each node; components are numbered in finishing order.
+#[must_use]
 pub fn sccs(n: usize, adj: &[Vec<usize>]) -> Vec<usize> {
     const UNSEEN: usize = usize::MAX;
     let mut index = vec![UNSEEN; n];
@@ -174,6 +182,9 @@ pub fn sccs(n: usize, adj: &[Vec<usize>]) -> Vec<usize> {
 }
 
 /// Fill `dead_scc` with the components of the dead proof and spec functions.
+///
+/// # Errors
+/// Fails when the operation's I/O, parsing or database step fails; the error says which.
 pub fn store_dead_sccs(db: &Db) -> Result<()> {
     let dead: Vec<i64> = db.query_ids(
         "SELECT fn_id FROM functions WHERE mode IN ('proof', 'spec') AND NOT generated AND path NOT IN (SELECT path FROM live_nodes)",

@@ -6,6 +6,10 @@ use anyhow::{Context, Result};
 use serde::Deserialize;
 use std::path::Path;
 
+#[allow(
+    missing_docs,
+    reason = "plain data row; field names match the schema columns"
+)]
 #[derive(Debug, Default, Clone, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct ExtractCfg {
@@ -17,6 +21,10 @@ pub struct ExtractCfg {
     pub exclude: Vec<String>,
 }
 
+#[allow(
+    missing_docs,
+    reason = "plain data row; field names match the schema columns"
+)]
 #[derive(Debug, Default, Clone, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct RootsCfg {
@@ -30,6 +38,10 @@ pub struct RootsCfg {
     pub pins: Vec<String>,
 }
 
+#[allow(
+    missing_docs,
+    reason = "plain data row; field names match the schema columns"
+)]
 #[derive(Debug, Default, Clone, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct RulesCfg {
@@ -37,6 +49,10 @@ pub struct RulesCfg {
     pub dirs: Vec<String>,
 }
 
+#[allow(
+    missing_docs,
+    reason = "plain data row; field names match the schema columns"
+)]
 #[derive(Debug, Default, Clone, Deserialize)]
 #[serde(default)]
 pub struct Config {
@@ -46,11 +62,19 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn parse(text: &str) -> Result<Config> {
+    /// Parse config text.
+    ///
+    /// # Errors
+    /// Fails on invalid TOML or unknown keys in `[extract]`, `[roots]` or `[rules]`.
+    pub fn parse(text: &str) -> Result<Self> {
         toml::from_str(text).context("parsing verus-lint.toml")
     }
 
-    pub fn load(path: &Path) -> Result<Config> {
+    /// Read and parse a config file.
+    ///
+    /// # Errors
+    /// Fails when the file is unreadable or invalid.
+    pub fn load(path: &Path) -> Result<Self> {
         let text =
             std::fs::read_to_string(path).with_context(|| format!("reading {}", path.display()))?;
         Self::parse(&text).with_context(|| path.display().to_string())
@@ -58,6 +82,7 @@ impl Config {
 }
 
 /// Glob match where `*` matches any run of characters (including `::` and `/`).
+#[must_use]
 pub fn glob_match(pat: &str, text: &str) -> bool {
     let p: Vec<char> = pat.chars().collect();
     let t: Vec<char> = text.chars().collect();

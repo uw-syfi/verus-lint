@@ -1,5 +1,10 @@
+#![allow(
+    clippy::unwrap_used,
+    reason = "integration test helpers; a panic is the failure report"
+)]
 //! Parser and extraction tests against a real Verus log of `tests/fixtures/crate`.
 
+use std::collections::BTreeMap;
 use std::path::Path;
 use verus_lint::db::Db;
 use verus_lint::extract::load_crate_logs;
@@ -122,7 +127,7 @@ fn run(db: &Db, id: &str) -> Vec<verus_lint::rules::Finding> {
         .into_iter()
         .find(|r| r.id == id)
         .unwrap();
-    verus_lint::rules::run_rule(&db.conn, &rule, &Default::default()).unwrap()
+    verus_lint::rules::run_rule(&db.conn, &rule, &BTreeMap::default()).unwrap()
 }
 
 #[test]

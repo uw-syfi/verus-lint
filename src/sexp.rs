@@ -7,24 +7,24 @@
 pub enum Node<'a> {
     Atom(&'a str),
     Str(&'a str),
-    List(Vec<Node<'a>>),
+    List(Vec<Self>),
 }
 
 impl<'a> Node<'a> {
-    pub fn atom(&self) -> Option<&'a str> {
+    pub const fn atom(&self) -> Option<&'a str> {
         match self {
             Node::Atom(a) => Some(a),
             _ => None,
         }
     }
-    pub fn list(&self) -> Option<&[Node<'a>]> {
+    pub fn list(&self) -> Option<&[Self]> {
         match self {
             Node::List(v) => Some(v),
             _ => None,
         }
     }
     pub fn head(&self) -> Option<&'a str> {
-        self.list().and_then(|v| v.first()).and_then(|n| n.atom())
+        self.list().and_then(|v| v.first()).and_then(Node::atom)
     }
 }
 
@@ -35,7 +35,7 @@ pub struct Reader<'a> {
 }
 
 impl<'a> Reader<'a> {
-    pub fn new(s: &'a str) -> Self {
+    pub const fn new(s: &'a str) -> Self {
         Reader {
             s,
             b: s.as_bytes(),
@@ -49,7 +49,7 @@ impl<'a> Reader<'a> {
                 b' ' | b'\n' | b'\t' | b'\r' => self.i += 1,
                 b';' => {
                     while self.i < self.b.len() && self.b[self.i] != b'\n' {
-                        self.i += 1
+                        self.i += 1;
                     }
                 }
                 _ => break,

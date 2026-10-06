@@ -4,6 +4,8 @@ version = "0.1.0"
 edition = "2024"
 license = "MIT"
 description = "Lint and analysis for Verus codebases, from Verus VIR logs and verification reports"
+keywords = ["verus", "lint", "verification", "duckdb"]
+categories = ["development-tools"]
 repository = "https://github.com/uw-syfi/verus-lint"
 rust-version = "1.88"
 
@@ -14,3 +16,19 @@ duckdb = { version = "1.10506.0", features = ["bundled"] }
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.151"
 toml = "1.1.6"
+
+[lints.rust]
+unsafe_code = "forbid"
+missing_docs = "warn"
+
+[lints.clippy]
+pedantic = { level = "warn", priority = -1 }
+nursery = { level = "warn", priority = -1 }
+cargo = { level = "warn", priority = -1 }
+# Transitive duplicates (hashbrown, syn) come from duckdb and serde; not controllable here.
+multiple_crate_versions = "allow"
+unwrap_used = "warn"
+expect_used = "warn"
+dbg_macro = "warn"
+todo = "warn"
+print_stdout = "warn"

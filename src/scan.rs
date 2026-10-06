@@ -6,6 +6,7 @@
 //! file and skips those inside a known function span, which leaves the
 //! module-level ones.
 
+use crate::num::to_u32;
 use crate::vir::CrateFacts;
 use std::collections::BTreeSet;
 
@@ -123,7 +124,7 @@ pub fn scan_file(src: &str, file: &str, facts: &CrateFacts) -> Vec<ScanUse> {
         .filter(|f| f.file == file)
         .map(|f| (f.line, f.module.as_str()))
         .collect();
-    fns.sort();
+    fns.sort_unstable();
     let crate_root = || facts.krate.clone();
     let mut out = Vec::new();
     let mut offset = 0;
@@ -145,16 +146,15 @@ pub fn scan_file(src: &str, file: &str, facts: &CrateFacts) -> Vec<ScanUse> {
         let Some(end) = after_use.find(';') else {
             continue;
         };
-        let line = text[..at].matches('\n').count() as u32 + 1;
+        let line = to_u32(text[..at].matches('\n').count()).saturating_add(1);
         if spans.iter().any(|&(a, b)| a <= line && line <= b) {
             continue; // function-local: present in the log
         }
         let module = fns
             .iter()
             .find(|(l, _)| *l >= line)
-            .or(fns.last())
-            .map(|(_, m)| m.to_string())
-            .unwrap_or_else(crate_root);
+            .or_else(|| fns.last())
+            .map_or_else(crate_root, |(_, m)| m.to_string());
         for path in expand(&after_use[..end]) {
             out.push(ScanUse {
                 module: module.clone(),
@@ -214,7 +214,7 @@ pub fn scan_groups(src: &str) -> Vec<ScanGroup> {
         out.push(ScanGroup {
             name,
             members,
-            line: text[..at].matches('\n').count() as u32 + 1,
+            line: to_u32(text[..at].matches('\n').count()).saturating_add(1),
         });
     }
     out

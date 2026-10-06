@@ -4,6 +4,10 @@
 use anyhow::{Context, Result, bail};
 use std::process::Command;
 
+#[allow(
+    missing_docs,
+    reason = "plain data row; field names match the schema columns"
+)]
 pub struct Supported {
     pub version: &'static str,
     pub commit: &'static str,
@@ -15,6 +19,10 @@ pub const SUPPORTED: &[Supported] = &[Supported {
     commit: "3a4d30bcdc4571e7927af97be9c4664973083eda",
 }];
 
+#[allow(
+    missing_docs,
+    reason = "plain data row; field names match the schema columns"
+)]
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct VerusVersion {
     pub version: String,
@@ -24,6 +32,9 @@ pub struct VerusVersion {
 
 /// Extract the `verus` object from the output of `verus --version --output-json`.
 /// Container wrappers may print other lines first; parsing starts at the first `{`.
+///
+/// # Errors
+/// Fails when the operation's I/O, parsing or database step fails; the error says which.
 pub fn parse_version_json(out: &str) -> Result<VerusVersion> {
     let start = out
         .find('{')
@@ -39,6 +50,8 @@ pub fn parse_version_json(out: &str) -> Result<VerusVersion> {
     })
 }
 
+/// Whether the Verus version is in the supported range.
+#[must_use]
 pub fn is_supported(v: &VerusVersion) -> bool {
     SUPPORTED.iter().any(|s| s.commit == v.commit)
 }
@@ -53,6 +66,10 @@ impl std::fmt::Display for Unsupported {
 }
 impl std::error::Error for Unsupported {}
 
+/// Check the Verus version.
+///
+/// # Errors
+/// Fails with `Unsupported` outside the supported range.
 pub fn check(v: &VerusVersion) -> Result<()> {
     if is_supported(v) {
         return Ok(());
@@ -70,6 +87,9 @@ pub fn check(v: &VerusVersion) -> Result<()> {
 }
 
 /// Run `<toolchain> verus --version --output-json` (plain `verus` without a wrapper).
+///
+/// # Errors
+/// Fails when the operation's I/O, parsing or database step fails; the error says which.
 pub fn query(toolchain: &[String], cwd: &std::path::Path) -> Result<VerusVersion> {
     let mut cmd = match toolchain.split_first() {
         Some((p, rest)) => {

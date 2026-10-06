@@ -10,6 +10,10 @@ use duckdb::types::Value;
 use std::collections::BTreeMap;
 use std::path::Path;
 
+#[allow(
+    missing_docs,
+    reason = "plain data row; field names match the schema columns"
+)]
 #[derive(Debug, Clone)]
 pub struct Rule {
     pub id: String,
@@ -22,6 +26,10 @@ pub struct Rule {
     pub sql: String,
 }
 
+#[allow(
+    missing_docs,
+    reason = "plain data row; field names match the schema columns"
+)]
 #[derive(Debug, Clone, Default)]
 pub struct Finding {
     pub rule: String,
@@ -36,11 +44,17 @@ pub struct Finding {
 
 /// The example rules shipped in `examples/rules` (for tests and documentation; the tool
 /// itself loads no rules unless a directory is given).
+///
+/// # Errors
+/// Fails when the operation's I/O, parsing or database step fails; the error says which.
 pub fn examples() -> Result<Vec<Rule>> {
     load_dir(&Path::new(env!("CARGO_MANIFEST_DIR")).join("examples/rules"))
 }
 
 /// Load all `*.sql` files of a directory, sorted by name.
+///
+/// # Errors
+/// Fails when the operation's I/O, parsing or database step fails; the error says which.
 pub fn load_dir(dir: &Path) -> Result<Vec<Rule>> {
     let mut files: Vec<_> = std::fs::read_dir(dir)
         .with_context(|| format!("reading {}", dir.display()))?
@@ -54,6 +68,10 @@ pub fn load_dir(dir: &Path) -> Result<Vec<Rule>> {
         .collect()
 }
 
+/// Parse a SQL rule file (comment header plus query).
+///
+/// # Errors
+/// Fails when the header is missing a required field.
 pub fn parse_rule(text: &str) -> Result<Rule> {
     let mut hdr: BTreeMap<String, String> = BTreeMap::new();
     for line in text.lines() {
@@ -102,6 +120,9 @@ pub fn parse_rule(text: &str) -> Result<Rule> {
 }
 
 /// Replace `param('name')` with the literal value (override, else header default).
+///
+/// # Errors
+/// Fails when the operation's I/O, parsing or database step fails; the error says which.
 pub fn substitute(rule: &Rule, overrides: &BTreeMap<String, String>) -> Result<String> {
     let mut sql = rule.sql.clone();
     let mut out = String::new();
@@ -129,6 +150,8 @@ pub fn substitute(rule: &Rule, overrides: &BTreeMap<String, String>) -> Result<S
     Ok(out)
 }
 
+/// Render a database value as text for messages.
+#[must_use]
 pub fn cell_text(v: &Value) -> String {
     text(v)
 }
@@ -161,6 +184,14 @@ fn num(v: &Value) -> Option<f64> {
     }
 }
 
+/// Run one rule and return its findings.
+///
+/// # Errors
+/// Fails when the query is invalid or a parameter is missing.
+#[allow(
+    clippy::cast_possible_truncation,
+    reason = "finding line numbers are small non-negative integers"
+)]
 pub fn run_rule(
     conn: &Connection,
     rule: &Rule,
@@ -173,7 +204,10 @@ pub fn run_rule(
     let mut rows = stmt
         .query([])
         .with_context(|| format!("rule {}: running SQL", rule.id))?;
-    let names: Vec<String> = rows.as_ref().map(|s| s.column_names()).unwrap_or_default();
+    let names: Vec<String> = rows
+        .as_ref()
+        .map(duckdb::Statement::column_names)
+        .unwrap_or_default();
     let col = |n: &str| names.iter().position(|x| x == n);
     let (Some(ce), Some(cm)) = (col("entity"), col("message")) else {
         bail!(
@@ -214,6 +248,8 @@ pub fn run_rule(
     Ok(out)
 }
 
+/// One-line text form of a finding.
+#[must_use]
 pub fn format_finding(f: &Finding) -> String {
     let loc = match (&f.file, f.line) {
         (Some(file), Some(l)) => format!("{file}:{l}: "),
