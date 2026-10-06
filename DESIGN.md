@@ -8,11 +8,9 @@ The tool is mechanism only: fact extraction, the database and its views, the
 SQL runner, the Rust SDK, the CLI, configuration, baselines and output. It
 contains no rules. Rules live in the user's repository; `examples/` holds
 sample lints to copy, and nothing loads them unless the user points at them.
-Coral (`llm-eq/coral/crates`) is the first user and writes its own rules in
-its own tree; nothing in the tool is specific to Coral.
-
-Evidence for the choices below is in `spike/notes.md` (Verus
-0.2026.07.18.3a4d30b, measured on coral-spec and coral-effects).
+It was developed against a large Verus codebase (about 10,000 functions in 12
+crates) and nothing in the tool is specific to it. Measurements below are from
+Verus 0.2026.07.18.3a4d30b.
 
 ## 1. Overview
 
@@ -120,23 +118,23 @@ dependency order, the extractor runs
 
 One invocation per crate is required: Verus names the log `crate.vir`
 regardless of crate and deletes the log directory first. Dependencies are
-built once and cached by cargo. `--no-verify` skips SMT; on coral-spec this
+built once and cached by cargo. `--no-verify` skips SMT; on a large crate this
 is 41.5 s against 64 s for a verify, with identical facts.
 
 Cargo treats a root crate as fresh when only the forwarded Verus arguments
-changed, and a fresh crate writes no log (seen on Coral). The extractor runs
+changed, and a fresh crate writes no log (seen on a large codebase). The extractor runs
 `cargo clean -p <crate>` immediately before each run (so the next normal build
 of that crate recompiles it) and fails if no `crate.vir` appears. `--target-dir`
 isolates extraction builds from the user's own target directory at the price of
 a cold dependency build.
 
 The `<toolchain>` command is configurable so that a container wrapper such as
-Coral's `./verify` works unchanged.
+a project's `./verify` script works unchanged.
 
 The parser streams top-level forms (one function at a time, no whole-file
 tree), keeps only the crate's own items (imported items in the log are pruned
-copies), and writes rows through DuckDB's appender. The spike prototype
-parses 148 MB in about 3 s on one thread; forms are independent, so the
+copies), and writes rows through DuckDB's appender. A prototype
+parsed 148 MB in about 3 s on one thread; forms are independent, so the
 production parser splits the file at top-level blank lines and parses on all
 cores.
 
@@ -148,7 +146,7 @@ cores.
 by the friendly name: direct match, then trait impls through `trait_impls`,
 then inherent impls through the type of `self` (also `&mut self`, and the
 impl's sibling methods), then the return type and parameters, with the module
-as tie-break for same-named impls. Coral, 12 crates: 4 of 5,209 rows stay
+as tie-break for same-named impls. Large codebase, 12 crates: 4 of 5,209 rows stay
 unjoined (two names shared by two trait impls in one module); unjoined rows are kept with a null `fn_id` and counted in
 `meta.unjoined_verify_rows` so rules can refuse to trust a low join rate.
 
@@ -163,17 +161,17 @@ unjoined (two names shared by two trait impls in one module); unjoined rows are 
   (as written, `crate::` expanded, or relative to the module and its
   ancestors); names outside the crate (`vstd::`, `core::`) are stored as
   written with a null `callee_id`; any other unresolved name is a row in
-  `warnings`. Measured on Coral (12 crates): 14 module-level lines give 18
+  `warnings`. Measured on a large codebase (12 crates): 14 module-level lines give 18
   `module_uses` rows, matching a grep of the source (18 `broadcast use`
   lines, 4 of them function-local); no warnings. The scan is dropped for a
   Verus version whose printer emits module reveals (see Future work).
 - Broadcast groups (settled in phase 1). A group appears in the log only as a
-  `(group_id path)` form (Coral's own crates define none; vstd's appear in
+  `(group_id path)` form (the measured crates define none; vstd's appear in
   the imported part). It carries no member list. A function-local
   `broadcast use group_x` is a `Fuel (Fun :path group_x) 1 true` node, so it
   is a `broadcast_use` row in `uses` whose callee is the group path
   (`callee_id` null: groups are not functions). `broadcast proof fn` is a
-  function with `:broadcast_forall true` in its attributes (0 in Coral, many
+  function with `:broadcast_forall true` in its attributes (0 in the measured crates, many
   in vstd). Consequence for phase 2 and 3: group membership needs the same
   source scan (`broadcast group name { a, b }`), and reachability must treat a
   group as a node whose members become live with it; `broadcast_groups`
@@ -186,7 +184,7 @@ unjoined (two names shared by two trait impls in one module); unjoined rows are 
   source scan covers every `.rs` file under each crate's `src/` (not only files
   that hold functions) and records each `#[cfg(.. feature ..)]` attribute line
   as a `feature_gated_item` warning, so a count can be read next to the list of
-  code it cannot see. On Coral: 379 such notes, mostly `neg_*` negative
+  code it cannot see. On the measured codebase: 379 such notes, mostly `neg_*` negative
   controls. The scan also finds `broadcast group` items in files without
   functions; a module-level `broadcast use` in such a file has no known module
   and is recorded as `module_use_in_function_less_file`.
@@ -249,8 +247,8 @@ Result columns:
 | `severity` | no | Per-row override |
 | any other | no | Kept as properties in JSON and SARIF |
 
-Example 1, definition fan-in (what `coral/tools/fanin.py` computes
-syntactically, here from resolved paths):
+Example 1, definition fan-in (usually computed
+syntactically from names, here from resolved paths):
 
 ```sql
 -- id: verus/fanin-open-spec
@@ -385,7 +383,7 @@ impl Finding {   // builders; the runner fills in rule id and default severity
 `Facts::graph` has an edge per resolved use. It does not include the module,
 group and trait-dispatch edges of `graph_edges`; `Facts::live` does, so a Rust
 dead-code rule starts from `live()` and uses `sccs()` to group the dead
-functions (on Coral that rule and the SQL one agree on all 774). The typed
+functions (on the measured codebase that rule and the SQL one agree on all findings). The typed
 enums fail closed on a value the SDK does not know (`UseKind::Other` exists
 because real logs have path mentions that are neither calls nor reveals).
 `Facts::verify` (dynamic facts) arrives with phase 5.
@@ -442,8 +440,8 @@ Compiler-generated `arrow_*` field accessors are never reported.
 
 ```toml
 [extract]
-toolchain = ["./coral/verify"]          # command prefix for cargo verus; default none
-crates = ["coral/crates/**"]            # members to extract (package names or manifest directory globs); default all verified members
+toolchain = ["./verify"]          # command prefix for cargo verus; default none
+crates = ["crates/**"]            # members to extract (package names or manifest directory globs); default all verified members
 exclude = ["sea-lion-cuda-sys"]        # verify = true members Verus cannot build
 
 [roots]
@@ -487,8 +485,8 @@ and users commit.
   "schema": 1,
   "verus_commit": "3a4d30bcdc4571e7927af97be9c4664973083eda",
   "rules": {
-    "verus/dead-proof-code": { "set": ["coral_spec::x::lemma_old", "..."] },
-    "verus/rlimit-function": { "metric": { "coral_spec::rewrite::controls::lemma_qkv_inserted_causal": 147988 } }
+    "verus/dead-proof-code": { "set": ["my_crate::x::lemma_old", "..."] },
+    "verus/rlimit-function": { "metric": { "my_crate::m::lemma_big": 147988 } }
   }
 }
 ```
@@ -520,10 +518,10 @@ overrides the baseline path.
 
 ## 9. Performance targets
 
-Measured base: coral-spec (82k lines) gives a 148 MB log, parsed in 3 s on
+Measured base: one crate of 82k lines gives a 148 MB log, parsed in 3 s on
 one thread; `--no-verify` extraction takes about 42 s of Verus time.
 
-| Step | Target (all of Coral, about 250k lines in 12 verified crates) |
+| Step | Target (a whole codebase, about 250k lines in 12 verified crates) |
 | --- | --- |
 | Parse and load all logs, cold cache | under 10 s on 8 cores, under 2 GB memory |
 | Load from Parquet cache, nothing changed | under 1 s |
@@ -558,20 +556,7 @@ patterns and pins, the baseline ratchets.
 | `verus/trusted-inventory` | Every `assume`, `admit`, `external_body`, `external_fn`, `assume_specification` and broadcast axiom, with a count per crate (a set ratchet keeps the trusted surface from growing silently) |
 | `verus/extraction-health` | Unjoined verification rows, unresolved `broadcast use` names, crates without logs |
 
-## 11. Coral's Python tools as Coral-owned rules
-
-Coral rewrites these as rules in its own tree (`coral/lints/`), written against
-the schema; they may start from the examples but never reference them. Tool
-mechanisms they need (roots, SCCs, baselines) are in verus-lint.
-
-| Tool | Becomes | Notes |
-| --- | --- | --- |
-| `tools/fanin.py` (syntactic mode) | Coral rules like `examples/rules/fanin-*.sql` | Exact paths replace import-evidence matching, so the `amb` column and the method and trait-impl blind spots go away. `--compare` becomes the metric ratchet. `--detail NAME` becomes `verus-lint query fanin --entity NAME`. The semantic mode (close a definition, re-verify) stays a separate experiment driver; the rule's count is the input to it. |
-| `tools/provenance_sites.py` | A Coral SQL rule in `lints/sql/` plus a small table of the old-form names and the path to phase buckets | Counts uses (and source lines) naming each listed fact, bucketed by caller path. Uses replace grep, so comments and strings no longer need special handling. Its phase table is Coral data, not core. |
-| `tools/budget.py` | `verus/rlimit-headroom`, `verus/rlimit-function`, `verus/rlimit-module`, `verus/seed-instability`, `verus/hotspot-growth`, `verus/spinoff-candidate` | `baseline.json` and `rlimit_exceptions.txt` become the baseline file and per-entity param overrides. `--run` becomes `verus-lint verify`. |
-| `tools/dead_fns.py` (also present) | A Coral rule like `examples/rules/dead-proof-code.sql` | Its `ROOTS` list moves to `[roots]` in Coral's config; name merging across modules disappears. |
-
-## 12. Risks and open questions
+## 11. Risks and open questions
 
 Risks:
 
@@ -581,11 +566,11 @@ Risks:
 - Module-level `broadcast use` comes from a source scan until Verus prints
   module reveals; a scan can mis-resolve renamed imports.
 - The JSON join is by friendly name; inherent associated functions without
-  `self` may stay unjoined (2 of 98 in coral-effects).
+  `self` may stay unjoined (2 of 98 in one measured crate).
 - Per-crate Verus invocations lose cross-crate build parallelism on a cold
   run; a driver wrapper that sets a per-crate `--log-dir` would restore it
   but depends on cargo-verus internals.
-- Log size: a full Coral extraction is likely 400 to 600 MB of logs; they
+- Log size: a full extraction of the measured codebase is likely 400 to 600 MB of logs; they
   are deleted after parsing and only Parquet is cached.
 
 Open questions:
@@ -607,7 +592,7 @@ Decided (2026-10-06):
 - No upstream Verus changes for now; the two proposals are under Future work.
 - License: MIT; the repository stays private for now.
 
-## 13. Future work
+## 12. Future work
 
 Two small upstream Verus changes would remove workarounds. Neither is
 proposed yet.
@@ -619,80 +604,23 @@ proposed yet.
   so one build of a workspace yields every crate's log, which removes the
   per-crate invocation and the `cargo clean` step of section 4.1.
 
-## 14. Build plan
+## 13. Build plan
 
 Each phase ends with a commit that builds, passes its tests, and is pushed.
 Estimates are agent hours.
 
 | Phase | Content | Hours |
 | --- | --- | --- |
-| 1 | Workspace (`verus-lint` core, CLI, SDK in one crate to start); version table and check; streaming parser to `functions` and `uses`; DuckDB load; `extract` driving `./coral/verify` per crate; SQL runner with header parsing; example lints `fanin-open-spec` and `fanin-reveal`. Ends with a run on Coral (llm-eq, read-only) whose top fan-in table is compared to `fanin.py --top 20`, with every difference explained. | 1.5 |
+| 1 | Workspace (`verus-lint` core, CLI, SDK in one crate to start); version table and check; streaming parser to `functions` and `uses`; DuckDB load; `extract` driving `./verify` per crate; SQL runner with header parsing; example lints `fanin-open-spec` and `fanin-reveal`. Ends with a run on a large codebase. | 1.5 |
 | 2 | Remaining static facts: `quantifiers`, `trusted`, `trait_impls`, module `broadcast use` scan; fixture crate and parser fixture tests; example lints `quantifier-auto-trigger`, `trusted-inventory`, `trait-spec-default`. | 1.5 |
-| 3 | Mechanisms: roots config, `roots`, `graph_edges` and `live_nodes` views, SCCs (`dead_scc`, later an SDK `Graph::sccs`); example lint `dead-proof-code` in SQL; compare against `dead_fns.py` on Coral. | 1.0 |
+| 3 | Mechanisms: roots config, `roots`, `graph_edges` and `live_nodes` views, SCCs (`dead_scc`, later an SDK `Graph::sccs`); example lint `dead-proof-code` in SQL. | 1.0 |
 | 4 | Rust SDK surface (`Facts`, `Graph`, `Rule`, `Findings`, `run`), `lints/` crate build and execution by the CLI, one example user rules crate under `examples/`. | 1.5 |
-| 5 | Dynamic facts: `verify` command, report ingestion, friendly-name join, seeds; example lints for rlimit, seed instability, hotspot growth and spinoff candidates; compare with `budget.py` on Coral. | 1.5 |
+| 5 | Dynamic facts: `verify` command, report ingestion, friendly-name join, seeds; example lints for rlimit, seed instability, hotspot growth and spinoff candidates. | 1.5 |
 | 6 | Config levels, baseline file, set and metric ratchets, `--update-baseline`; text, JSON and SARIF output; exit statuses. | 1.5 |
-| 7 | Caching by input hash with Parquet, parallel parse, performance targets measured on Coral; extraction-health facts (unjoined rows, unresolved names) as a view. | 1.0 |
-| 8 | Second codebase (a public Verus project, for example a vstd-only example crate set or a published Verus verification project) to check genericity; docs; Coral's own `provenance_sites` rule, in Coral's tree, as a worked project rule. | 1.0 |
+| 7 | Caching by input hash with Parquet, parallel parse, performance targets measured on a large codebase; extraction-health facts (unjoined rows, unresolved names) as a view. | 1.0 |
+| 8 | Second codebase (a public Verus project, for example a vstd-only example crate set or a published Verus verification project) to check genericity; docs. | 1.0 |
 
 Total: about 10.5 agent hours.
-
-Phase 1 status (2026-10-06): done. `verus-lint run` extracts and checks a
-workspace; `verus-lint query` runs ad hoc SQL. Differences from the plan above:
-the SDK is not started (phase 4); the `check` command takes `--param` and
-`--rules DIR` instead of a config file (phase 6); each root crate is cleaned
-before its run (section 4.1); the module-level `broadcast use` scan is already
-in. Coral dogfood (12 crates at `claude/coral-prov-flip`): 4 m 47 s of Verus
-time for 15 verified members including cold dependency verification, 566 MB of
-logs, 10,434 own functions and 214,003 uses, parse and load 7 to 9 s on one
-thread, 8.9 MB database. The top fan-in table agrees with `fanin.py`
-(syntactic): 14 of its top 15 are in our top 15, the other (`MemManager::len`)
-is rank 16 with 124 against 217 functions. Differences:
-`fanin.py` matches method calls by name and import evidence, so it
-over-counts generic method names (`len`, and `nreq`/`inv` shared by `Engine`
-and `MemManager`, its `amb` column) while resolved paths do not; free
-functions differ by 1 to 2 per file in both directions (`ctx_at` 302 against
-319) because it parses source text and the log has one entry per compiled
-function; trait-impl methods such as `ExecModelGraph::view` (177 functions)
-appear in our table and not in `fanin.py`, which skips them; the log has no
-`#[cfg(test)]` items. No semantic-mode results are recorded in Coral's
-`findings`, so the comparison is against syntactic mode only.
-
-Phase 2 status (2026-10-06): done. New facts (schema 1.1.0): `quantifiers`,
-`trusted`, `trait_impls`, `group_members`, and `functions.has_default`,
-`trait_method`, `type_invariant`. `--exclude` and `verus-lint.toml` (`[extract]`
-and `[roots]`; other sections are ignored until phase 6) are in. The parser is
-tested against a real Verus log of `tests/fixtures/crate` (regenerate with
-`tests/fixtures/regen.sh`, needs Docker and the oracle image). Findings from
-the log: `#![auto]` is `Unary Trigger(AutoTrigger)` around the body, an explicit
-trigger is `WithTriggers` with a nonempty `:triggers` or `Unary Trigger(Trigger
-g)` on a subterm; `assume(false)` is how `admit()` appears; a function with a
-non-null `:proxy` is an `assume_specification`; `AssertAssumeUserDefinedTypeInvariant`
-is compiler-inserted and not a trusted item; `external_fn` and `external_type`
-ids are mostly vstd's (own-crate ones only are stored); `#[verifier::external]`
-items have no body in the log. A trait method implementation names its
-declaration in `:method`, so dispatch needs no name matching. On Coral:
-224 functions with untriggered quantifiers, 712 trusted rows, 2 trait spec
-functions with defaults. CI had been failing since phase 1 because `*.vir` in
-`.gitignore` hid `mini.vir`; fixed.
-
-Phase 3 status (2026-10-06): done. `roots`, `graph_edges` and `live_nodes`
-views, `dead_scc` (Tarjan in Rust, written by `extract`), `verus/dead-proof-code`
-and `verus/unused-public-api`. The recursive query runs over path nodes
-(functions, groups, `mod:` module nodes) and takes 0.3 s on Coral's 214k uses.
-Coral dogfood (12 crates, `[roots]` mirroring `dead_fns.py`'s name patterns and
-`tools/pins/*.pin`): 876 dead proof and spec functions (14,537 body lines), 229
-unused public API items, no dead cycles. `dead_fns.py` reports 500 in the
-same crates: all 500 are in our 876, none is missing. Of our 361 extra: 113
-have a name that appears under `tools/` (`dead_fns.py` roots every such name;
-we need a root-names file for that, see phase 4 and 6), 167 are
-referenced only from `use` re-exports or from other dead functions (the Python
-script counts an import line as a use), and 81 are referenced from code the
-build does not compile (`cfg(feature = "neg_*")` negative controls, tests,
-crates outside the extraction) or share a name with an unrelated item (it
-merges by name; for example `numel` and `in_range` are also used elsewhere). `dead_fns.py` pinned names are live; ours are reported in the
-separate API category (229). `arrow_*` field accessors were 662 of the first
-run's 1,437 findings and are now excluded.
 
 Design change (2026-10-06): the tool contains no rules. The `verus/...` rules
 written in phases 1 to 3 moved from `rules/` to `examples/rules/`; `check`
@@ -700,77 +628,3 @@ loads only directories given by `--rules` or `[rules] dirs`, and prints a hint
 when there are none. The Rust types behind `rules::examples()` are used by tests
 only. `roots`, `graph_edges`, `live_nodes` and `dead_scc` stay in the tool as
 mechanisms so a user can write the dead-code rule themselves.
-
-Phase 3 follow-up (2026-10-06): the three precision gaps are closed.
-`[roots] name_files` roots every function whose name is an identifier token in
-a listed file (`root_names`, schema 1.2.0); feature-gated code is documented in
-section 4.3 and reported as `feature_gated_item` warnings; the source scan now
-covers files with no functions. Coral re-run (12 crates at
-`claude/coral-prov-flip` 149841ecd, `[roots]` mirroring `dead_fns.py`: name
-patterns, `tools/pins`, and `name_files` limited to the `.py`, `.toml`, `.json`
-and `.txt` files under `tools/` that the script reads, minus pins and
-baselines): 774 dead proof and spec functions, 206 unused public API items
-(the tree moved since the first comparison, which had 876 and 229).
-`dead_fns.py` reports 498 in the same crates (489 distinct file and name
-pairs): all of them are in our 774, none is missing. Our 270 extra, by class:
-157 are referenced from files that hold `cfg(test)` or `cfg(feature)` code
-(tests and feature-gated negative controls, absent from the log; the class is
-an upper bound, since a file with such code may also have live references);
-61 are reachable only from functions we treat as unused API, because we do not
-root pinned items and the script does; 41 share a name with an unrelated
-function (it merges by name); 11 appear only in `use` lines. Whether callees of
-an unused pinned function should count as live is a rule decision, so
-`[roots] pins_are_roots = true` is an opt-in switch (pinned functions become
-roots with reason `pin`; they are still in `api_pins`). With it on, Coral has
-751 dead functions (247 extra), 23 fewer; the rest of the 61 are also reachable
-only from other dead code.
-
-Phase 4 status (2026-10-06): done. `verus_lint::sdk` (`Facts`, `Graph` with
-`sccs`, `Rule`, `RuleMeta`, `Params`, `Findings`) and `verus_lint::run`; the CLI
-moved into the library. `check` and `run` build the crate named by `[rules]
-rust` and start its binary, which loads the SQL rules too, so one report covers
-both. `examples/rust-rules/` is a workspace member with one rule
-(`example/opaque-reveal-spread`); `tests/rules_crate.rs` drives the CLI through
-build, gate, baseline update and error status. Findings: a child `cargo build`
-started from a test inherits `CARGO_PKG_*` and related variables, which made
-bundled DuckDB rebuild on every run (2 minutes against 2 seconds), so the CLI
-removes them; `check` opens the database read-only; real logs have a use kind
-`other` (1,100 on Coral) that the typed enum needed. Coral dogfood with a
-scratch rules crate outside both repositories (dead-code rule on
-`Facts::live()` plus `sccs()`): 774 findings, identical to the SQL rule;
-a `check` with the Rust crate, 9 rules and the build check takes 6 to 10 s
-(development-profile DuckDB).
-
-Phase 6 status (2026-10-06): done. Levels, baseline file, set and metric
-ratchets, `--update-baseline`, text, JSON and SARIF output, exit statuses (all
-in sections 7 and 8). Coral dogfood: baseline of 9 rules (237 KB: 774 dead
-functions, 711 trusted rows, fan-in metrics and so on), second `check` exits 0,
-removing one set entry and halving one metric entry gives exactly 2 uncovered
-gated findings, SARIF has 3,359 results. Not done: the `verify_*` tables and
-`needs: dynamic` rules wait for phase 5 (a rule that needs them is skipped with
-a note while `verify_fn` is missing or empty); no Parquet cache yet (phase 7).
-
-Phase 5 status (2026-10-06): done. `verify` command, schema 1.3.0 (`runs`,
-`verify_fn`, `verify_module`, views `verify_default_runs`, `verify_latest`,
-`verify_module_latest`, `verify_worst`), example rules `rlimit-headroom`
-(default budget 30M, Verus's own failure point; Coral passes 10M),
-`rlimit-hotspot`, `seed-instability` (Coral's 2x warn, 5x error thresholds),
-`hotspot-growth` (metric ratchet) and `spinoff-candidate`. Crates with no
-verified function (coral-bootstrap) are skipped with a note. Compared with
-`coral/tools/budget.py` and `stability.py`: the rules read the same per-function
-rlimit and seed data; seed-instability checks every function at or above the
-floor where stability.py checks the 20 heaviest.
-
-Dead-code sample check (release bar, 2026-10-06): 3 reported items per crate
-across Coral's 12 crates (seed 20261006), closed over dead callers and trait
-declaration/implementation pairs, deleted with their imports in a scratch
-llm-eq worktree (nothing committed). Verus: 0 errors on the affected crates
-after the closure. The first attempt broke only on callers and trait pairs
-that the sample itself had left behind; the reported items were truly dead.
-
-Phase 8 status (2026-10-06): done. Second codebase: three example crates built
-from verus-lang/verus `examples/` (962 functions). Genericity bugs found and
-fixed: `broadcast use Type::assoc_fn` names resolved by unique suffix match;
-dashed module names and generic and parameter-typed impl names in the friendly
-join. Coral counts unchanged (774 dead, 206 unused public API, 711 trusted).
-Release: `cargo publish --dry-run` passes; license is MIT only.

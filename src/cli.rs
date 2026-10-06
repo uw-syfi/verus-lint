@@ -51,7 +51,7 @@ struct ExtractArgs {
     /// Output directory (database and per-crate logs), relative to the workspace.
     #[arg(long, default_value = ".verus-lint")]
     out: PathBuf,
-    /// Command prefix for `cargo verus`, split on spaces (for example `./coral/verify`).
+    /// Command prefix for `cargo verus`, split on spaces (for example `./verify`).
     #[arg(long, default_value = "")]
     toolchain: String,
     /// Extract only this package (repeatable); default: all verified members.
@@ -76,7 +76,7 @@ struct VerifyArgs {
     /// Directory of the database written by `extract`, relative to the workspace.
     #[arg(long, default_value = ".verus-lint")]
     out: PathBuf,
-    /// Command prefix for `cargo verus`, split on spaces (for example `./coral/verify`).
+    /// Command prefix for `cargo verus`, split on spaces (for example `./verify`).
     #[arg(long, default_value = "")]
     toolchain: String,
     /// Verify only this package (repeatable); default: every crate in the database.

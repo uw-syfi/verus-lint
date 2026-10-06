@@ -41,8 +41,8 @@ stays short:
 
 ```toml
 [extract]
-toolchain = ["./coral/verify"]        # command prefix for `cargo verus`
-crates = ["coral/crates/**"]          # package names or manifest-directory globs
+toolchain = ["./verify"]        # command prefix for `cargo verus`
+crates = ["crates/**"]          # package names or manifest-directory globs
 exclude = ["sea-lion-cuda-sys"]       # verified members Verus cannot build
 
 [roots]                               # live by definition, for dead-code rules

@@ -9,8 +9,8 @@ categories = ["development-tools"]
 repository = "https://github.com/uw-syfi/verus-lint"
 readme = "README.md"
 rust-version = "1.88"
-# The spike prototype and the fixture's Verus source crate (rebuilt with Docker) stay out of the package.
-exclude = ["spike/", "tests/fixtures/crate/", "tests/fixtures/regen.sh", "target/"]
+# Design notes and the fixture's Verus source crate (rebuilt with Docker) stay out of the package.
+exclude = ["DESIGN.md", "tests/fixtures/crate/", "tests/fixtures/regen.sh", "target/"]
 
 [dependencies]
 anyhow = "1.0.104"
@@ -25,7 +25,7 @@ workspace = true
 
 [workspace]
 members = [".", "examples/rust-rules"]
-exclude = ["spike/vir-proto", "tests/fixtures/crate"]
+exclude = ["tests/fixtures/crate"]
 
 [workspace.lints.rust]
 unsafe_code = "forbid"

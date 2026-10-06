@@ -12,7 +12,7 @@ use std::path::Path;
 #[derive(Debug, Default, Clone, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct ExtractCfg {
-    /// Command prefix for `cargo verus`, for example `["./coral/verify"]`.
+    /// Command prefix for `cargo verus`, for example `["./verify"]`.
     pub toolchain: Vec<String>,
     /// Members to extract: package names or manifest directories (globs); empty means all verified members.
     pub crates: Vec<String>,
@@ -215,9 +215,9 @@ mod tests {
 
     #[test]
     fn globs() {
-        assert!(glob_match("*::theorem_*", "coral::a::theorem_x"));
-        assert!(!glob_match("*::theorem_*", "coral::a::lemma_x"));
-        assert!(glob_match("coral/crates/**", "coral/crates/a/b"));
+        assert!(glob_match("*::theorem_*", "proj::a::theorem_x"));
+        assert!(!glob_match("*::theorem_*", "proj::a::lemma_x"));
+        assert!(glob_match("crates/**", "crates/a/b"));
         assert!(glob_match("a", "a") && !glob_match("a", "ab"));
         assert!(glob_match("*", ""));
     }

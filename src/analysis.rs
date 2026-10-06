@@ -27,7 +27,7 @@ pub fn glob_to_like(g: &str) -> String {
 
 /// Entries of one pin file, each with its 1-based line.
 ///
-/// `## name` headers when the file has any (the layout Coral's `apipin.py` writes), otherwise
+/// `## name` headers when the file has any (a common generated layout), otherwise
 /// every nonblank line that does not start with `#`. Each entry carries its 1-based line.
 #[must_use]
 pub fn parse_pin(text: &str) -> Vec<(String, u32)> {
@@ -283,9 +283,9 @@ mod tests {
 
     #[test]
     fn pin_entries() {
-        let coral = "# gen\n## core::end_to_end\npub proof fn(a)\n  requires x\n## core::Term\n";
+        let text = "# gen\n## core::end_to_end\npub proof fn(a)\n  requires x\n## core::Term\n";
         assert_eq!(
-            parse_pin(coral),
+            parse_pin(text),
             [
                 ("core::end_to_end".to_string(), 2),
                 ("core::Term".to_string(), 5)

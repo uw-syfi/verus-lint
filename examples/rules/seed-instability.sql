@@ -7,7 +7,7 @@
 -- ratchet: set
 -- Run `verify --seeds 1,2,3` first: the rule needs two or more runs of a function. A proof
 -- whose cost depends on the seed breaks when unrelated edits move the solver's choices. The
--- defaults match Coral's tools/stability.py (warn above 2x, fail above 5x), which checks only
+-- defaults are warn above 2x and fail above 5x. Scripts often check only
 -- the 20 heaviest functions; this rule checks every function at or above `floor`.
 -- Functions below `floor` rlimit in every run are ignored (their ratio is noise).
 SELECT w.friendly AS entity, f.file, f.line, w.max_rlimit AS metric,
