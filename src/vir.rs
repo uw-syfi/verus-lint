@@ -397,6 +397,25 @@ fn self_param_type(params: Option<&&Node>) -> Option<String> {
     None
 }
 
+/// First datatype of the crate named in a type, searching depth first (`Option<Cap<E>>` gives
+/// `Cap`'s path). Verus prints a function without `self` under the type it constructs, so this is
+/// the fallback for the friendly name of such an associated function.
+fn own_datatype(t: &Node, krate: &str) -> Option<String> {
+    let v = t.list()?;
+    if v.first().and_then(Node::atom) == Some("Typ")
+        && v.get(1).and_then(Node::atom) == Some("Datatype")
+        && let Some(p) = v
+            .get(2)
+            .and_then(Node::list)
+            .and_then(|dt| dt.get(2))
+            .and_then(Node::atom)
+        && p.split("::").next() == Some(krate)
+    {
+        return Some(p.to_string());
+    }
+    v.iter().find_map(|x| own_datatype(x, krate))
+}
+
 /// `(Typ Datatype (Dt Path P) ..)`, possibly under `Decorate`, gives `P`.
 fn typ_path(t: &Node) -> Option<String> {
     let v = t.list()?;
@@ -524,6 +543,10 @@ fn parse_function(
     });
     let friendly = match (&self_type, path.find("::impl&%")) {
         (Some(t), Some(_)) => format!("{t}::{name}"),
+        (None, Some(_)) => f
+            .get("ret")
+            .and_then(|r| own_datatype(r, krate))
+            .map_or_else(|| path.to_string(), |t| format!("{t}::{name}")),
         _ => path.to_string(),
     };
     let rlimit_attr = a.get("rlimit").and_then(|n| match n {
