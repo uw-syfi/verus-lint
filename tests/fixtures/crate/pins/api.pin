@@ -1,0 +1,3 @@
+# API pin for the fixture crate
+# one function path per line
+fx::live::lemma_dead_leaf

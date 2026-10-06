@@ -72,7 +72,11 @@ pub mod live {
     pub proof fn lemma_dead_leaf() { assert(p(2)); }
     pub proof fn lemma_dead_a() { lemma_dead_b(); }
     pub proof fn lemma_dead_b() { lemma_dead_a(); }
-    pub proof fn theorem_top() { lemma_used(); }
+    pub proof fn theorem_top() {
+        lemma_used();
+        let s = crate::tr::Sq(2);
+        assert(crate::tr::use_shape(s) == crate::tr::use_shape(s));
+    }
     pub broadcast proof fn lemma_in_group(i: int) ensures #[trigger] crate::q::p(i) == (i >= 0) { }
     pub broadcast group group_live { lemma_in_group }
     pub open spec fn dead_spec() -> bool { p(3) }

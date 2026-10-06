@@ -11,6 +11,13 @@ fn fixture_db() -> Db {
     let imp = include_str!("fixtures/fx/crate.impl_names");
     load_crate_logs(&mut db, &ws, "fx", "Cargo.toml", vir, imp).unwrap();
     db.resolve().unwrap();
+    let roots = verus_lint::config::RootsCfg {
+        patterns: vec!["*::theorem_*".into()],
+        public_api: false,
+        pins: vec!["pins/*.pin".into()],
+    };
+    verus_lint::analysis::store_roots(&db, &ws, &roots).unwrap();
+    verus_lint::analysis::store_dead_sccs(&db).unwrap();
     db
 }
 
@@ -152,4 +159,51 @@ fn trait_default_rule_counts_overrides() {
         "{}",
         f[0].message
     );
+}
+
+#[test]
+fn dead_proof_code_roots_groups_and_dispatch() {
+    let db = fixture_db();
+    let dead = run(&db, "verus/dead-proof-code");
+    let names: Vec<&str> = dead.iter().map(|f| f.entity.as_str()).collect();
+    for live in [
+        "fx::live::theorem_top",
+        "fx::live::lemma_used",
+        "fx::q::p",
+        // a function-local `broadcast use` of a group keeps its members live
+        "fx::live::lemma_via_broadcast",
+        "fx::live::lemma_in_group",
+        // use_shape names the trait method; both implementations of it are live
+        "fx::tr::Shape::twice",
+        "fx::tr::impl&%1::twice",
+        "fx::tr::Shape::area",
+        "fx::tr::impl&%0::area",
+    ] {
+        assert!(!names.contains(&live), "{live} reported dead: {names:?}");
+    }
+    for d in [
+        "fx::live::lemma_dead_a",
+        "fx::live::lemma_dead_b",
+        "fx::live::dead_spec",
+        "fx::tr::Shape::required",
+        "fx::tr::impl&%0::required",
+        "fx::t::axiom_b",
+    ] {
+        assert!(names.contains(&d), "{d} not reported dead: {names:?}");
+    }
+    // The pinned function is unused API, not dead code.
+    assert!(!names.contains(&"fx::live::lemma_dead_leaf"));
+    let api: Vec<_> = run(&db, "verus/unused-public-api")
+        .into_iter()
+        .map(|f| f.entity)
+        .collect();
+    assert_eq!(api, ["fx::live::lemma_dead_leaf"]);
+    // The mutually recursive pair is one component of size 2, reported once per member.
+    let pair: Vec<_> = dead
+        .iter()
+        .filter(|f| f.entity.contains("lemma_dead_"))
+        .collect();
+    assert_eq!(pair.len(), 2);
+    assert!(pair.iter().all(|f| f.message.contains("dead cycle of 2")));
+    assert_eq!(pair[0].props["scc"], pair[1].props["scc"]);
 }

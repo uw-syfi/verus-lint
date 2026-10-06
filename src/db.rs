@@ -236,6 +236,17 @@ impl Db {
         Ok(out)
     }
 
+    /// Run a query returning one integer column.
+    pub fn query_ids(&self, sql: &str, args: &[&String]) -> Result<Vec<i64>> {
+        let mut stmt = self.conn.prepare(sql)?;
+        let mut rows = stmt.query(duckdb::params_from_iter(args.iter()))?;
+        let mut out = Vec::new();
+        while let Some(r) = rows.next()? {
+            out.push(r.get(0)?);
+        }
+        Ok(out)
+    }
+
     pub fn warn(&self, krate: &str, what: &str, detail: &str) -> Result<()> {
         self.conn.execute(
             "INSERT INTO warnings VALUES (?, ?, ?)",

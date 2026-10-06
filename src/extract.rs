@@ -23,6 +23,8 @@ pub struct Options {
     /// Skip these members (package names or manifest-directory globs), for example a
     /// `verify = true` crate Verus cannot build.
     pub exclude: Vec<String>,
+    /// Dead-code roots from the config.
+    pub roots: crate::config::RootsCfg,
     /// Cargo target directory for the extraction builds (default: the toolchain's own).
     pub target_dir: Option<PathBuf>,
     /// Reuse an existing log instead of running Verus.
@@ -315,6 +317,8 @@ pub fn extract(o: &Options) -> Result<Summary> {
         );
     }
     db.resolve()?;
+    crate::analysis::store_roots(&db, &ws, &o.roots)?;
+    crate::analysis::store_dead_sccs(&db)?;
     Ok(Summary {
         crates: members.len(),
         functions: n_fn,

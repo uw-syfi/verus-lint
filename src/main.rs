@@ -114,6 +114,7 @@ fn do_extract(a: &ExtractArgs) -> Result<PathBuf> {
         toolchain,
         crates,
         exclude,
+        roots: cfg.roots.clone(),
         target_dir: a.target_dir.clone(),
         reuse_logs: a.reuse_logs,
     })?;

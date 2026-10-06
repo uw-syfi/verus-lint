@@ -37,3 +37,50 @@ CREATE VIEW open_spec AS
 SELECT * FROM functions
 WHERE mode = 'spec' AND item_kind = 'function' AND NOT opaque
   AND body_vis <> 'none' AND body_vis <> module;
+
+-- Dead-code analysis inputs, stored by `extract` from the config. `like_pattern` is the glob
+-- converted to SQL LIKE with `\` as the escape character.
+CREATE TABLE root_patterns (pattern VARCHAR, like_pattern VARCHAR);
+-- API pin entries and the functions they name (fn_id null when nothing matched).
+CREATE TABLE api_pins (entry VARCHAR, file VARCHAR, line INTEGER, fn_id BIGINT);
+-- Strongly connected components of the dead subgraph (filled by `extract`); scc_id is the
+-- smallest fn_id of the component.
+CREATE TABLE dead_scc (fn_id BIGINT, scc_id BIGINT, scc_size INTEGER);
+
+-- Functions that are live by definition: exec functions, functions matching a root pattern,
+-- implementations of traits declared outside the extracted crates (callers may dispatch to
+-- them generically), type invariants, and, when the config asks for it, every pub function.
+-- API pin entries are not roots. The log has no `#[cfg(test)]` items, so tests need no entry.
+CREATE VIEW roots AS
+SELECT fn_id, 'exec' AS reason FROM functions WHERE mode = 'exec'
+UNION ALL
+SELECT f.fn_id, 'pattern' FROM functions f JOIN root_patterns p
+  ON f.path LIKE p.like_pattern ESCAPE '\' OR f.friendly LIKE p.like_pattern ESCAPE '\'
+UNION ALL
+SELECT fn_id, 'foreign_trait_impl' FROM functions
+WHERE kind IN ('trait_impl', 'foreign_trait_impl')
+  AND (trait_method IS NULL OR trait_method NOT IN (SELECT path FROM functions WHERE kind = 'trait_decl'))
+UNION ALL
+SELECT fn_id, 'type_invariant' FROM functions WHERE type_invariant
+UNION ALL
+SELECT fn_id, 'public_api' FROM functions
+WHERE vis = 'pub' AND (SELECT coalesce(max(value), 'false') FROM meta WHERE key = 'roots_public_api') = 'true';
+
+-- Use graph over path nodes. A function node leads to its module node, which leads to the
+-- module's `broadcast use` items; a group leads to its members; a trait method declaration
+-- leads to every implementation of it.
+CREATE VIEW graph_edges AS
+SELECT f.path AS src, u.callee_path AS dst FROM uses u JOIN functions f ON f.fn_id = u.caller_id
+UNION ALL SELECT path, 'mod:' || module FROM functions
+UNION ALL SELECT 'mod:' || module, callee_path FROM module_uses
+UNION ALL SELECT group_path, member_path FROM group_members
+UNION ALL SELECT d.path, i.path FROM functions d JOIN functions i ON i.trait_method = d.path;
+
+-- Nodes (function and group paths, `mod:` module nodes) reachable from the roots.
+CREATE VIEW live_nodes AS
+WITH RECURSIVE live(path) AS (
+    SELECT f.path FROM roots r JOIN functions f USING (fn_id)
+  UNION
+    SELECT g.dst FROM live JOIN graph_edges g ON g.src = live.path
+)
+SELECT path FROM live;

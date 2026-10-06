@@ -52,6 +52,14 @@ const BUILTIN: &[(&str, &str)] = &[
         include_str!("../rules/trusted-inventory.sql"),
     ),
     (
+        "dead-proof-code.sql",
+        include_str!("../rules/dead-proof-code.sql"),
+    ),
+    (
+        "unused-public-api.sql",
+        include_str!("../rules/unused-public-api.sql"),
+    ),
+    (
         "trait-spec-default.sql",
         include_str!("../rules/trait-spec-default.sql"),
     ),
@@ -297,6 +305,8 @@ mod tests {
                 "verus/fanin-reveal",
                 "verus/quantifier-auto-trigger",
                 "verus/trusted-inventory",
+                "verus/dead-proof-code",
+                "verus/unused-public-api",
                 "verus/trait-spec-default"
             ]
         );
