@@ -11,36 +11,45 @@ use duckdb::types::Value;
 use std::collections::BTreeMap;
 use std::path::Path;
 
-#[allow(
-    missing_docs,
-    reason = "plain data row; field names match the schema columns"
-)]
 #[derive(Debug, Clone)]
+/// A parsed SQL rule file: header fields and the query text.
 pub struct Rule {
+    /// Rule id (`namespace/name`).
     pub id: String,
+    /// One-line description.
     pub summary: String,
+    /// Default severity text (`note`, `warning` or `error`).
     pub severity: String,
+    /// Schema version range the rule was written against.
     pub schema: Option<String>,
+    /// Parameter names with default values.
     pub params: Vec<(String, String)>,
+    /// The `needs` header (`dynamic`), if any.
     pub needs: Option<String>,
+    /// The `ratchet` header text, if any.
     pub ratchet: Option<String>,
+    /// The `SELECT` statement.
     pub sql: String,
 }
 
 /// One result of a rule. `rule` and an empty `severity` are filled in by the runner.
-#[allow(
-    missing_docs,
-    reason = "plain data row; field names match the schema columns"
-)]
 #[derive(Debug, Clone, Default)]
 pub struct Finding {
+    /// Id of the rule that produced the finding.
     pub rule: String,
+    /// Severity text; empty until the runner fills in the rule's default.
     pub severity: String,
+    /// Stable key the baseline uses (a function path, never a line number).
     pub entity: String,
+    /// One-line message.
     pub message: String,
+    /// Source file, relative to the workspace.
     pub file: Option<String>,
+    /// Source line.
     pub line: Option<i64>,
+    /// Number compared by metric ratchets.
     pub metric: Option<f64>,
+    /// Extra properties, kept in JSON and SARIF output.
     pub props: BTreeMap<String, String>,
 }
 

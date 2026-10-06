@@ -1,5 +1,7 @@
 //! verus-lint: facts from Verus's VIR log, stored in `DuckDB`, checked by SQL rules.
 
+#![warn(missing_docs)]
+
 pub mod analysis;
 pub mod baseline;
 pub mod cli;

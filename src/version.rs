@@ -4,12 +4,11 @@
 use anyhow::{Context, Result, bail};
 use std::process::Command;
 
-#[allow(
-    missing_docs,
-    reason = "plain data row; field names match the schema columns"
-)]
+/// A supported Verus release.
 pub struct Supported {
+    /// Release version string.
     pub version: &'static str,
+    /// Full git commit of the release.
     pub commit: &'static str,
 }
 
@@ -19,14 +18,14 @@ pub const SUPPORTED: &[Supported] = &[Supported {
     commit: "3a4d30bcdc4571e7927af97be9c4664973083eda",
 }];
 
-#[allow(
-    missing_docs,
-    reason = "plain data row; field names match the schema columns"
-)]
 #[derive(Debug, PartialEq, Eq, Clone)]
+/// The `verus` object of `verus --version --output-json`.
 pub struct VerusVersion {
+    /// Release version string.
     pub version: String,
+    /// Full git commit.
     pub commit: String,
+    /// Rust toolchain Verus was built with (may be empty).
     pub toolchain: String,
 }
 

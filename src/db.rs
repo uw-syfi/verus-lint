@@ -11,21 +11,18 @@ use std::path::Path;
 pub const SCHEMA_VERSION: &str = "1.3.0";
 const SCHEMA_SQL: &str = include_str!("schema.sql");
 
-#[allow(
-    missing_docs,
-    reason = "plain data row; field names match the schema columns"
-)]
+/// An open fact database.
 pub struct Db {
+    /// The `DuckDB` connection.
     pub conn: Connection,
     next_fn_id: i64,
 }
 
-#[allow(
-    missing_docs,
-    reason = "plain data row; field names match the schema columns"
-)]
+/// Per-crate facts of the `crates` table that the log does not carry.
 pub struct CrateInfo<'a> {
+    /// Manifest path, relative to the workspace.
     pub manifest: &'a str,
+    /// Size of the VIR log in bytes.
     pub log_bytes: u64,
 }
 

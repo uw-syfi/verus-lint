@@ -5,12 +5,9 @@ use serde::Deserialize;
 use std::collections::BTreeMap;
 use std::path::Path;
 
-#[allow(
-    missing_docs,
-    reason = "plain data row; field names match the schema columns"
-)]
 #[derive(Debug, Default, Clone, Deserialize)]
 #[serde(default, deny_unknown_fields)]
+/// The `[extract]` section: which crates to extract and how to run Verus.
 pub struct ExtractCfg {
     /// Command prefix for `cargo verus`, for example `["./verify"]`.
     pub toolchain: Vec<String>,
@@ -20,12 +17,9 @@ pub struct ExtractCfg {
     pub exclude: Vec<String>,
 }
 
-#[allow(
-    missing_docs,
-    reason = "plain data row; field names match the schema columns"
-)]
 #[derive(Debug, Default, Clone, Deserialize)]
 #[serde(default, deny_unknown_fields)]
+/// The `[roots]` section: functions that are live by definition for dead-code rules.
 pub struct RootsCfg {
     /// Glob patterns for top theorems, negative controls and fixtures. A pattern with `::` matches
     /// the function path (or its friendly path); one without matches the bare function name.
@@ -45,12 +39,9 @@ pub struct RootsCfg {
     pub name_files: Vec<String>,
 }
 
-#[allow(
-    missing_docs,
-    reason = "plain data row; field names match the schema columns"
-)]
 #[derive(Debug, Default, Clone, Deserialize)]
 #[serde(default, deny_unknown_fields)]
+/// The `[rules]` section: where rules live, their levels and parameters.
 pub struct RulesCfg {
     /// Directories of SQL rules, relative to the workspace. No rules are built in.
     pub dirs: Vec<String>,
@@ -65,12 +56,9 @@ pub struct RulesCfg {
     pub params: BTreeMap<String, BTreeMap<String, toml::Value>>,
 }
 
-#[allow(
-    missing_docs,
-    reason = "plain data row; field names match the schema columns"
-)]
 #[derive(Debug, Default, Clone, Deserialize)]
 #[serde(default, deny_unknown_fields)]
+/// The `[baseline]` section.
 pub struct BaselineCfg {
     /// Baseline file, relative to the workspace (default `verus-lint-baseline.json`).
     pub file: Option<String>,
@@ -116,16 +104,17 @@ impl Level {
     }
 }
 
-#[allow(
-    missing_docs,
-    reason = "plain data row; field names match the schema columns"
-)]
 #[derive(Debug, Default, Clone, Deserialize)]
 #[serde(default)]
+/// A parsed `verus-lint.toml`.
 pub struct Config {
+    /// `[extract]` section.
     pub extract: ExtractCfg,
+    /// `[roots]` section.
     pub roots: RootsCfg,
+    /// `[rules]` section.
     pub rules: RulesCfg,
+    /// `[baseline]` section.
     pub baseline: BaselineCfg,
 }
 
