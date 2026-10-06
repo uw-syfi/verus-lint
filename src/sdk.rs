@@ -403,7 +403,7 @@ pub struct Use {
 /// [`Facts::query`], which returns text cells.
 ///
 /// In a rule, the CLI gives you a `Facts` through [`Cx::facts`]. To build one yourself (tests, a
-/// standalone tool), open the database `extract` wrote with [`Db::open_read_only`] and pass its
+/// standalone tool), open the database `extract` wrote with [`crate::db::Db::open_read_only`] and pass its
 /// `conn` to [`Facts::load`].
 ///
 /// ```

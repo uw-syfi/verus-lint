@@ -20,3 +20,8 @@ pub mod version;
 pub(crate) mod vir;
 
 pub use cli::run;
+
+/// Compiles the Rust examples of `docs/api.md` as doctests so they cannot drift from the crate.
+#[cfg(doctest)]
+#[doc = include_str!("../docs/api.md")]
+struct ApiDocs;

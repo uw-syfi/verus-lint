@@ -65,6 +65,14 @@ pub struct BaselineCfg {
 }
 
 /// What a rule's findings do to the exit status.
+///
+/// ```
+/// use verus_lint::config::Level;
+/// assert_eq!(Level::parse("gate")?, Level::Gate);
+/// assert_eq!(Level::Gate.as_str(), "gate");
+/// assert!(Level::parse("loud").is_err());
+/// # Ok::<(), anyhow::Error>(())
+/// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Level {
     /// The rule is not run.
@@ -106,7 +114,26 @@ impl Level {
 
 #[derive(Debug, Default, Clone, Deserialize)]
 #[serde(default)]
-/// A parsed `verus-lint.toml`.
+/// A parsed `verus-lint.toml`. Every section and key is optional.
+///
+/// ```
+/// use verus_lint::config::{Config, Level};
+///
+/// let cfg = Config::parse(
+///     r#"
+///     [roots]
+///     patterns = ["theorem_*"]
+///
+///     [rules.levels]
+///     "my/dead-proof-code" = "gate"
+///     "#,
+/// )?;
+/// assert_eq!(cfg.roots.patterns, ["theorem_*"]);
+/// assert_eq!(cfg.level("my/dead-proof-code")?, Level::Gate);
+/// assert_eq!(cfg.level("any/other")?, Level::Warn); // the default
+/// assert!(Config::parse("[extract]\nbogus = 1").is_err()); // unknown keys are errors
+/// # Ok::<(), anyhow::Error>(())
+/// ```
 pub struct Config {
     /// `[extract]` section.
     pub extract: ExtractCfg,
@@ -171,6 +198,13 @@ impl Config {
 }
 
 /// Glob match where `*` matches any run of characters (including `::` and `/`).
+///
+/// ```
+/// use verus_lint::config::glob_match;
+/// assert!(glob_match("*::theorem_*", "proj::a::theorem_x"));
+/// assert!(glob_match("crates/**", "crates/a/b"));
+/// assert!(!glob_match("a", "ab"));
+/// ```
 #[must_use]
 pub fn glob_match(pat: &str, text: &str) -> bool {
     let p: Vec<char> = pat.chars().collect();

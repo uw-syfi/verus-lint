@@ -136,3 +136,24 @@ fn example_queries_run_on_the_fixture() {
     }
     assert!(n >= 25, "expected an example per table, found {n}");
 }
+
+#[test]
+fn config_examples_parse() {
+    let doc = include_str!("../docs/config.md");
+    let (mut n, mut in_block, mut text) = (0, false, String::new());
+    for line in doc.lines() {
+        if line.trim() == "```toml" {
+            in_block = true;
+            text.clear();
+        } else if in_block && line.trim() == "```" {
+            in_block = false;
+            verus_lint::config::Config::parse(&text)
+                .unwrap_or_else(|e| panic!("config example does not parse: {text}\n{e:#}"));
+            n += 1;
+        } else if in_block {
+            text.push_str(line);
+            text.push('\n');
+        }
+    }
+    assert!(n >= 5, "expected the config examples, found {n}");
+}
