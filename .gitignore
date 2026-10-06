@@ -1,2 +1,3 @@
 target/
 *.vir
+.verus-lint/
