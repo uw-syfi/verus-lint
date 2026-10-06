@@ -143,7 +143,7 @@ pub fn parse_impl_rows(text: &str, krate: &str) -> Vec<TraitImplRow> {
             v.push(TraitImplRow {
                 impl_path: p[0].trim().to_string(),
                 trait_path: p[1].trim().to_string(),
-                self_type: p[2].trim().to_string(),
+                self_type: impl_self_type(p[2]),
                 file,
                 line: l,
             });
@@ -397,9 +397,47 @@ fn self_param_type(params: Option<&&Node>) -> Option<String> {
     None
 }
 
+/// The impl's self type from the third field of an `--log impl-names` line, which lists the self
+/// type first and then the trait's type arguments, separated by commas outside brackets.
+fn impl_self_type(field: &str) -> String {
+    let mut depth = 0usize;
+    let mut end = field.len();
+    for (i, c) in field.char_indices() {
+        match c {
+            '<' | '(' | '[' => depth += 1,
+            '>' | ')' | ']' => depth = depth.saturating_sub(1),
+            ',' if depth == 0 => {
+                end = i;
+                break;
+            }
+            _ => {}
+        }
+    }
+    field[..end].trim().to_string()
+}
+
+/// `Handles<S>` as `Handles`: Verus prints a method under its impl type without type arguments.
+fn strip_generics(t: &str) -> String {
+    let mut depth = 0usize;
+    t.chars()
+        .filter(|&c| match c {
+            '<' => {
+                depth += 1;
+                false
+            }
+            '>' => {
+                depth = depth.saturating_sub(1);
+                false
+            }
+            _ => depth == 0,
+        })
+        .collect()
+}
+
 /// First datatype of the crate named in a type, searching depth first (`Option<Cap<E>>` gives
 /// `Cap`'s path). Verus prints a function without `self` under the type it constructs, so this is
-/// the fallback for the friendly name of such an associated function.
+/// the fallback for the friendly name of such an associated function (a constructor by its
+/// return type, a lemma over `d: &Self` by its parameters).
 fn own_datatype(t: &Node, krate: &str) -> Option<String> {
     let v = t.list()?;
     if v.first().and_then(Node::atom) == Some("Typ")
@@ -532,7 +570,7 @@ fn parse_function(
     let end_line = body_end.unwrap_or(header_end).max(header_end);
     let name = path.rsplit("::").next().unwrap_or(path).to_string();
     let self_type = match (kind, impl_path) {
-        ("trait_impl", Some(ip)) => names.get(ip).map(|x| x.1.clone()),
+        ("trait_impl", Some(ip)) => names.get(ip).map(|x| impl_self_type(&x.1)),
         _ => None,
     }
     .or_else(|| {
@@ -543,10 +581,21 @@ fn parse_function(
         }
     });
     let friendly = match (&self_type, path.find("::impl&%")) {
-        (Some(t), Some(_)) => format!("{t}::{name}"),
+        (Some(t), Some(_)) => {
+            let t = strip_generics(t);
+            if t.contains("::") {
+                format!("{t}::{name}")
+            } else {
+                // A type parameter or primitive: Verus keeps the impl's path and puts the type
+                // before the name (`m::impl&%0::S::build`).
+                let imp = &path[..path.len() - name.len() - 2];
+                format!("{imp}::{t}::{name}")
+            }
+        }
         (None, Some(_)) => f
             .get("ret")
             .and_then(|r| own_datatype(r, krate))
+            .or_else(|| f.get("params").and_then(|p| own_datatype(p, krate)))
             .map_or_else(|| path.to_string(), |t| format!("{t}::{name}")),
         _ => path.to_string(),
     };
@@ -822,6 +871,9 @@ mod tests {
         };
         assert_eq!(name("mini::m::impl&%0::alloc"), "mini::m::Pool::alloc");
         assert_eq!(name("mini::m::impl&%1::new"), "mini::m::Cap::new");
+        assert_eq!(strip_generics("a::H<S, Vec<T>>"), "a::H");
+        assert_eq!(impl_self_type("a::E<V, C>, S"), "a::E<V, C>");
+        assert_eq!(impl_self_type("S, a::Positions"), "S");
     }
 
     #[test]
