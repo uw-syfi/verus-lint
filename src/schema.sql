@@ -44,13 +44,16 @@ WHERE mode = 'spec' AND item_kind = 'function' AND NOT opaque
 CREATE TABLE root_patterns (pattern VARCHAR, like_pattern VARCHAR, by_name BOOLEAN);
 -- API pin entries and the functions they name (fn_id null when nothing matched).
 CREATE TABLE api_pins (entry VARCHAR, file VARCHAR, line INTEGER, fn_id BIGINT);
+-- Function names found in the files listed under `[roots] name_files` (only names of functions
+-- that exist), with the first file that mentions each.
+CREATE TABLE root_names (name VARCHAR, file VARCHAR);
 -- Strongly connected components of the dead subgraph (filled by `extract`); scc_id is the
 -- smallest fn_id of the component.
 CREATE TABLE dead_scc (fn_id BIGINT, scc_id BIGINT, scc_size INTEGER);
 
 -- Functions that are live by definition: exec functions, functions matching a root pattern,
 -- implementations of traits declared outside the extracted crates (callers may dispatch to
--- them generically), type invariants, and, when the config asks for it, every pub function.
+-- them generically), functions named in a `name_files` file, type invariants, and, when the config asks for it, every pub function.
 -- API pin entries are not roots. The log has no `#[cfg(test)]` items, so tests need no entry.
 CREATE VIEW roots AS
 SELECT fn_id, 'exec' AS reason FROM functions WHERE mode = 'exec'
@@ -58,6 +61,8 @@ UNION ALL
 SELECT f.fn_id, 'pattern' FROM functions f JOIN root_patterns p
   ON CASE WHEN p.by_name THEN f.name LIKE p.like_pattern ESCAPE '\'
           ELSE f.path LIKE p.like_pattern ESCAPE '\' OR f.friendly LIKE p.like_pattern ESCAPE '\' END
+UNION ALL
+SELECT fn_id, 'name_file' FROM functions WHERE name IN (SELECT name FROM root_names)
 UNION ALL
 SELECT fn_id, 'foreign_trait_impl' FROM functions
 WHERE kind IN ('trait_impl', 'foreign_trait_impl')

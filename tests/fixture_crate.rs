@@ -20,6 +20,7 @@ fn fixture_db() -> Db {
         patterns: vec!["theorem_*".into()],
         public_api: false,
         pins: vec!["pins/*.pin".into()],
+        name_files: vec!["tools/*".into(), "!tools/skip.txt".into()],
     };
     verus_lint::analysis::store_roots(&db, &ws, &roots).unwrap();
     verus_lint::analysis::store_dead_sccs(&db).unwrap();
@@ -189,13 +190,18 @@ fn dead_proof_code_roots_groups_and_dispatch() {
     for d in [
         "fx::live::lemma_dead_a",
         "fx::live::lemma_dead_b",
-        "fx::live::dead_spec",
         "fx::tr::Shape::required",
         "fx::tr::impl&%0::required",
         "fx::t::axiom_b",
     ] {
         assert!(names.contains(&d), "{d} not reported dead: {names:?}");
     }
+    // `tools/driver.py` names dead_spec, so it is a root; the excluded skip.txt names axiom_b.
+    assert!(!names.contains(&"fx::live::dead_spec"));
+    assert_eq!(
+        rows(&db, "SELECT name, file FROM root_names"),
+        ["dead_spec tools/driver.py"]
+    );
     // The pinned function is unused API, not dead code.
     assert!(!names.contains(&"fx::live::lemma_dead_leaf"));
     let api: Vec<_> = run(&db, "verus/unused-public-api")

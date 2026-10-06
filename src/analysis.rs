@@ -77,6 +77,25 @@ fn glob_files(ws: &Path, pattern: &str) -> Vec<PathBuf> {
     out
 }
 
+/// Identifier tokens of a text (`[A-Za-z_][A-Za-z0-9_]*`).
+fn identifiers(text: &str) -> impl Iterator<Item = &str> {
+    text.split(|c: char| !(c.is_ascii_alphanumeric() || c == '_'))
+        .filter(|t| !t.is_empty() && !t.starts_with(|c: char| c.is_ascii_digit()))
+}
+
+/// Files selected by `name_files` globs (a leading `!` excludes).
+fn name_file_list(ws: &Path, globs: &[String]) -> Vec<PathBuf> {
+    let (neg, pos): (Vec<&String>, Vec<&String>) = globs.iter().partition(|g| g.starts_with('!'));
+    let mut files: Vec<PathBuf> = pos.iter().flat_map(|g| glob_files(ws, g)).collect();
+    files.sort();
+    files.dedup();
+    files.retain(|f| {
+        let rel = f.strip_prefix(ws).unwrap_or(f).display().to_string();
+        !neg.iter().any(|n| glob_match(&n[1..], &rel))
+    });
+    files
+}
+
 /// Store the roots section of the config: patterns, pin entries (matched to functions) and
 /// the `public_api` switch.
 ///
@@ -90,6 +109,7 @@ pub fn store_roots(db: &Db, ws: &Path, cfg: &RootsCfg) -> Result<()> {
         )?;
     }
     db.set_meta("roots_public_api", &cfg.public_api.to_string())?;
+    store_root_names(db, ws, &cfg.name_files)?;
     for pat in &cfg.pins {
         for file in glob_files(ws, pat) {
             let rel = file.strip_prefix(ws).unwrap_or(&file).display().to_string();
@@ -120,6 +140,34 @@ pub fn store_roots(db: &Db, ws: &Path, cfg: &RootsCfg) -> Result<()> {
                         params![entry, rel, line, id],
                     )?;
                 }
+            }
+        }
+    }
+    Ok(())
+}
+
+/// Fill `root_names` from the `name_files` globs: the functions whose name occurs as an
+/// identifier token in one of the files. Files that are not UTF-8 text are skipped.
+fn store_root_names(db: &Db, ws: &Path, globs: &[String]) -> Result<()> {
+    if globs.is_empty() {
+        return Ok(());
+    }
+    let known: std::collections::HashSet<String> = db
+        .query_rows("SELECT DISTINCT name FROM functions")?
+        .into_iter()
+        .skip(1)
+        .filter_map(|r| r.into_iter().next())
+        .collect();
+    let mut seen = std::collections::HashSet::new();
+    for file in name_file_list(ws, globs) {
+        let Ok(text) = std::fs::read_to_string(&file) else {
+            continue;
+        };
+        let rel = file.strip_prefix(ws).unwrap_or(&file).display().to_string();
+        for t in identifiers(&text) {
+            if known.contains(t) && seen.insert(t.to_string()) {
+                db.conn
+                    .execute("INSERT INTO root_names VALUES (?, ?)", params![t, rel])?;
             }
         }
     }
@@ -224,6 +272,12 @@ mod tests {
     #[test]
     fn like_patterns_escape() {
         assert_eq!(glob_to_like("*::theorem_*"), "%::theorem\\_%");
+    }
+
+    #[test]
+    fn identifier_tokens() {
+        let t: Vec<_> = identifiers("a_b = [\"c1\", 9x] # lemma::d").collect();
+        assert_eq!(t, ["a_b", "c1", "lemma", "d"]);
     }
 
     #[test]

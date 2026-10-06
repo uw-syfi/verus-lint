@@ -36,6 +36,10 @@ pub struct RootsCfg {
     /// API pin files (globs, relative to the workspace): one function path or friendly name per line.
     /// Pinned items are not roots; they are reported as unused public API.
     pub pins: Vec<String>,
+    /// Files outside the Rust sources that mention functions by name (globs relative to the
+    /// workspace; `!pattern` excludes). Every function named by an identifier token in such a
+    /// file is a root. For tooling that checks or drives the proofs: pin files, scripts, lists.
+    pub name_files: Vec<String>,
 }
 
 #[allow(
