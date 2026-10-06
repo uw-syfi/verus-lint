@@ -134,3 +134,25 @@ the return type, resolve most. Residual after all three: coral-effects 2 of 98
 impl-names log (trait impls, which that log covers). The JSON also gives
 module session time and module rlimit (`smt-run-module-times`), and
 `total-verify-module-times`.
+
+## Additional findings
+
+- `--no-verify --log vir` writes the same facts without SMT: coral-spec
+  build 41.5 s versus 64 s for a full verify (cargo-reported, warm deps). The
+  two logs hold the same 6,599 forms up to item order and internal
+  `ReadKind` ids (147 forms differ only in those ids), so static extraction
+  does not need a verification run, and facts must not key on log order or ids.
+- Verus deletes the `--log-dir` directory if it exists and always names the
+  file `crate.vir`; a multi-crate build needs one Verus invocation per crate
+  (`-p <crate> --fwd-verus-args-to roots`, dependencies cached) or a driver
+  wrapper that sets a per-crate directory.
+- `cargo verus` already writes a bincode export per crate
+  (`target/debug/deps/lib<crate>-<hash>.vir`, coral-spec 32 MB). It keeps
+  modules with their `broadcast use` reveals, but is pruned for importers:
+  only `pub` functions, no proof or exec bodies (`import_export.rs`,
+  `export_crate`), and decoding it means linking the `vir` crate at the exact
+  Verus commit (bincode is not self-describing). It cannot replace the log for
+  dead-code analysis; it could supply module-level `broadcast use`.
+- `vir` depends only on ordinary crates (air, im, indexmap, num-bigint, serde,
+  sha2, sise), so linking it is possible, at the cost of one build per Verus
+  commit.
