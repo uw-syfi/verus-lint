@@ -343,8 +343,15 @@ fn out_dir(ws: &Path, out: &Path) -> std::path::PathBuf {
     }
 }
 
-/// Run Verus's verification on one crate, once, and return the crate's report object.
-fn run_verus(o: &Options, ws: &Path, krate: &str, ident: &str, seed: Option<u32>) -> Result<Value> {
+/// Run Verus's verification on one crate, once, and return the crate's report object (none when
+/// the crate has no verified function, for example an exec-only crate).
+fn run_verus(
+    o: &Options,
+    ws: &Path,
+    krate: &str,
+    ident: &str,
+    seed: Option<u32>,
+) -> Result<Option<Value>> {
     eprintln!("verify {krate}: cargo clean, then Verus --time-expanded");
     let st = toolchain_command(&o.toolchain, clean_args(krate, o.target_dir.as_deref()))
         .current_dir(ws)
@@ -364,7 +371,11 @@ fn run_verus(o: &Options, ws: &Path, krate: &str, ident: &str, seed: Option<u32>
     let text = String::from_utf8_lossy(&res.stdout);
     let objs =
         parse_reports(&text).with_context(|| format!("Verus for {krate} ({})", res.status))?;
-    let mut obj = select_crate_report(&objs, ident)?.clone();
+    let Ok(obj) = select_crate_report(&objs, ident) else {
+        eprintln!("verify {krate}: Verus reports no verified function of this crate; skipped");
+        return Ok(None);
+    };
+    let mut obj = obj.clone();
     if !res.status.success() {
         eprintln!(
             "warning: Verus exited with {} for {krate}; failures are in the report",
@@ -375,7 +386,7 @@ fn run_verus(o: &Options, ws: &Path, krate: &str, ident: &str, seed: Option<u32>
     if let Some(m) = obj.as_object_mut() {
         m.remove("func-details");
     }
-    Ok(obj)
+    Ok(Some(obj))
 }
 
 /// Verify each selected crate (once per seed) and ingest the reports.
@@ -421,7 +432,9 @@ pub fn run(o: &Options) -> Result<Summary> {
                     .with_context(|| format!("reading {}", saved.display()))?;
                 parse_reports(&text)?.swap_remove(0)
             } else {
-                let obj = run_verus(o, &ws, &m.name, &m.ident(), *seed)?;
+                let Some(obj) = run_verus(o, &ws, &m.name, &m.ident(), *seed)? else {
+                    continue;
+                };
                 sum.verus_seconds += t.elapsed().as_secs_f64();
                 if let Some(d) = saved.parent() {
                     std::fs::create_dir_all(d)?;
