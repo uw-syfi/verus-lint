@@ -108,3 +108,48 @@ fn group_members_from_source_scan() {
         ]
     );
 }
+
+fn run(db: &Db, id: &str) -> Vec<verus_lint::rules::Finding> {
+    let rule = verus_lint::rules::builtin()
+        .unwrap()
+        .into_iter()
+        .find(|r| r.id == id)
+        .unwrap();
+    verus_lint::rules::run_rule(&db.conn, &rule, &Default::default()).unwrap()
+}
+
+#[test]
+fn quantifier_rule_reports_only_untriggered() {
+    let db = fixture_db();
+    let mut e: Vec<_> = run(&db, "verus/quantifier-auto-trigger")
+        .into_iter()
+        .map(|f| f.entity)
+        .collect();
+    e.sort();
+    assert_eq!(e, ["fx::q::exists_q", "fx::q::no_trig"]);
+}
+
+#[test]
+fn trusted_rule_lists_each_item_and_kind() {
+    let db = fixture_db();
+    let e: Vec<_> = run(&db, "verus/trusted-inventory")
+        .into_iter()
+        .map(|f| f.entity)
+        .collect();
+    assert_eq!(e.len(), 7);
+    assert!(e.contains(&"fx::t::lemma_admit#admit".to_string()));
+    assert!(e.contains(&"fx::t::axiom_b#broadcast_axiom".to_string()));
+}
+
+#[test]
+fn trait_default_rule_counts_overrides() {
+    let db = fixture_db();
+    let f = run(&db, "verus/trait-spec-default");
+    assert_eq!(f.len(), 1);
+    assert_eq!(f[0].entity, "fx::tr::Shape::twice");
+    assert!(
+        f[0].message.contains("1 of 2 implementations"),
+        "{}",
+        f[0].message
+    );
+}

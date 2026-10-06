@@ -43,6 +43,18 @@ const BUILTIN: &[(&str, &str)] = &[
         "fanin-reveal.sql",
         include_str!("../rules/fanin-reveal.sql"),
     ),
+    (
+        "quantifier-auto-trigger.sql",
+        include_str!("../rules/quantifier-auto-trigger.sql"),
+    ),
+    (
+        "trusted-inventory.sql",
+        include_str!("../rules/trusted-inventory.sql"),
+    ),
+    (
+        "trait-spec-default.sql",
+        include_str!("../rules/trait-spec-default.sql"),
+    ),
 ];
 
 pub fn builtin() -> Result<Vec<Rule>> {
@@ -280,7 +292,13 @@ mod tests {
         let rs = builtin().unwrap();
         assert_eq!(
             rs.iter().map(|r| r.id.as_str()).collect::<Vec<_>>(),
-            ["verus/fanin-open-spec", "verus/fanin-reveal"]
+            [
+                "verus/fanin-open-spec",
+                "verus/fanin-reveal",
+                "verus/quantifier-auto-trigger",
+                "verus/trusted-inventory",
+                "verus/trait-spec-default"
+            ]
         );
     }
 
