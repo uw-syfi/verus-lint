@@ -257,6 +257,8 @@ pub enum UseKind {
     ResolvedImpl,
     /// A `hide`.
     Hide,
+    /// Any other path mention (for example a constant or a datatype constructor).
+    Other,
 }
 
 fn parse_mode(s: &str) -> Result<Mode> {
@@ -286,6 +288,7 @@ fn parse_use_kind(s: &str) -> Result<UseKind> {
         "fn_value" => Ok(UseKind::FnValue),
         "resolved_impl" => Ok(UseKind::ResolvedImpl),
         "hide" => Ok(UseKind::Hide),
+        "other" => Ok(UseKind::Other),
         _ => bail!("unknown use kind `{s}`"),
     }
 }
