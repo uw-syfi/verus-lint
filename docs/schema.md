@@ -25,6 +25,13 @@ Conventions:
   fails `cargo test`. Every `sql` block below is executed against the test
   fixture by the same test.
 
+What the facts miss: the VIR log describes one build. Code behind a
+`cfg(feature = ...)` the extraction build does not enable, `#[cfg(test)]` code,
+and crates outside the extraction are absent, and so are their references to
+other functions. A function used only from such code looks dead. Each feature
+gate found in the sources is a `feature_gated_item` row in `warnings`. Names that
+other tooling refers to can be rooted with `[roots] name_files`.
+
 Contents: [Metadata](#metadata) | [Functions and their uses](#functions-and-their-uses)
 | [Proof-engineering facts](#proof-engineering-facts) | [Reachability](#reachability)
 | [Dynamic facts](#dynamic-facts-verify) | [Extraction health](#extraction-health)
