@@ -13,4 +13,4 @@ verus-lint query "SELECT count(*) FROM functions"
 ```
 
 Only the Verus releases in `src/version.rs` are accepted (exit status 3
-otherwise). Licensed under MIT or Apache-2.0.
+otherwise). Licensed under MIT.

@@ -2,7 +2,7 @@
 name = "verus-lint"
 version = "0.1.0"
 edition = "2024"
-license = "MIT OR Apache-2.0"
+license = "MIT"
 description = "Lint and analysis for Verus codebases, from Verus VIR logs and verification reports"
 repository = "https://github.com/uw-syfi/verus-lint"
 rust-version = "1.88"

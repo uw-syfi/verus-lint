@@ -524,7 +524,7 @@ Decided (2026-10-06):
   "unused public API" category. (This replaces the earlier `roots.files`
   default of pins as roots in section 7 and question 4.)
 - No upstream Verus changes for now; the two proposals are under Future work.
-- License: MIT or Apache-2.0 (dual); the repository stays private for now.
+- License: MIT; the repository stays private for now.
 
 ## 13. Future work
 
