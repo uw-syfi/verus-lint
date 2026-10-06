@@ -106,6 +106,13 @@ regardless of crate and deletes the log directory first. Dependencies are
 built once and cached by cargo. `--no-verify` skips SMT; on coral-spec this
 is 41.5 s against 64 s for a verify, with identical facts.
 
+Cargo treats a root crate as fresh when only the forwarded Verus arguments
+changed, and a fresh crate writes no log (seen on Coral). The extractor runs
+`cargo clean -p <crate>` immediately before each run (so the next normal build
+of that crate recompiles it) and fails if no `crate.vir` appears. `--target-dir`
+isolates extraction builds from the user's own target directory at the price of
+a cold dependency build.
+
 The `<toolchain>` command is configurable so that a container wrapper such as
 Coral's `./verify` works unchanged.
 
@@ -342,8 +349,10 @@ impl Rule for NoBigOpaqueReveal {
 }
 ```
 
-Implicit roots (used by `Facts::roots` and the `roots` view): exec functions;
-`#[test]` functions; functions matched by config root patterns; trait method
+Default roots (used by `Facts::roots` and the `roots` view): exec functions;
+`#[test]` functions; functions matched by config root patterns (top theorems
+and negative controls); API pin entries are not roots, they are reported in the
+separate "unused public API" category; trait method
 implementations whose trait declaration is live; when `roots.public_api` is
 on (for libraries with users outside the workspace), every `pub` function of
 the listed crates. Uses through triggers, reveals, `hide`, and cross-crate
@@ -359,9 +368,10 @@ toolchain = ["./coral/verify"]          # command prefix for cargo verus; defaul
 crates = ["coral/crates/**"]            # members to extract; default all verified members
 
 [roots]
-patterns = ["*::theorem_*", "*::neg_*", "*::fixture_*"]
+patterns = ["*::theorem_*", "*::neg_*", "*::fixture_*"]   # top theorems, negative controls
 public_api = false
-files = ["tools/pins/*.pin"]            # each line a function path or friendly name
+pins = ["tools/pins/*.pin"]             # API pin files, one function path or friendly name per line;
+                                        # not roots: listed items are reported as "unused public API"
 
 [rules]
 dirs = ["lints/sql"]                    # SQL rule directories, in addition to built-ins
@@ -442,7 +452,8 @@ one thread; `--no-verify` extraction takes about 42 s of Verus time.
 | `verus/seed-instability` | Functions whose worst-seed rlimit exceeds the default-seed rlimit by a ratio, or which fail under some seed |
 | `verus/hotspot-growth` | Modules whose total rlimit grew by a fraction and an absolute amount since the baseline |
 | `verus/spinoff-candidate` | Heavy functions in a heavy module that lack `spinoff_prover` |
-| `verus/quantifier-auto-trigger` | Quantifiers with no explicit trigger annotation |
+| `verus/quantifier-no-trigger` | Quantifiers with no explicit trigger (`#[trigger]` or `#![trigger]`); a warning |
+| `verus/quantifier-auto-trigger-note` | Verus's own "automatically chose triggers" notes, from the build log; informational, separate from the rule above |
 | `verus/trait-spec-default` | Trait spec functions with a default body that implementations may override, and the implementations that do |
 | `verus/trusted-inventory` | Every `assume`, `admit`, `external_body`, `external_fn`, `assume_specification` and broadcast axiom, with a count per crate (a set ratchet keeps the trusted surface from growing silently) |
 | `verus/extraction-health` | Unjoined verification rows, unresolved `broadcast use` names, crates without logs |
@@ -475,17 +486,37 @@ Risks:
 
 Open questions:
 
-1. Should we upstream two small Verus changes (print module reveals; name
-   the log file after the crate)? Both remove workarounds above.
-2. Should quantifier trigger facts include Verus's own choice (from `--log
-   triggers`), or is "no explicit trigger" enough for the rule?
+1. (Resolved, see Decided and Future work.)
+2. (Resolved, see Decided.)
 3. How are broadcast group members represented in the log (only `group_id`
    forms were seen)? Phase 1 checks this on vstd groups.
-4. Is the dead-code root set for Coral exactly `dead_fns.py`'s (exec,
-   tests, controls, tool pins, `ROOTS`), or should API pins be roots too?
-5. License and publication of the tool (it is private for now).
 
-## 13. Build plan
+Decided (2026-10-06):
+
+- Trigger rule (phase 2): flag quantifiers with no explicit trigger as
+  warnings. Verus's auto-trigger notes are a separate informational rule, so
+  question 2 resolves to "no explicit trigger is enough for the warning".
+- Dead-code roots (phase 3): configurable. The default set is exec functions,
+  functions named in config as top theorems, tests, and negative controls.
+  Items listed in API pin files are not roots; they are reported in a separate
+  "unused public API" category. (This replaces the earlier `roots.files`
+  default of pins as roots in section 7 and question 4.)
+- No upstream Verus changes for now; the two proposals are under Future work.
+- License: MIT or Apache-2.0 (dual); the repository stays private for now.
+
+## 13. Future work
+
+Two small upstream Verus changes would remove workarounds. Neither is
+proposed yet.
+
+- Print module-level `broadcast use`: `write_krate` in `vir/src/printer.rs`
+  writes modules as ids and drops `ModuleX::reveals`. Printing it would drop
+  the source scan of section 4.3.
+- Per-crate log names: name the log `<crate>.vir` (or keep the log directory)
+  so one build of a workspace yields every crate's log, which removes the
+  per-crate invocation and the `cargo clean` step of section 4.1.
+
+## 14. Build plan
 
 Each phase ends with a commit that builds, passes its tests, and is pushed.
 Estimates are agent hours.

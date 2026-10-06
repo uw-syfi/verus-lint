@@ -24,5 +24,10 @@ CREATE TABLE warnings (crate VARCHAR, what VARCHAR, detail VARCHAR);
 CREATE VIEW edges AS
 SELECT DISTINCT caller_id, callee_id, section, kind FROM uses WHERE callee_id IS NOT NULL;
 
+-- An open spec function: not opaque, and its body is visible beyond its own
+-- module (`pub open`, or `open(in ancestor)` / `open(crate)`, which Verus
+-- records as a body visibility restricted to an ancestor module).
 CREATE VIEW open_spec AS
-SELECT * FROM functions WHERE mode = 'spec' AND item_kind = 'function' AND body_vis = 'pub' AND NOT opaque;
+SELECT * FROM functions
+WHERE mode = 'spec' AND item_kind = 'function' AND NOT opaque
+  AND body_vis <> 'none' AND body_vis <> module;

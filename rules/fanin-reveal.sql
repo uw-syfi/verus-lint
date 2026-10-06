@@ -18,7 +18,7 @@ SELECT d.friendly                            AS entity,
 FROM functions d
 JOIN edges u     ON u.callee_id = d.fn_id AND u.kind IN ('reveal', 'broadcast_use')
 JOIN functions c ON c.fn_id = u.caller_id
-WHERE d.mode = 'spec' AND d.item_kind = 'function' AND (d.opaque OR d.body_vis <> 'pub')
+WHERE d.mode = 'spec' AND d.item_kind = 'function' AND (d.opaque OR d.body_vis IN ('none', d.module))
   AND c.module <> d.module
 GROUP BY d.friendly, d.file, d.line, d.body_lines, d.opaque
 HAVING count(DISTINCT c.fn_id) >= param('min_fns')

@@ -59,6 +59,13 @@ enum Cmd {
     Extract(ExtractArgs),
     /// Run SQL rules against an extracted database.
     Check(CheckArgs),
+    /// Run one read-only SQL query against the database and print tab-separated rows.
+    Query {
+        /// Database written by `extract`.
+        #[arg(long, default_value = ".verus-lint/facts.duckdb")]
+        db: PathBuf,
+        sql: String,
+    },
     /// Extract, then check.
     Run {
         #[command(flatten)]
@@ -133,6 +140,13 @@ fn run(cli: Cli) -> Result<ExitCode> {
                 a.db.clone()
                     .unwrap_or_else(|| PathBuf::from(".verus-lint/facts.duckdb"));
             do_check(&a, db)
+        }
+        Cmd::Query { db, sql } => {
+            let db = Db::open(&db)?;
+            for row in db.query_rows(&sql)? {
+                println!("{}", row.join("\t"));
+            }
+            Ok(ExitCode::SUCCESS)
         }
         Cmd::Run { extract, check } => {
             let db = do_extract(&extract)?;

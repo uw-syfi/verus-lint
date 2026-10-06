@@ -164,6 +164,24 @@ impl Db {
         Ok(())
     }
 
+    /// Run a query and return every cell as text (header row first).
+    pub fn query_rows(&self, sql: &str) -> Result<Vec<Vec<String>>> {
+        let mut stmt = self.conn.prepare(sql)?;
+        let mut rows = stmt.query([])?;
+        let names: Vec<String> = rows.as_ref().map(|s| s.column_names()).unwrap_or_default();
+        let mut out = vec![names.clone()];
+        while let Some(r) = rows.next()? {
+            let mut cells = Vec::new();
+            for i in 0..names.len() {
+                cells.push(crate::rules::cell_text(
+                    &r.get::<_, duckdb::types::Value>(i)?,
+                ));
+            }
+            out.push(cells);
+        }
+        Ok(out)
+    }
+
     pub fn warn(&self, krate: &str, what: &str, detail: &str) -> Result<()> {
         self.conn.execute(
             "INSERT INTO warnings VALUES (?, ?, ?)",
@@ -177,6 +195,33 @@ impl Db {
 mod tests {
     use super::*;
     use crate::vir::{ImplNames, parse_log};
+
+    #[test]
+    fn open_in_ancestor_is_open_spec() {
+        // open_a's body visibility restricted to the crate root instead of pub.
+        let text = include_str!("../tests/fixtures/mini.vir").replacen(
+            "(BodyVisibility Visibility (Visibility :restricted_to None))",
+            "(BodyVisibility Visibility (Visibility :restricted_to mini))",
+            1,
+        );
+        let facts = parse_log(&text, "mini", &ImplNames::new()).unwrap();
+        let mut db = Db::in_memory().unwrap();
+        db.load_crate(
+            &facts,
+            &CrateInfo {
+                manifest: "Cargo.toml",
+                log_bytes: 0,
+            },
+        )
+        .unwrap();
+        let rows = db
+            .query_rows("SELECT name FROM open_spec ORDER BY name")
+            .unwrap();
+        assert_eq!(
+            rows,
+            vec![vec!["name".to_string()], vec!["open_a".to_string()]]
+        );
+    }
 
     #[test]
     fn load_and_resolve_fixture() {

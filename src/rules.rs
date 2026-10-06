@@ -141,6 +141,10 @@ pub fn substitute(rule: &Rule, overrides: &BTreeMap<String, String>) -> Result<S
     Ok(out)
 }
 
+pub fn cell_text(v: &Value) -> String {
+    text(v)
+}
+
 fn text(v: &Value) -> String {
     match v {
         Value::Null => String::new(),
