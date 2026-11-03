@@ -506,7 +506,7 @@ pub fn run(native: &[&dyn Rule]) -> ExitCode {
         Ok(c) => c,
         Err(e) => {
             eprintln!("error: {e:#}");
-            if e.downcast_ref::<crate::version::Unsupported>().is_some() {
+            if e.downcast_ref::<crate::adapters::Unsupported>().is_some() {
                 ExitCode::from(3)
             } else {
                 ExitCode::from(2)

@@ -92,6 +92,21 @@ pub mod live {
     pub exec fn run() { proof { lemma_via_broadcast(); } }
 }
 
+// Verus lists consts, derived trait methods and the accessor of a field shared by enum variants
+// in `(external_fn ..)`, although they are verified or compiler-generated; none is trusted.
+pub mod k {
+    use vstd::prelude::*;
+
+    pub spec const SPEC_LIMIT: nat = 8;
+    pub const LIMIT: u64 = 8;
+    pub exec fn limit() -> (r: u64) ensures r == LIMIT { LIMIT }
+
+    #[derive(PartialEq, Eq)]
+    pub enum Status { Done, Full }
+
+    pub enum Stage { Idle, Hold { slot: u64 }, Staged { slot: u64 } }
+}
+
 } // verus!
 
 #[cfg(test)]

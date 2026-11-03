@@ -47,7 +47,9 @@ Other comment lines in the file are ignored.
 
 `param('name')` is replaced by the numeric value before the query runs. The value
 is the header default, overridden by `[rules.params."<id>"]` in the config,
-overridden by `--param name=value`.
+overridden by `--param name=value`. An integer becomes a `BIGINT` literal
+(`CAST(30000000 AS BIGINT)`), so a product of parameters does not overflow
+32 bits; any other number is inserted as written.
 
 ## Reachability helpers
 

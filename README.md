@@ -13,11 +13,23 @@ baselines, and reports come out as text, JSON or SARIF.
 ## Quick start
 
 ```sh
-cargo install verus-lint --version 0.1.1 --locked   # Rust 1.88+; needs Verus 0.2026.07.18.3a4d30b
+cargo install verus-lint --version 0.1.1 --locked   # Rust 1.88+; Verus releases below
 verus-lint extract                                  # crates need [package.metadata.verus] verify = true
 verus-lint query "SELECT mode, count(*) FROM functions GROUP BY mode"
 verus-lint check --rules lints/sql                  # run your SQL rules
 ```
+
+Supported Verus releases (each maps to a log-format adapter; see
+[docs/verus-versions.md](docs/verus-versions.md)):
+
+| Verus release | Commit |
+| --- | --- |
+| `0.2026.07.18.3a4d30b` | `3a4d30bcdc4571e7927af97be9c4664973083eda` |
+| `0.2026.08.30.b432e82` | `b432e82fed7e05090fd53b5e5fc39020f725aabe` |
+
+Verus in a container: set `[extract] toolchain = ["./verify"]` to a wrapper
+script that runs its arguments in the image with the workspace mounted at the
+same path ([docs/getting-started.md](docs/getting-started.md#2-prepare-the-workspace)).
 
 ## Documentation
 
@@ -28,6 +40,7 @@ verus-lint check --rules lints/sql                  # run your SQL rules
 | [docs/sql-rules.md](docs/sql-rules.md) | SQL rule header and result columns |
 | [docs/api.md](docs/api.md) | Rust SDK for rules (`Rule`, `Facts`, `Graph`, `Finding`, `run`) |
 | [docs/config.md](docs/config.md) | Every `verus-lint.toml` key |
+| [docs/verus-versions.md](docs/verus-versions.md) | Supported Verus releases, adapters, adding a release |
 | [DESIGN.md](DESIGN.md) | Design notes and measurements |
 | [examples/](examples/README.md) | Sample SQL rules and a Rust rules crate |
 
@@ -44,8 +57,14 @@ it through the `.claude/skills` symlink; other agents can read it from
 cargo fmt --check
 cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace
+cargo install cargo-strata --version 0.4.0 --locked && cargo strata check
 ```
 
-The fixture crate under `tests/fixtures/crate` is built with a real Verus; see
-`tests/fixtures/regen.sh`. `tests/docs_schema.rs` fails when `docs/schema.md`
-and `src/schema.sql` disagree. Licensed under MIT.
+`cargo strata check` enforces the module layering in `strata.toml`: only the
+dispatch module `adapters` names a Verus-release adapter, adapters do not
+reference each other, and the database, rules and reporting modules see only
+the normalized facts. The fixture crates under `tests/fixtures/crate` and
+`tests/fixtures/report/crate` are built with a real Verus, one log per
+supported release; see `tests/fixtures/regen.sh` and
+[docs/verus-versions.md](docs/verus-versions.md). `tests/docs_schema.rs` fails
+when `docs/schema.md` and `src/schema.sql` disagree. Licensed under MIT.

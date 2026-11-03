@@ -19,6 +19,10 @@ jobs:
           components: rustfmt, clippy
       - uses: Swatinem/rust-cache@v2
       - run: cargo fmt --check
+      - name: Module layering (cargo-strata)
+        run: |
+          cargo install cargo-strata --version 0.4.0 --locked
+          cargo strata check
       - run: cargo clippy --workspace --all-targets -- -D warnings
       - run: cargo test
       - run: cargo doc --no-deps --workspace

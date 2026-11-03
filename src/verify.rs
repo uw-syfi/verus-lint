@@ -5,13 +5,14 @@
 //! run's output holds several objects; the one whose functions belong to the crate under test is
 //! the crate's report.
 
+use crate::adapters;
 use crate::db::Db;
 use crate::extract::{
     cargo_metadata, clean_args, git, members_from_metadata, now_utc, select_members,
     toolchain_command,
 };
+use crate::facts::Report;
 use crate::num::to_i64;
-use crate::version::{self, VerusVersion};
 use anyhow::{Context, Result, anyhow, bail};
 use duckdb::params;
 use serde_json::Value;
@@ -60,60 +61,41 @@ pub fn parse_reports(text: &str) -> Result<Vec<Value>> {
         .context("parsing the Verus --output-json report")
 }
 
-/// Each function entry of a report object with the module it was verified under.
-fn breakdown(obj: &Value) -> impl Iterator<Item = (&str, &Value)> {
-    obj["times-ms"]["smt"]["smt-run-module-times"]
-        .as_array()
-        .into_iter()
-        .flatten()
-        .flat_map(|m| {
-            let module = m["module"].as_str().unwrap_or("");
-            m["function-breakdown"]
-                .as_array()
-                .into_iter()
-                .flatten()
-                .map(move |f| (module, f))
-        })
-}
-
-/// The report object of crate `ident`: the one with the most functions under `ident::`.
+/// Normalize report objects (each through the adapter of the Verus release that wrote it).
 ///
 /// # Errors
-/// Fails when no object has a function of the crate.
-pub fn select_crate_report<'a>(objs: &'a [Value], ident: &str) -> Result<&'a Value> {
+/// Fails with `Unsupported` for a report of another release, or when one is malformed.
+pub fn normalize(objs: &[Value]) -> Result<Vec<Report>> {
+    objs.iter().map(adapters::parse_report).collect()
+}
+
+/// Index of the report of crate `ident`: the one with the most functions under `ident::`.
+fn crate_report_index(reports: &[Report], ident: &str) -> Option<usize> {
     let prefix = format!("{ident}::");
-    objs.iter()
-        .map(|o| {
-            let n = breakdown(o)
-                .filter(|(_, f)| {
-                    f["function"]
-                        .as_str()
-                        .is_some_and(|n| n.starts_with(&prefix))
-                })
+    reports
+        .iter()
+        .enumerate()
+        .map(|(i, r)| {
+            let n = r
+                .functions
+                .iter()
+                .filter(|f| f.function.starts_with(&prefix))
                 .count();
-            (n, o)
+            (n, i)
         })
         .filter(|(n, _)| *n > 0)
         .max_by_key(|(n, _)| *n)
-        .map(|(_, o)| o)
-        .ok_or_else(|| anyhow!("no report object has a function of crate {ident}"))
+        .map(|(_, i)| i)
 }
 
-/// Check that a report was produced by a supported Verus release.
+/// The report of crate `ident`: the one with the most functions under `ident::`.
 ///
 /// # Errors
-/// Fails with `Unsupported` for another release, or when the object has no `verus` section.
-pub fn check_report_version(obj: &Value) -> Result<()> {
-    let v = &obj["verus"];
-    let s = |k: &str| v[k].as_str().map(String::from);
-    let (Some(version), Some(commit)) = (s("version"), s("commit")) else {
-        bail!("report has no verus.version and verus.commit");
-    };
-    version::check(&VerusVersion {
-        version,
-        commit,
-        toolchain: s("toolchain").unwrap_or_default(),
-    })
+/// Fails when no report has a function of the crate.
+pub fn select_crate_report<'a>(reports: &'a [Report], ident: &str) -> Result<&'a Report> {
+    crate_report_index(reports, ident)
+        .map(|i| &reports[i])
+        .ok_or_else(|| anyhow!("no report object has a function of crate {ident}"))
 }
 
 /// Metadata of one verification run, stored in the `runs` table.
@@ -167,9 +149,8 @@ fn id_map(db: &Db, column: &str, krate: &str) -> Result<HashMap<String, Vec<(i64
 /// are in `meta.unjoined_verify_rows`.
 ///
 /// # Errors
-/// Fails when the report is from an unsupported Verus or a database step fails.
-pub fn ingest(db: &Db, obj: &Value, info: &RunInfo) -> Result<Ingested> {
-    check_report_version(obj)?;
+/// Fails when the report is from another Verus than the facts or a database step fails.
+pub fn ingest(db: &Db, report: &Report, info: &RunInfo) -> Result<Ingested> {
     let facts_commit: Option<String> = db
         .conn
         .query_row(
@@ -179,7 +160,7 @@ pub fn ingest(db: &Db, obj: &Value, info: &RunInfo) -> Result<Ingested> {
         )
         .ok();
     if let Some(fc) = facts_commit.filter(|c| !c.is_empty())
-        && obj["verus"]["commit"].as_str() != Some(fc.as_str())
+        && report.commit != fc
     {
         bail!("report is from a different Verus than the extracted facts ({fc})");
     }
@@ -204,8 +185,8 @@ pub fn ingest(db: &Db, obj: &Value, info: &RunInfo) -> Result<Ingested> {
         run_id,
         ..Ingested::default()
     };
-    insert_functions(db, obj, info, &mut out)?;
-    out.modules = insert_modules(db, obj, info, run_id)?;
+    insert_functions(db, report, info, &mut out)?;
+    out.modules = insert_modules(db, report, info, run_id)?;
     db.conn.execute(
         "UPDATE crates SET verified = true WHERE crate = ?",
         params![info.krate],
@@ -223,14 +204,12 @@ fn qualify(krate: &str, module: &str) -> String {
     }
 }
 
-fn insert_functions(db: &Db, obj: &Value, info: &RunInfo, out: &mut Ingested) -> Result<()> {
+fn insert_functions(db: &Db, report: &Report, info: &RunInfo, out: &mut Ingested) -> Result<()> {
     let by_friendly = id_map(db, "friendly", &info.krate)?;
     let by_path = id_map(db, "path", &info.krate)?;
     let mut a = db.conn.appender("verify_fn")?;
-    for (module, f) in breakdown(obj) {
-        let Some(name) = f["function"].as_str() else {
-            continue;
-        };
+    for f in &report.functions {
+        let name = f.function.as_str();
         let mut ids: Vec<&(i64, String)> = by_friendly
             .get(name)
             .or_else(|| by_path.get(name))
@@ -238,7 +217,7 @@ fn insert_functions(db: &Db, obj: &Value, info: &RunInfo, out: &mut Ingested) ->
         let candidates = ids.len();
         if candidates > 1 {
             // Two impls of one type print the same name; the report says which module owns each.
-            let module = qualify(&info.krate, module);
+            let module = qualify(&info.krate, &f.module);
             ids.retain(|(_, m)| *m == module);
         }
         let fn_id = (ids.len() == 1).then(|| ids[0].0);
@@ -247,57 +226,35 @@ fn insert_functions(db: &Db, obj: &Value, info: &RunInfo, out: &mut Ingested) ->
             out.unjoined += 1;
             out.ambiguous += usize::from(candidates > 1);
         }
-        // Verus spells the key "mode:" (with the colon) in this release.
-        let mode = f["mode:"].as_str().or_else(|| f["mode"].as_str());
         a.append_row(params![
             out.run_id,
             fn_id,
             name,
             info.krate,
-            qualify(&info.krate, module),
-            mode,
-            f["rlimit"].as_i64().unwrap_or(0),
-            f["time-micros"].as_i64().unwrap_or(0),
-            f["success"].as_bool().unwrap_or(true),
+            qualify(&info.krate, &f.module),
+            f.mode,
+            f.rlimit,
+            f.time_us,
+            f.success,
             info.seed
         ])?;
     }
     Ok(())
 }
 
-fn insert_modules(db: &Db, obj: &Value, info: &RunInfo, run_id: i64) -> Result<usize> {
-    // A module with spun-off functions has several session entries under one name; the longest
-    // one bounds the module's wall time.
-    let mut session: HashMap<&str, i64> = HashMap::new();
-    for m in obj["times-ms"]["total-verify-module-times"]
-        .as_array()
-        .into_iter()
-        .flatten()
-    {
-        let e = session
-            .entry(m["module"].as_str().unwrap_or(""))
-            .or_insert(0);
-        *e = (*e).max(m["time"].as_i64().unwrap_or(0));
-    }
+fn insert_modules(db: &Db, report: &Report, info: &RunInfo, run_id: i64) -> Result<usize> {
     let mut a = db.conn.appender("verify_module")?;
-    let mut n = 0;
-    for m in obj["times-ms"]["smt"]["smt-run-module-times"]
-        .as_array()
-        .into_iter()
-        .flatten()
-    {
-        let name = m["module"].as_str().unwrap_or("");
+    for m in &report.modules {
         a.append_row(params![
             run_id,
-            qualify(&info.krate, name),
+            qualify(&info.krate, &m.module),
             info.krate,
-            m["rlimit"].as_i64().unwrap_or(0),
-            m["time"].as_i64().unwrap_or(0),
-            session.get(name).copied().unwrap_or(0)
+            m.rlimit,
+            m.smt_time_ms,
+            m.session_time_ms
         ])?;
-        n += 1;
     }
-    Ok(n)
+    Ok(report.modules.len())
 }
 
 /// Settings of one `verify` run.
@@ -377,11 +334,12 @@ fn run_verus(
     let text = String::from_utf8_lossy(&res.stdout);
     let objs =
         parse_reports(&text).with_context(|| format!("Verus for {krate} ({})", res.status))?;
-    let Ok(obj) = select_crate_report(&objs, ident) else {
+    let reports = normalize(&objs)?;
+    let Some(i) = crate_report_index(&reports, ident) else {
         eprintln!("verify {krate}: Verus reports no verified function of this crate; skipped");
         return Ok(None);
     };
-    let mut obj = obj.clone();
+    let mut obj = objs[i].clone();
     if !res.status.success() {
         eprintln!(
             "warning: Verus exited with {} for {krate}; failures are in the report",
@@ -456,7 +414,7 @@ pub fn run(o: &Options) -> Result<Summary> {
                 started_at: started,
                 wall_s: t.elapsed().as_secs_f64(),
             };
-            let n = ingest(&db, &obj, &info)?;
+            let n = ingest(&db, &adapters::parse_report(&obj)?, &info)?;
             eprintln!(
                 "verify {} ({tag}): {} functions, {} unjoined, {} modules",
                 m.name, n.functions, n.unjoined, n.modules
@@ -484,11 +442,11 @@ pub fn ingest_file(
     let db = open_facts(&out_dir(workspace, out))?;
     let text =
         std::fs::read_to_string(report).with_context(|| format!("reading {}", report.display()))?;
-    let objs = parse_reports(&text)?;
+    let reports = normalize(&parse_reports(&text)?)?;
     let ident = krate.replace('-', "_");
     ingest(
         &db,
-        select_crate_report(&objs, &ident)?,
+        select_crate_report(&reports, &ident)?,
         &RunInfo {
             krate: ident,
             seed,
@@ -526,7 +484,7 @@ fn refresh_join_counts(db: &Db) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::vir::{ImplNames, parse_log};
+    use crate::adapters::newest;
 
     const MINI: &str = include_str!("../tests/fixtures/mini.vir");
 
@@ -555,7 +513,7 @@ mod tests {
     const OK_COMMIT: &str = "3a4d30bcdc4571e7927af97be9c4664973083eda";
 
     fn db() -> Db {
-        let facts = parse_log(MINI, "mini", &ImplNames::new()).unwrap();
+        let facts = newest().parse_crate(MINI, "", "mini").unwrap();
         let mut db = Db::in_memory().unwrap();
         db.load_crate(
             &facts,
@@ -589,7 +547,7 @@ mod tests {
                 ("mini::n::gone", "proof", 5, false),
             ],
         );
-        let objs = parse_reports(&text).unwrap();
+        let objs = normalize(&parse_reports(&text).unwrap()).unwrap();
         assert_eq!(objs.len(), 2);
         let o = select_crate_report(&objs, "mini").unwrap();
         let db = db();
@@ -620,7 +578,7 @@ mod tests {
         let db = db();
         for (seed, r) in [(Some(2), 900), (Some(1), 300), (None, 100)] {
             let text = report(OK_COMMIT, &[("mini::n::lemma_u", "proof", r, true)]);
-            let objs = parse_reports(&text).unwrap();
+            let objs = normalize(&parse_reports(&text).unwrap()).unwrap();
             ingest(
                 &db,
                 select_crate_report(&objs, "mini").unwrap(),
@@ -657,7 +615,7 @@ mod tests {
           {"module":"a","rlimit":1,"function-breakdown":[{"function":"mini::T::f","mode:":"exec","rlimit":7,"time-micros":1,"success":true}]},
           {"module":"b","rlimit":1,"function-breakdown":[{"function":"mini::T::f","mode:":"exec","rlimit":8,"time-micros":1,"success":true}]}]}},
           "verus":{"version":"0.2026.07.18.3a4d30b","commit":"3a4d30bcdc4571e7927af97be9c4664973083eda"}}"#;
-        let objs = parse_reports(text).unwrap();
+        let objs = normalize(&parse_reports(text).unwrap()).unwrap();
         let n = ingest(&db, &objs[0], &info(None)).unwrap();
         assert_eq!((n.functions, n.unjoined, n.ambiguous), (2, 1, 1));
         let r = db
@@ -684,7 +642,7 @@ mod tests {
                     ("mini::m::open_a", "spec", open, ok),
                 ],
             );
-            let objs = parse_reports(&text).unwrap();
+            let objs = normalize(&parse_reports(&text).unwrap()).unwrap();
             ingest(
                 &db,
                 select_crate_report(&objs, "mini").unwrap(),
@@ -736,17 +694,70 @@ mod tests {
         assert_eq!(head[0].severity, "warning");
     }
 
+    /// Regression: `fail_pct * budget` (80 * 30,000,000) overflowed `DuckDB`'s 32-bit integers as
+    /// soon as one function passed `warn_pct`, so the rule errored instead of reporting.
+    #[test]
+    fn rlimit_headroom_reports_near_the_default_budget() {
+        let db = db();
+        let text = report(
+            OK_COMMIT,
+            &[("mini::n::lemma_u", "proof", 25_000_000, true)],
+        );
+        let objs = normalize(&parse_reports(&text).unwrap()).unwrap();
+        ingest(
+            &db,
+            select_crate_report(&objs, "mini").unwrap(),
+            &info(None),
+        )
+        .unwrap();
+        let r = crate::rules::examples()
+            .unwrap()
+            .into_iter()
+            .find(|r| r.id == "verus/rlimit-headroom")
+            .unwrap();
+        let f = crate::rules::run_rule(&db.conn, &r, &std::collections::BTreeMap::new()).unwrap();
+        assert_eq!(f.len(), 1);
+        assert_eq!(f[0].severity, "error");
+    }
+
     #[test]
     fn refuses_another_verus_and_missing_crate() {
         let text = report(
             "0000000000000000000000000000000000000000",
             &[("mini::n::f", "proof", 1, true)],
         );
-        let objs = parse_reports(&text).unwrap();
-        let e = ingest(&db(), &objs[0], &info(None)).unwrap_err();
-        assert!(e.downcast_ref::<version::Unsupported>().is_some());
-        assert!(select_crate_report(&objs, "other").is_err());
+        let e = normalize(&parse_reports(&text).unwrap()).unwrap_err();
+        assert!(e.downcast_ref::<adapters::Unsupported>().is_some());
+        let ok = normalize(
+            &parse_reports(&report(OK_COMMIT, &[("mini::n::f", "proof", 1, true)])).unwrap(),
+        )
+        .unwrap();
+        assert!(select_crate_report(&ok, "other").is_err());
         assert!(parse_reports("nothing here").is_err());
+    }
+
+    /// A real report of Verus 0.2026.08.30 on `tests/fixtures/report/crate` (`func-details`
+    /// dropped) normalizes to per-function and per-module rows.
+    #[test]
+    fn real_report_of_each_release_normalizes() {
+        let text = include_str!("../tests/fixtures/report/0.2026.08.30.b432e82.json");
+        let r = normalize(&parse_reports(text).unwrap()).unwrap();
+        let r = select_crate_report(&r, "rep").unwrap();
+        assert_eq!(r.version, "0.2026.08.30.b432e82");
+        let f = |n: &str| r.functions.iter().find(|f| f.function == n).unwrap();
+        assert_eq!(r.functions.len(), 6);
+        assert_eq!(
+            f("rep::arith::lemma_tri_mono").mode.as_deref(),
+            Some("proof")
+        );
+        assert!(
+            !f("rep::arith::sum_to").success,
+            "the fixture has one failing function"
+        );
+        assert!(f("rep::seqs::max_of").rlimit > 0 && f("rep::seqs::max_of").time_us > 0);
+        assert_eq!(f("rep::top").module, "");
+        let m: Vec<&str> = r.modules.iter().map(|m| m.module.as_str()).collect();
+        assert_eq!(m, ["arith", "seqs", ""]);
     }
 
     #[test]

@@ -1,0 +1,177 @@
+{
+ "verification-results": {
+  "encountered-error": true,
+  "encountered-vir-error": false,
+  "success": false,
+  "verified": 7,
+  "errors": 1,
+  "is-verifying-entire-crate": true
+ },
+ "times-ms": {
+  "verus-build": {
+   "profile": "release",
+   "version": "0.2026.08.30.b432e82"
+  },
+  "num-threads": 3,
+  "total": 521,
+  "estimated-cpu-time": 591,
+  "rust": {
+   "total": 67,
+   "init-and-types": 23,
+   "trait-conflicts": 43,
+   "compile": 0
+  },
+  "verification": {
+   "total": 428,
+   "vir": {
+    "total": 375,
+    "hir": 10,
+    "import": 249,
+    "rust-to-vir": 50
+   }
+  },
+  "total-verify": 116,
+  "total-verify-module-times": [
+   {
+    "module": "arith",
+    "time": 44
+   },
+   {
+    "module": "seqs",
+    "time": 43
+   },
+   {
+    "module": "",
+    "time": 28
+   }
+  ],
+  "air": {
+   "total": 68,
+   "module-times": [
+    {
+     "module": "arith",
+     "time": 27
+    },
+    {
+     "module": "seqs",
+     "time": 24
+    },
+    {
+     "module": "",
+     "time": 16
+    }
+   ]
+  },
+  "smt": {
+   "total": 13,
+   "smt-init": 0,
+   "rlimit-init": 969,
+   "smt-init-module-times": [
+    {
+     "module": "arith",
+     "time": 0,
+     "time-micros": 261,
+     "rlimit": 507
+    },
+    {
+     "module": "seqs",
+     "time": 0,
+     "time-micros": 62,
+     "rlimit": 426
+    },
+    {
+     "module": "",
+     "time": 0,
+     "time-micros": 34,
+     "rlimit": 36
+    }
+   ],
+   "smt-run": 13,
+   "rlimit-run": 38428,
+   "smt-run-module-times": [
+    {
+     "module": "arith",
+     "time": 6,
+     "time-micros": 6359,
+     "rlimit": 16645,
+     "function-breakdown": [
+      {
+       "function": "rep::arith::Pt::bump",
+       "mode:": "exec",
+       "time": 0,
+       "time-micros": 670,
+       "rlimit": 1517,
+       "success": true
+      },
+      {
+       "function": "rep::arith::tri",
+       "mode:": "spec",
+       "time": 0,
+       "time-micros": 616,
+       "rlimit": 976,
+       "success": true
+      },
+      {
+       "function": "rep::arith::lemma_tri_mono",
+       "mode:": "proof",
+       "time": 1,
+       "time-micros": 1372,
+       "rlimit": 4933,
+       "success": true
+      },
+      {
+       "function": "rep::arith::sum_to",
+       "mode:": "exec",
+       "time": 3,
+       "time-micros": 3699,
+       "rlimit": 9219,
+       "success": false
+      }
+     ]
+    },
+    {
+     "module": "seqs",
+     "time": 6,
+     "time-micros": 6130,
+     "rlimit": 21078,
+     "function-breakdown": [
+      {
+       "function": "rep::seqs::max_of",
+       "mode:": "exec",
+       "time": 6,
+       "time-micros": 6130,
+       "rlimit": 21078,
+       "success": true
+      }
+     ]
+    },
+    {
+     "module": "",
+     "time": 0,
+     "time-micros": 551,
+     "rlimit": 705,
+     "function-breakdown": [
+      {
+       "function": "rep::top",
+       "mode:": "exec",
+       "time": 0,
+       "time-micros": 551,
+       "rlimit": 705,
+       "success": true
+      }
+     ]
+    }
+   ]
+  }
+ },
+ "verus": {
+  "profile": "release",
+  "version": "0.2026.08.30.b432e82",
+  "platform": {
+   "os": "linux",
+   "arch": "x86_64"
+  },
+  "toolchain": "1.97.1-x86_64-unknown-linux-gnu",
+  "commit": "b432e82fed7e05090fd53b5e5fc39020f725aabe"
+ }
+}

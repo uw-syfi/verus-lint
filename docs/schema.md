@@ -25,6 +25,11 @@ Conventions:
   fails `cargo test`. Every `sql` block below is executed against the test
   fixture by the same test.
 
+Every supported Verus release ([verus-versions.md](verus-versions.md)) fills
+every column; a fact some release could not provide would be NULL and called out
+at its column. The one release difference in the values: 0.2026.08.30 gives
+generated field accessors one `requires` (`n_requires = 1`).
+
 What the facts miss: the VIR log describes one build. Code behind a
 `cfg(feature = ...)` the extraction build does not enable, `#[cfg(test)]` code,
 and crates outside the extraction are absent, and so are their references to
@@ -301,7 +306,10 @@ Populated by: `assume(...)` calls (`AssertAssume` with `is_assume`; `admit()`
 is recorded as `admit`, an assume of `false`); `#[verifier::external_body]`
 (`external_body`, or `broadcast_axiom` on a broadcast function); an
 `assume_specification` proxy; and `(external_fn ...)` and `(external_type ...)`
-forms. Items marked `#[verifier::external]` are not in the log.
+forms. Items marked `#[verifier::external]` are not in the log. Verus also
+lists in `(external_fn ...)` every const (which is verified as a function),
+the methods of derived trait impls (`#[derive(PartialEq)]`) and the accessor of
+a field shared by enum variants; these are not trusted and have no row.
 
 ```sql
 SELECT kind, count(*) AS n FROM trusted GROUP BY kind ORDER BY n DESC;

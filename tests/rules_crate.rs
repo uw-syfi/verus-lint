@@ -23,6 +23,7 @@ fn mini_db(path: &Path) {
     load_crate_logs(
         &mut db,
         path.parent().unwrap(),
+        verus_lint::adapters::newest(),
         "mini",
         "Cargo.toml",
         vir,

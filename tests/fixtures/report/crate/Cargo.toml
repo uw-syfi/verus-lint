@@ -1,0 +1,11 @@
+[package]
+name = "rep"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+vstd = "=0.0.0-2026-08-30-0159"
+
+[package.metadata.verus]
+verify = true

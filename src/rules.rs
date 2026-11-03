@@ -219,7 +219,8 @@ pub fn parse_rule(text: &str) -> Result<Rule> {
     })
 }
 
-/// Replace `param('name')` with the literal value (override, else header default).
+/// Replace `param('name')` with the literal value (override, else header default). An integer
+/// value becomes a `BIGINT` literal, so products of parameters do not overflow 32 bits.
 ///
 /// # Errors
 /// Fails when the operation's I/O, parsing or database step fails; the error says which.
@@ -243,7 +244,13 @@ pub fn substitute(rule: &Rule, overrides: &BTreeMap<String, String>) -> Result<S
                 rule.id
             );
         }
-        out.push_str(v);
+        if v.parse::<i64>().is_ok() {
+            out.push_str("CAST(");
+            out.push_str(v);
+            out.push_str(" AS BIGINT)");
+        } else {
+            out.push_str(v);
+        }
         sql = rest[j + 2..].to_string();
     }
     out.push_str(&sql);
@@ -365,8 +372,8 @@ pub fn format_finding(f: &Finding) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::adapters::newest;
     use crate::db::{CrateInfo, Db};
-    use crate::vir::{ImplNames, parse_log};
 
     #[test]
     fn header_and_params() {
@@ -382,10 +389,21 @@ mod tests {
                 .lines()
                 .last()
                 .unwrap(),
-            "SELECT 3 AS e"
+            "SELECT CAST(3 AS BIGINT) AS e"
         );
         let ov = BTreeMap::from([("a".to_string(), "9".to_string())]);
-        assert!(substitute(&r, &ov).unwrap().contains("SELECT 9 AS e"));
+        assert!(
+            substitute(&r, &ov)
+                .unwrap()
+                .contains("SELECT CAST(9 AS BIGINT) AS e")
+        );
+        let r =
+            parse_rule("-- id: t/y\n-- summary: s\n-- params: b = 4.5\nSELECT param('b')").unwrap();
+        assert!(
+            substitute(&r, &BTreeMap::new())
+                .unwrap()
+                .ends_with("SELECT 4.5")
+        );
     }
 
     #[test]
@@ -424,7 +442,7 @@ mod tests {
 
     fn fixture_db() -> Db {
         let text = include_str!("../tests/fixtures/mini.vir");
-        let facts = parse_log(text, "mini", &ImplNames::new()).unwrap();
+        let facts = newest().parse_crate(text, "", "mini").unwrap();
         let mut db = Db::in_memory().unwrap();
         db.load_crate(
             &facts,

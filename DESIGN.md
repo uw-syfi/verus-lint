@@ -85,9 +85,12 @@ promise and no version header. Compatibility is therefore exact, not
 best-effort:
 
 1. The extractor holds a table of supported Verus releases (version string
-   and full commit), each mapped to a parser profile (field names and
-   constructor spellings for that release). Version 1 supports
-   0.2026.07.18.3a4d30b.
+   and full commit, `adapters::SUPPORTED`), each mapped to an adapter that
+   parses that release's log and report format into the normalized facts
+   (`src/facts.rs`). Releases that share a format share an adapter; 0.2.0
+   supports 0.2026.07.18.3a4d30b and 0.2026.08.30.b432e82 with one adapter.
+   `strata.toml` confines release-specific code to the adapters (see
+   docs/verus-versions.md).
 2. Before extraction it runs `verus --version --output-json` through the
    configured toolchain command and refuses (exit status 3, listing the
    supported versions) if the commit is not in the table.
@@ -101,8 +104,9 @@ best-effort:
 
 Adding a Verus release means adding a table entry plus a fixture: a small
 Verus crate in `tests/fixtures/` that exercises every fact kind, whose logged
-output is parsed and compared against expected tables. CI runs the fixture
-against every supported release.
+output (one log per release under `tests/fixtures/fx/<version>/`) is parsed
+and compared against expected tables. CI runs the fixture tests against every
+supported release's log. docs/verus-versions.md has the steps.
 
 ## 4. Extraction pipeline
 

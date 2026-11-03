@@ -29,9 +29,10 @@ Read these instead of guessing. They are in `docs/` of the verus-lint repository
 ## How to work
 
 1. Check the setup. `verus-lint --version`; the workspace needs `verus-lint.toml`
-   and crates marked `[package.metadata.verus] verify = true`. Only one Verus
-   release is accepted (see `docs/getting-started.md`); exit status 3 means the
-   wrong one.
+   and crates marked `[package.metadata.verus] verify = true`. Only the Verus
+   releases in `docs/verus-versions.md` are accepted; exit status 3 means
+   another one. For Verus in a container, set `[extract] toolchain` to a wrapper
+   script that mounts the workspace at the same path (`docs/getting-started.md`).
 2. Extract once (`verus-lint extract`, minutes on a large workspace), then
    iterate with `verus-lint check`, which takes seconds. Re-extract only after
    the source or the `[roots]` config changes.

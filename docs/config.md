@@ -46,7 +46,7 @@ How `extract` (and `run`, and `verify`) call Verus.
 
 | Key | Type | Default | Meaning |
 | --- | --- | --- | --- |
-| `toolchain` | array of strings | `[]` | Command prefix placed before `cargo verus ...`. Use it for a container wrapper: with `["./verify"]` the tool runs `./verify cargo verus build ...` and `./verify verus --version --output-json`. Empty means `cargo` and `verus` from `PATH`. `--toolchain "./verify"` on the command line (split on spaces) replaces it. |
+| `toolchain` | array of strings | `[]` | Command prefix placed before `cargo verus ...`. Use it for a container wrapper: with `["./verify"]` the tool runs `./verify cargo verus build ...`, `./verify cargo clean ...` and `./verify verus --version --output-json` from the workspace root; the wrapper must mount the workspace at the same path (see [getting-started.md](getting-started.md#2-prepare-the-workspace) for a Docker script). Empty means `cargo` and `verus` from `PATH`. `--toolchain "./verify"` on the command line (split on spaces) replaces it. |
 | `crates` | array of strings | `[]` (all verified members) | Which workspace members to extract: package names or manifest-directory globs (`crates/**`). Members are those with `[package.metadata.verus] verify = true`. `--crate NAME` (repeatable) replaces this list. `verify` ignores it and uses `--crate` only. |
 | `exclude` | array of strings | `[]` | Members to skip, same patterns, for `verify = true` members Verus cannot build. `--exclude` adds to this list. Applies to `extract`, `run` and `verify`. |
 

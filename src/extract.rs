@@ -3,10 +3,11 @@
 //! Verus names the log `crate.vir` and deletes the log directory first, so
 //! each crate gets its own log directory under `<out>/cache/<crate>/log`.
 
+use crate::adapters::{self, Adapter};
 use crate::config::glob_match;
 use crate::db::{CrateInfo, Db};
+use crate::facts::CrateFacts;
 use crate::version::{self, VerusVersion};
-use crate::vir::{ImplNames, parse_impl_names, parse_impl_rows, parse_log};
 use anyhow::{Context, Result, anyhow, bail};
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
@@ -259,7 +260,7 @@ pub fn extract(o: &Options) -> Result<Summary> {
         ws.join(&o.out)
     };
     let ver: VerusVersion = version::query(&o.toolchain, &ws)?;
-    version::check(&ver)?;
+    let adapter = adapters::select(&ver)?;
 
     let mut members = members_from_metadata(&cargo_metadata(&ws)?)?;
     members = select_members(members, &ws, &o.crates, &o.exclude)?;
@@ -336,8 +337,16 @@ pub fn extract(o: &Options) -> Result<Summary> {
             .unwrap_or(&m.manifest)
             .display()
             .to_string();
-        let facts = load_crate_logs(&mut db, &ws, &m.ident(), &manifest, &text, &impl_text)
-            .map_err(|e| anyhow!("{}: {e}", m.name))?;
+        let facts = load_crate_logs(
+            &mut db,
+            &ws,
+            adapter,
+            &m.ident(),
+            &manifest,
+            &text,
+            &impl_text,
+        )
+        .map_err(|e| anyhow!("{}: {e}", m.name))?;
         n_fn += facts.functions.len();
         n_use += facts.uses.len();
         log_bytes += text.len() as u64;
@@ -390,12 +399,7 @@ fn crate_sources(ws: &Path, manifest: &str) -> Vec<String> {
 /// Module-level `broadcast use` and `broadcast group` items, and feature gates, from a scan of
 /// the crate's source files, including files that hold no function (their groups and gates
 /// matter; a module-level `broadcast use` there has no known module and is only noted).
-fn scan_module_uses(
-    db: &Db,
-    ws: &Path,
-    manifest: &str,
-    facts: &crate::vir::CrateFacts,
-) -> Result<()> {
+fn scan_module_uses(db: &Db, ws: &Path, manifest: &str, facts: &CrateFacts) -> Result<()> {
     use crate::scan::{candidates, scan_cfg_features, scan_file, unique_suffix_match};
     let with_fns: BTreeSet<&str> = facts.functions.iter().map(|f| f.file.as_str()).collect();
     let mut files: BTreeSet<String> = with_fns.iter().map(|f| (*f).to_string()).collect();
@@ -475,14 +479,15 @@ fn scan_module_uses(
 pub fn load_crate_logs(
     db: &mut Db,
     ws: &Path,
+    adapter: &dyn Adapter,
     ident: &str,
     manifest: &str,
     vir_text: &str,
     impl_text: &str,
-) -> Result<crate::vir::CrateFacts> {
-    let names: ImplNames = parse_impl_names(impl_text);
-    let mut facts = parse_log(vir_text, ident, &names).map_err(|e| anyhow!("{e}"))?;
-    facts.trait_impls = parse_impl_rows(impl_text, ident);
+) -> Result<CrateFacts> {
+    let facts = adapter
+        .parse_crate(vir_text, impl_text, ident)
+        .map_err(|e| anyhow!("{e}"))?;
     db.load_crate(
         &facts,
         &CrateInfo {
@@ -499,7 +504,7 @@ fn scan_group_members(
     db: &Db,
     file: &str,
     src: &str,
-    facts: &crate::vir::CrateFacts,
+    facts: &CrateFacts,
     fn_paths: &BTreeSet<&str>,
 ) -> Result<()> {
     use crate::scan::{candidates, scan_groups};
@@ -614,7 +619,16 @@ mod tests {
         .unwrap();
         let mut db = Db::in_memory().unwrap();
         let vir = include_str!("../tests/fixtures/mini.vir");
-        load_crate_logs(&mut db, &ws, "mini", "Cargo.toml", vir, "").unwrap();
+        load_crate_logs(
+            &mut db,
+            &ws,
+            crate::adapters::newest(),
+            "mini",
+            "Cargo.toml",
+            vir,
+            "",
+        )
+        .unwrap();
         let rows = db
             .query_rows("SELECT what, detail FROM warnings WHERE crate = 'mini' AND what <> 'scan_unreadable_file' ORDER BY what")
             .unwrap();

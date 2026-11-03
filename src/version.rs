@@ -1,22 +1,8 @@
-//! Strict Verus version check. The VIR log has no stability promise, so the
-//! extractor accepts only releases it has a parser profile for.
+//! Verus release detection: from `verus --version --output-json` and from the `verus` section
+//! of a report. Which releases are accepted is decided in `crate::adapters`.
 
 use anyhow::{Context, Result, bail};
 use std::process::Command;
-
-/// A supported Verus release.
-pub struct Supported {
-    /// Release version string.
-    pub version: &'static str,
-    /// Full git commit of the release.
-    pub commit: &'static str,
-}
-
-/// Supported Verus releases. Adding one means a fixture crate for it.
-pub const SUPPORTED: &[Supported] = &[Supported {
-    version: "0.2026.07.18.3a4d30b",
-    commit: "3a4d30bcdc4571e7927af97be9c4664973083eda",
-}];
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 /// The `verus` object of `verus --version --output-json`.
@@ -49,40 +35,21 @@ pub fn parse_version_json(out: &str) -> Result<VerusVersion> {
     })
 }
 
-/// Whether the Verus version is in the supported range.
-#[must_use]
-pub fn is_supported(v: &VerusVersion) -> bool {
-    SUPPORTED.iter().any(|s| s.commit == v.commit)
-}
-
-/// Error for an unsupported release; the CLI maps it to exit status 3.
-#[derive(Debug)]
-pub struct Unsupported(pub String);
-impl std::fmt::Display for Unsupported {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(&self.0)
-    }
-}
-impl std::error::Error for Unsupported {}
-
-/// Check the Verus version.
+/// The release that produced a `--output-json` report object, from its `verus` section.
 ///
 /// # Errors
-/// Fails with `Unsupported` outside the supported range.
-pub fn check(v: &VerusVersion) -> Result<()> {
-    if is_supported(v) {
-        return Ok(());
-    }
-    let list: Vec<String> = SUPPORTED
-        .iter()
-        .map(|s| format!("{} ({})", s.version, s.commit))
-        .collect();
-    bail!(Unsupported(format!(
-        "unsupported Verus {} (commit {}); supported: {}",
-        v.version,
-        v.commit,
-        list.join(", ")
-    )))
+/// Fails when the object has no `verus.version` and `verus.commit`.
+pub fn from_report(obj: &serde_json::Value) -> Result<VerusVersion> {
+    let v = &obj["verus"];
+    let s = |k: &str| v[k].as_str().map(String::from);
+    let (Some(version), Some(commit)) = (s("version"), s("commit")) else {
+        bail!("report has no verus.version and verus.commit");
+    };
+    Ok(VerusVersion {
+        version,
+        commit,
+        toolchain: s("toolchain").unwrap_or_default(),
+    })
 }
 
 /// Run `<toolchain> verus --version --output-json` (plain `verus` without a wrapper).
@@ -117,23 +84,23 @@ mod tests {
     use super::*;
 
     const OUT: &str = r#"noise
-{"verus": {"profile": "release", "version": "0.2026.07.18.3a4d30b", "toolchain": "1.96.0",
- "commit": "3a4d30bcdc4571e7927af97be9c4664973083eda"}}
+{"verus": {"profile": "release", "version": "0.2026.08.30.b432e82", "toolchain": "1.97.1",
+ "commit": "b432e82fed7e05090fd53b5e5fc39020f725aabe"}}
 "#;
 
     #[test]
-    fn parses_and_accepts_supported() {
+    fn parses_version_json_after_noise() {
         let v = parse_version_json(OUT).unwrap();
-        assert_eq!(v.version, "0.2026.07.18.3a4d30b");
-        check(&v).unwrap();
+        assert_eq!(v.version, "0.2026.08.30.b432e82");
+        assert_eq!(v.commit, "b432e82fed7e05090fd53b5e5fc39020f725aabe");
+        assert_eq!(v.toolchain, "1.97.1");
     }
 
     #[test]
-    fn refuses_other_commit() {
-        let v = parse_version_json(&OUT.replace("3a4d30bcdc", "0000000000")).unwrap();
-        let e = check(&v).unwrap_err();
-        assert!(e.downcast_ref::<Unsupported>().is_some());
-        assert!(e.to_string().contains("supported:"));
+    fn reads_a_reports_verus_section() {
+        let o: serde_json::Value = serde_json::from_str(OUT.trim_start_matches("noise\n")).unwrap();
+        assert_eq!(from_report(&o).unwrap(), parse_version_json(OUT).unwrap());
+        assert!(from_report(&serde_json::json!({"times-ms": {}})).is_err());
     }
 
     #[test]

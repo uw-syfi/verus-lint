@@ -8,7 +8,7 @@ that fails CI.
 
 Every command below was run end to end. The static-facts steps (install through
 CI) ran against `tests/fixtures/crate` of this repository, a small Verus crate
-named `fx` with 37 functions. The `verify` step ran against a three-function
+named `fx` with 42 functions. The `verify` step ran against a three-function
 crate that verifies, shown in that step. Verus ran in a Docker container behind
 a `./verify` wrapper script, which is what the `toolchain` setting is for.
 
@@ -22,23 +22,31 @@ verus-lint --version        # verus-lint 0.1.1
 Needs Rust 1.88 or newer. The first build compiles a bundled DuckDB and takes a
 few minutes.
 
-You also need Verus with `cargo verus`. verus-lint accepts exactly one Verus
-release, because the VIR log it reads (Verus's internal representation of your
-code) has no stability promise:
+You also need Verus with `cargo verus`. verus-lint accepts only the Verus
+releases it has been tested against, because the VIR log it reads (Verus's
+internal representation of your code) has no stability promise:
 
 | Verus release | Commit |
 | --- | --- |
 | `0.2026.07.18.3a4d30b` | `3a4d30bcdc4571e7927af97be9c4664973083eda` |
+| `0.2026.08.30.b432e82` | `b432e82fed7e05090fd53b5e5fc39020f725aabe` |
 
 Before each extraction the tool runs `verus --version --output-json` and
 compares the commit. Any other release exits with status 3:
 
 ```text
-error: unsupported Verus 0.2026.01.01.abcdef0 (commit abcdef0000000000000000000000000000000000); supported: 0.2026.07.18.3a4d30b (3a4d30bcdc4571e7927af97be9c4664973083eda)
+error: unsupported Verus 0.2026.01.01.abcdef0 (commit abcdef0000000000000000000000000000000000); supported: 0.2026.07.18.3a4d30b (3a4d30bcdc4571e7927af97be9c4664973083eda), 0.2026.08.30.b432e82 (b432e82fed7e05090fd53b5e5fc39020f725aabe)
 ```
 
+[verus-versions.md](verus-versions.md) explains how releases are told apart
+and how a new one is added.
+
 If your crate pins Verus as a git dependency (as the fixture does for `vstd`),
-use that commit.
+use that commit. With a Verus release zip, depend on the `vstd` that
+`cargo verus new` writes for it (for 0.2026.08.30, `vstd =
+"=0.0.0-2026-08-30-0159"`); a crate that expands Verus macros such as
+`open_atomic_invariant!` outside `vstd` also needs `verus_builtin` and
+`verus_builtin_macros` at the same version.
 
 ## 2. Prepare the workspace
 
@@ -58,12 +66,21 @@ command to run as arguments. A Docker version:
 #!/usr/bin/env bash
 # ./verify: run a command inside the container that has Verus, workspace mounted at the same path.
 set -euo pipefail
-exec docker run --rm --user "$(id -u):$(id -g)" -v "$PWD:$PWD" -w "$PWD" \
-  <your-image-with-verus> "$@"
+exec docker run --rm --user "$(id -u):$(id -g)" \
+  -e HOME=/tmp -e CARGO_HOME=/cargo -v verus-cargo:/cargo \
+  -v "$PWD:$PWD" -w "$PWD" <your-image-with-verus> "$@"
 ```
 
-(The run used the same script with two more `-v` options for a persistent cargo
-registry and target directory, so rebuilds are fast.)
+verus-lint calls it as `./verify cargo verus build ...`, `./verify cargo clean
+...` and `./verify verus --version --output-json`, from the workspace root. The
+workspace must appear at the same path inside the container: Verus writes the
+logs to an absolute `--log-dir` under `.verus-lint/` and names source files by
+path. Keep `--out` and `--target-dir` inside the workspace for the same reason.
+The `verus-cargo` volume keeps the cargo registry between runs; make it
+writable by your user once (`docker run --rm -v verus-cargo:/cargo
+<your-image-with-verus> chown "$(id -u):$(id -g)" /cargo`). The image needs
+`verus`, `cargo-verus` and the Rust toolchain that Verus release was built with
+on `PATH`; the host needs only `cargo` (for `cargo metadata`).
 
 Create `verus-lint.toml` in the workspace root:
 
@@ -87,8 +104,8 @@ verus-lint extract
 ```text
 extract fx: cargo clean -p fx
 extract fx: running Verus --no-verify
-extract fx: 37 functions, 27 uses
-extracted 1 crates, 37 functions, 27 uses; logs 0.1 MB; verus 2.5s, parse+load 0.1s; .verus-lint/facts.duckdb
+extract fx: 42 functions, 29 uses
+extracted 1 crates, 42 functions, 29 uses; logs 0.2 MB; verus 2.5s, parse+load 0.1s; .verus-lint/facts.duckdb
 ```
 
 For each crate this runs
@@ -113,9 +130,9 @@ verus-lint query "SELECT mode, count(*) AS n FROM functions GROUP BY mode ORDER 
 
 ```text
 mode	n
-exec	3
+exec	4
 proof	12
-spec	22
+spec	26
 ```
 
 `query` runs one read-only SQL statement and prints tab-separated rows. The

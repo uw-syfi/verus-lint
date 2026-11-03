@@ -24,7 +24,26 @@
      Braces))
   ) :mode Exec :ext_equal false :user_defined_invariant_fn None :sized_constraint None :destructor false))
 
-(@ "/cargo/git/checkouts/verus-e4ebf515fa1de14c/3a4d30b/source/vstd/function.rs:135:1: 138:2 (#0)" (Function
+(@ "src/lib.rs:105:5: 105:35 (#0)" (Datatype :name (Dt Path fx::k::Status) :proxy None :owning_module fx::k :visibility (Visibility
+   :restricted_to None
+  ) :transparency (DatatypeTransparency WhenVisible (Visibility :restricted_to None)) :typ_params () :typ_bounds () :variants
+  (
+   (Variant :name "Done" :fields () :ctor_style (CtorPrintStyle Const))
+   (Variant :name "Full" :fields () :ctor_style (CtorPrintStyle Const))
+  ) :mode Exec :ext_equal false :user_defined_invariant_fn None :sized_constraint None :destructor false))
+
+(@ "src/lib.rs:107:5: 107:70 (#0)" (Datatype :name (Dt Path fx::k::Stage) :proxy None :owning_module fx::k :visibility (Visibility
+   :restricted_to None
+  ) :transparency (DatatypeTransparency WhenVisible (Visibility :restricted_to None)) :typ_params () :typ_bounds () :variants
+  (
+   (Variant :name "Idle" :fields () :ctor_style (CtorPrintStyle Const))
+   (Variant :name "Hold" :fields ((-> slot (tuple (Typ Int (IntRange U 64)) Exec (Visibility :restricted_to None)))) :ctor_style
+    (CtorPrintStyle Braces))
+   (Variant :name "Staged" :fields ((-> slot (tuple (Typ Int (IntRange U 64)) Exec (Visibility :restricted_to None)))) :ctor_style
+    (CtorPrintStyle Braces))
+  ) :mode Exec :ext_equal false :user_defined_invariant_fn None :sized_constraint None :destructor false))
+
+(@ "/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/vstd-0.0.0-2026-08-30-0159/function.rs:135:1: 138:2 (#0)" (Function
   :name (Fun :path vstd::function::axiom_fn_mut_call_requires) :proxy None :kind (FunctionKind Static) :visibility (Visibility
    :restricted_to None
   ) :body_visibility (BodyVisibility Visibility (Visibility :restricted_to vstd::function)) :opaqueness (Opaqueness Opaque)
@@ -37,47 +56,46 @@
    (GenericBound Trait (TraitId Path core::marker::Tuple) ((Typ TypParam "Args")))
    (GenericBound Trait (TraitId Path core::ops::function::FnMut) ((Typ TypParam "F") (Typ TypParam "Args")))
   ) :params (
-   (@ "/cargo/git/checkouts/verus-e4ebf515fa1de14c/3a4d30b/source/vstd/function.rs:136:5: 136:14 (#0)" (Param :name (VarIdent "f"
-      (VarIdentDisambiguate RustcId 2)
-     ) :typ (Typ MutRef (Typ TypParam "F")) :mode Spec :user_mut false :unwrapped_info None))
-   (@ "/cargo/git/checkouts/verus-e4ebf515fa1de14c/3a4d30b/source/vstd/function.rs:137:5: 137:15 (#0)" (Param :name (VarIdent "args"
-      (VarIdentDisambiguate RustcId 4)
-     ) :typ (Typ TypParam "Args") :mode Spec :user_mut false :unwrapped_info None))
-  ) :ret (@ "/cargo/git/checkouts/verus-e4ebf515fa1de14c/3a4d30b/source/vstd/function.rs:138:2: 138:2 (#0)" (Param :name (VarIdent
-     "%return" (VarIdentDisambiguate AirLocal)
-    ) :typ (Typ Datatype (Dt Tuple 0) () ()) :mode Proof :user_mut false :unwrapped_info None)
+   (@ "/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/vstd-0.0.0-2026-08-30-0159/function.rs:136:5: 136:14 (#0)" (Param
+     :name (VarIdent "f" (VarIdentDisambiguate RustcId 2)) :typ (Typ MutRef (Typ TypParam "F")) :mode Spec :user_mut false :unwrapped_info
+     None))
+   (@ "/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/vstd-0.0.0-2026-08-30-0159/function.rs:137:5: 137:15 (#0)" (Param
+     :name (VarIdent "args" (VarIdentDisambiguate RustcId 4)) :typ (Typ TypParam "Args") :mode Spec :user_mut false :unwrapped_info
+     None))
+  ) :ret (@ "/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/vstd-0.0.0-2026-08-30-0159/function.rs:138:2: 138:2 (#0)"
+   (Param :name (VarIdent "%return" (VarIdentDisambiguate AirLocal)) :typ (Typ Datatype (Dt Tuple 0) () ()) :mode Proof :user_mut
+    false :unwrapped_info None)
   ) :ens_has_return false :require (
-   (@@ "/cargo/git/checkouts/verus-e4ebf515fa1de14c/3a4d30b/source/vstd/function.rs:140:9: 140:59 (#0)" (> Call :target (CallTarget
-      BuiltinSpecFun (BuiltinSpecFun ClosureReq) ((Typ TypParam "F") (Typ TypParam "Args")) ()
-     ) :args ((@@ "/cargo/git/checkouts/verus-e4ebf515fa1de14c/3a4d30b/source/vstd/function.rs:140:34: 140:52 (#0)" (> Unary (UnaryOp
-         MutRefCurrent
-        ) (@@ "/cargo/git/checkouts/verus-e4ebf515fa1de14c/3a4d30b/source/vstd/function.rs:140:50: 140:51 (#0)" (> ReadPlace (@@ "/cargo/git/checkouts/verus-e4ebf515fa1de14c/3a4d30b/source/vstd/function.rs:140:50: 140:51 (#0)"
+   (@@ "/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/vstd-0.0.0-2026-08-30-0159/function.rs:140:9: 140:59 (#0)" (> Call
+     :target (CallTarget BuiltinSpecFun (BuiltinSpecFun ClosureReq) ((Typ TypParam "F") (Typ TypParam "Args")) ()) :args ((@@ "/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/vstd-0.0.0-2026-08-30-0159/function.rs:140:34: 140:52 (#0)"
+       (> Unary (UnaryOp MutRefCurrent) (@@ "/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/vstd-0.0.0-2026-08-30-0159/function.rs:140:50: 140:51 (#0)"
+         (> ReadPlace (@@ "/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/vstd-0.0.0-2026-08-30-0159/function.rs:140:50: 140:51 (#0)"
            (Place Local (VarIdent "f" (VarIdentDisambiguate RustcId 2))) (Typ MutRef (Typ TypParam "F"))
-          ) (UnfinalizedReadKind :preliminary_kind (ReadKind Move) :id 14405)
+          ) (UnfinalizedReadKind :preliminary_kind (ReadKind Move) :id 14780)
          ) (Typ MutRef (Typ TypParam "F")))
        ) (Typ TypParam "F")
-      ) (@@ "/cargo/git/checkouts/verus-e4ebf515fa1de14c/3a4d30b/source/vstd/function.rs:140:54: 140:58 (#0)" (> ReadPlace (@@ "/cargo/git/checkouts/verus-e4ebf515fa1de14c/3a4d30b/source/vstd/function.rs:140:54: 140:58 (#0)"
+      ) (@@ "/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/vstd-0.0.0-2026-08-30-0159/function.rs:140:54: 140:58 (#0)" (>
+        ReadPlace (@@ "/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/vstd-0.0.0-2026-08-30-0159/function.rs:140:54: 140:58 (#0)"
          (Place Local (VarIdent "args" (VarIdentDisambiguate RustcId 4))) (Typ TypParam "Args")
-        ) (UnfinalizedReadKind :preliminary_kind (ReadKind Move) :id 14406)
+        ) (UnfinalizedReadKind :preliminary_kind (ReadKind Move) :id 14781)
        ) (Typ TypParam "Args"))
      ) :post_args None :body None
     ) (Typ Bool))
   ) :ensure (
    tuple
-   ((@@ "/cargo/git/checkouts/verus-e4ebf515fa1de14c/3a4d30b/source/vstd/function.rs:142:20: 142:58 (#0)" (> Unary (UnaryOp Trigger
-       (TriggerAnnotation Trigger None)
-      ) (@@ "/cargo/git/checkouts/verus-e4ebf515fa1de14c/3a4d30b/source/vstd/function.rs:142:20: 142:58 (#0)" (> Call :target (CallTarget
-         BuiltinSpecFun (BuiltinSpecFun ClosureReq) ((Typ MutRef (Typ TypParam "F")) (Typ TypParam "Args")) ((ImplPath TraitImplPath
-           core::ops::function::impls::impl&%4))
-        ) :args ((@@ "/cargo/git/checkouts/verus-e4ebf515fa1de14c/3a4d30b/source/vstd/function.rs:142:50: 142:51 (#0)" (> ReadPlace
-           (@@ "/cargo/git/checkouts/verus-e4ebf515fa1de14c/3a4d30b/source/vstd/function.rs:142:50: 142:51 (#0)" (Place Local (VarIdent
-              "f" (VarIdentDisambiguate RustcId 2))
-            ) (Typ MutRef (Typ TypParam "F"))
-           ) (UnfinalizedReadKind :preliminary_kind (ReadKind Move) :id 14407)
+   ((@@ "/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/vstd-0.0.0-2026-08-30-0159/function.rs:142:20: 142:58 (#0)" (> Unary
+      (UnaryOp Trigger (TriggerAnnotation Trigger None)) (@@ "/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/vstd-0.0.0-2026-08-30-0159/function.rs:142:20: 142:58 (#0)"
+       (> Call :target (CallTarget BuiltinSpecFun (BuiltinSpecFun ClosureReq) ((Typ MutRef (Typ TypParam "F")) (Typ TypParam "Args"))
+         ((ImplPath TraitImplPath core::ops::function::impls::impl&%4))
+        ) :args ((@@ "/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/vstd-0.0.0-2026-08-30-0159/function.rs:142:50: 142:51 (#0)"
+          (> ReadPlace (@@ "/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/vstd-0.0.0-2026-08-30-0159/function.rs:142:50: 142:51 (#0)"
+            (Place Local (VarIdent "f" (VarIdentDisambiguate RustcId 2))) (Typ MutRef (Typ TypParam "F"))
+           ) (UnfinalizedReadKind :preliminary_kind (ReadKind Move) :id 14782)
           ) (Typ MutRef (Typ TypParam "F"))
-         ) (@@ "/cargo/git/checkouts/verus-e4ebf515fa1de14c/3a4d30b/source/vstd/function.rs:142:53: 142:57 (#0)" (> ReadPlace (@@ "/cargo/git/checkouts/verus-e4ebf515fa1de14c/3a4d30b/source/vstd/function.rs:142:53: 142:57 (#0)"
+         ) (@@ "/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/vstd-0.0.0-2026-08-30-0159/function.rs:142:53: 142:57 (#0)" (>
+           ReadPlace (@@ "/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/vstd-0.0.0-2026-08-30-0159/function.rs:142:53: 142:57 (#0)"
             (Place Local (VarIdent "args" (VarIdentDisambiguate RustcId 4))) (Typ TypParam "Args")
-           ) (UnfinalizedReadKind :preliminary_kind (ReadKind Move) :id 14408)
+           ) (UnfinalizedReadKind :preliminary_kind (ReadKind Move) :id 14783)
           ) (Typ TypParam "Args"))
         ) :post_args None :body None
        ) (Typ Bool))
@@ -89,11 +107,12 @@
     true :invariant true
    ) :autospec None :bit_vector false :atomic false :integer_ring false :is_decrease_by false :check_recommends false :nonlinear
    false :spinoff_prover false :memoize false :rlimit None :print_zero_args false :print_as_method false :prophecy_dependent
-   false :size_of_broadcast_proof false :is_type_invariant_fn false :is_external_body true :is_unsafe false :exec_assume_termination
-   false :exec_allows_no_decreases_clause false :tracked_swap false :tracked_take_option false :is_async false
+   false :size_of_broadcast_proof false :is_type_invariant_fn false :is_external_body true :is_unsafe false :impls_cannot_extend_spec
+   false :exec_assume_termination false :exec_allows_no_decreases_clause false :tracked_swap false :tracked_take_option false
+   :is_async false
   ) :body None :extra_dependencies () :async_ret None))
 
-(@ "/cargo/git/checkouts/verus-e4ebf515fa1de14c/3a4d30b/source/vstd/function.rs:145:1: 149:2 (#0)" (Function
+(@ "/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/vstd-0.0.0-2026-08-30-0159/function.rs:145:1: 149:2 (#0)" (Function
   :name (Fun :path vstd::function::axiom_fn_mut_call_ensures) :proxy None :kind (FunctionKind Static) :visibility (Visibility
    :restricted_to None
   ) :body_visibility (BodyVisibility Visibility (Visibility :restricted_to vstd::function)) :opaqueness (Opaqueness Opaque)
@@ -106,41 +125,41 @@
    (GenericBound Trait (TraitId Path core::marker::Tuple) ((Typ TypParam "Args")))
    (GenericBound Trait (TraitId Path core::ops::function::FnMut) ((Typ TypParam "F") (Typ TypParam "Args")))
   ) :params (
-   (@ "/cargo/git/checkouts/verus-e4ebf515fa1de14c/3a4d30b/source/vstd/function.rs:146:5: 146:14 (#0)" (Param :name (VarIdent "f"
-      (VarIdentDisambiguate RustcId 2)
-     ) :typ (Typ MutRef (Typ TypParam "F")) :mode Spec :user_mut false :unwrapped_info None))
-   (@ "/cargo/git/checkouts/verus-e4ebf515fa1de14c/3a4d30b/source/vstd/function.rs:147:5: 147:15 (#0)" (Param :name (VarIdent "args"
-      (VarIdentDisambiguate RustcId 4)
-     ) :typ (Typ TypParam "Args") :mode Spec :user_mut false :unwrapped_info None))
-   (@ "/cargo/git/checkouts/verus-e4ebf515fa1de14c/3a4d30b/source/vstd/function.rs:148:5: 148:22 (#0)" (Param :name (VarIdent "output"
-      (VarIdentDisambiguate RustcId 6)
-     ) :typ (Typ Projection :trait_typ_args ((Typ TypParam "F") (Typ TypParam "Args")) :trait_path core::ops::function::FnOnce
-      :name "Output"
+   (@ "/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/vstd-0.0.0-2026-08-30-0159/function.rs:146:5: 146:14 (#0)" (Param
+     :name (VarIdent "f" (VarIdentDisambiguate RustcId 2)) :typ (Typ MutRef (Typ TypParam "F")) :mode Spec :user_mut false :unwrapped_info
+     None))
+   (@ "/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/vstd-0.0.0-2026-08-30-0159/function.rs:147:5: 147:15 (#0)" (Param
+     :name (VarIdent "args" (VarIdentDisambiguate RustcId 4)) :typ (Typ TypParam "Args") :mode Spec :user_mut false :unwrapped_info
+     None))
+   (@ "/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/vstd-0.0.0-2026-08-30-0159/function.rs:148:5: 148:22 (#0)" (Param
+     :name (VarIdent "output" (VarIdentDisambiguate RustcId 6)) :typ (Typ Projection :trait_typ_args ((Typ TypParam "F") (Typ TypParam
+        "Args")
+      ) :trait_path core::ops::function::FnOnce :name "Output"
      ) :mode Spec :user_mut false :unwrapped_info None))
-  ) :ret (@ "/cargo/git/checkouts/verus-e4ebf515fa1de14c/3a4d30b/source/vstd/function.rs:149:2: 149:2 (#0)" (Param :name (VarIdent
-     "%return" (VarIdentDisambiguate AirLocal)
-    ) :typ (Typ Datatype (Dt Tuple 0) () ()) :mode Proof :user_mut false :unwrapped_info None)
+  ) :ret (@ "/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/vstd-0.0.0-2026-08-30-0159/function.rs:149:2: 149:2 (#0)"
+   (Param :name (VarIdent "%return" (VarIdentDisambiguate AirLocal)) :typ (Typ Datatype (Dt Tuple 0) () ()) :mode Proof :user_mut
+    false :unwrapped_info None)
   ) :ens_has_return false :require (
-   (@@ "/cargo/git/checkouts/verus-e4ebf515fa1de14c/3a4d30b/source/vstd/function.rs:151:20: 151:65 (#0)" (> Unary (UnaryOp Trigger
-      (TriggerAnnotation Trigger None)
-     ) (@@ "/cargo/git/checkouts/verus-e4ebf515fa1de14c/3a4d30b/source/vstd/function.rs:151:20: 151:65 (#0)" (> Call :target (CallTarget
-        BuiltinSpecFun (BuiltinSpecFun ClosureEns) ((Typ MutRef (Typ TypParam "F")) (Typ TypParam "Args")) ((ImplPath TraitImplPath
-          core::ops::function::impls::impl&%4))
-       ) :args ((@@ "/cargo/git/checkouts/verus-e4ebf515fa1de14c/3a4d30b/source/vstd/function.rs:151:49: 151:50 (#0)" (> ReadPlace
-          (@@ "/cargo/git/checkouts/verus-e4ebf515fa1de14c/3a4d30b/source/vstd/function.rs:151:49: 151:50 (#0)" (Place Local (VarIdent
-             "f" (VarIdentDisambiguate RustcId 2))
-           ) (Typ MutRef (Typ TypParam "F"))
-          ) (UnfinalizedReadKind :preliminary_kind (ReadKind Move) :id 14409)
+   (@@ "/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/vstd-0.0.0-2026-08-30-0159/function.rs:151:20: 151:65 (#0)" (> Unary
+     (UnaryOp Trigger (TriggerAnnotation Trigger None)) (@@ "/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/vstd-0.0.0-2026-08-30-0159/function.rs:151:20: 151:65 (#0)"
+      (> Call :target (CallTarget BuiltinSpecFun (BuiltinSpecFun ClosureEns) ((Typ MutRef (Typ TypParam "F")) (Typ TypParam "Args"))
+        ((ImplPath TraitImplPath core::ops::function::impls::impl&%4))
+       ) :args ((@@ "/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/vstd-0.0.0-2026-08-30-0159/function.rs:151:49: 151:50 (#0)"
+         (> ReadPlace (@@ "/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/vstd-0.0.0-2026-08-30-0159/function.rs:151:49: 151:50 (#0)"
+           (Place Local (VarIdent "f" (VarIdentDisambiguate RustcId 2))) (Typ MutRef (Typ TypParam "F"))
+          ) (UnfinalizedReadKind :preliminary_kind (ReadKind Move) :id 14784)
          ) (Typ MutRef (Typ TypParam "F"))
-        ) (@@ "/cargo/git/checkouts/verus-e4ebf515fa1de14c/3a4d30b/source/vstd/function.rs:151:52: 151:56 (#0)" (> ReadPlace (@@ "/cargo/git/checkouts/verus-e4ebf515fa1de14c/3a4d30b/source/vstd/function.rs:151:52: 151:56 (#0)"
+        ) (@@ "/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/vstd-0.0.0-2026-08-30-0159/function.rs:151:52: 151:56 (#0)" (>
+          ReadPlace (@@ "/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/vstd-0.0.0-2026-08-30-0159/function.rs:151:52: 151:56 (#0)"
            (Place Local (VarIdent "args" (VarIdentDisambiguate RustcId 4))) (Typ TypParam "Args")
-          ) (UnfinalizedReadKind :preliminary_kind (ReadKind Move) :id 14410)
+          ) (UnfinalizedReadKind :preliminary_kind (ReadKind Move) :id 14785)
          ) (Typ TypParam "Args")
-        ) (@@ "/cargo/git/checkouts/verus-e4ebf515fa1de14c/3a4d30b/source/vstd/function.rs:151:58: 151:64 (#0)" (> ReadPlace (@@ "/cargo/git/checkouts/verus-e4ebf515fa1de14c/3a4d30b/source/vstd/function.rs:151:58: 151:64 (#0)"
+        ) (@@ "/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/vstd-0.0.0-2026-08-30-0159/function.rs:151:58: 151:64 (#0)" (>
+          ReadPlace (@@ "/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/vstd-0.0.0-2026-08-30-0159/function.rs:151:58: 151:64 (#0)"
            (Place Local (VarIdent "output" (VarIdentDisambiguate RustcId 6))) (Typ Projection :trait_typ_args ((Typ TypParam "F") (Typ
               TypParam "Args")
             ) :trait_path core::ops::function::FnOnce :name "Output")
-          ) (UnfinalizedReadKind :preliminary_kind (ReadKind Move) :id 14411)
+          ) (UnfinalizedReadKind :preliminary_kind (ReadKind Move) :id 14786)
          ) (Typ Projection :trait_typ_args ((Typ TypParam "F") (Typ TypParam "Args")) :trait_path core::ops::function::FnOnce :name
           "Output"))
        ) :post_args None :body None
@@ -148,41 +167,42 @@
     ) (Typ Bool))
   ) :ensure (
    tuple
-   ((@@ "/cargo/git/checkouts/verus-e4ebf515fa1de14c/3a4d30b/source/vstd/function.rs:153:9: 153:66 (#0)" (> Call :target (CallTarget
-       BuiltinSpecFun (BuiltinSpecFun ClosureEns) ((Typ TypParam "F") (Typ TypParam "Args")) ()
-      ) :args ((@@ "/cargo/git/checkouts/verus-e4ebf515fa1de14c/3a4d30b/source/vstd/function.rs:153:33: 153:51 (#0)" (> Unary (UnaryOp
-          MutRefCurrent
-         ) (@@ "/cargo/git/checkouts/verus-e4ebf515fa1de14c/3a4d30b/source/vstd/function.rs:153:49: 153:50 (#0)" (> ReadPlace (@@ "/cargo/git/checkouts/verus-e4ebf515fa1de14c/3a4d30b/source/vstd/function.rs:153:49: 153:50 (#0)"
+   ((@@ "/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/vstd-0.0.0-2026-08-30-0159/function.rs:153:9: 153:66 (#0)" (> Call
+      :target (CallTarget BuiltinSpecFun (BuiltinSpecFun ClosureEns) ((Typ TypParam "F") (Typ TypParam "Args")) ()) :args ((@@ "/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/vstd-0.0.0-2026-08-30-0159/function.rs:153:33: 153:51 (#0)"
+        (> Unary (UnaryOp MutRefCurrent) (@@ "/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/vstd-0.0.0-2026-08-30-0159/function.rs:153:49: 153:50 (#0)"
+          (> ReadPlace (@@ "/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/vstd-0.0.0-2026-08-30-0159/function.rs:153:49: 153:50 (#0)"
             (Place Local (VarIdent "f" (VarIdentDisambiguate RustcId 2))) (Typ MutRef (Typ TypParam "F"))
-           ) (UnfinalizedReadKind :preliminary_kind (ReadKind Move) :id 14412)
+           ) (UnfinalizedReadKind :preliminary_kind (ReadKind Move) :id 14787)
           ) (Typ MutRef (Typ TypParam "F")))
         ) (Typ TypParam "F")
-       ) (@@ "/cargo/git/checkouts/verus-e4ebf515fa1de14c/3a4d30b/source/vstd/function.rs:153:53: 153:57 (#0)" (> ReadPlace (@@ "/cargo/git/checkouts/verus-e4ebf515fa1de14c/3a4d30b/source/vstd/function.rs:153:53: 153:57 (#0)"
+       ) (@@ "/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/vstd-0.0.0-2026-08-30-0159/function.rs:153:53: 153:57 (#0)" (>
+         ReadPlace (@@ "/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/vstd-0.0.0-2026-08-30-0159/function.rs:153:53: 153:57 (#0)"
           (Place Local (VarIdent "args" (VarIdentDisambiguate RustcId 4))) (Typ TypParam "Args")
-         ) (UnfinalizedReadKind :preliminary_kind (ReadKind Move) :id 14413)
+         ) (UnfinalizedReadKind :preliminary_kind (ReadKind Move) :id 14788)
         ) (Typ TypParam "Args")
-       ) (@@ "/cargo/git/checkouts/verus-e4ebf515fa1de14c/3a4d30b/source/vstd/function.rs:153:59: 153:65 (#0)" (> ReadPlace (@@ "/cargo/git/checkouts/verus-e4ebf515fa1de14c/3a4d30b/source/vstd/function.rs:153:59: 153:65 (#0)"
+       ) (@@ "/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/vstd-0.0.0-2026-08-30-0159/function.rs:153:59: 153:65 (#0)" (>
+         ReadPlace (@@ "/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/vstd-0.0.0-2026-08-30-0159/function.rs:153:59: 153:65 (#0)"
           (Place Local (VarIdent "output" (VarIdentDisambiguate RustcId 6))) (Typ Projection :trait_typ_args ((Typ TypParam "F") (Typ
              TypParam "Args")
            ) :trait_path core::ops::function::FnOnce :name "Output")
-         ) (UnfinalizedReadKind :preliminary_kind (ReadKind Move) :id 14414)
+         ) (UnfinalizedReadKind :preliminary_kind (ReadKind Move) :id 14789)
         ) (Typ Projection :trait_typ_args ((Typ TypParam "F") (Typ TypParam "Args")) :trait_path core::ops::function::FnOnce :name
          "Output"))
       ) :post_args None :body None
      ) (Typ Bool)
-    ) (@@ "/cargo/git/checkouts/verus-e4ebf515fa1de14c/3a4d30b/source/vstd/function.rs:154:9: 154:48 (#0)" (> Binary (BinaryOp Eq
-       Spec
-      ) (@@ "/cargo/git/checkouts/verus-e4ebf515fa1de14c/3a4d30b/source/vstd/function.rs:154:9: 154:27 (#0)" (> Unary (UnaryOp MutRefCurrent)
-        (@@ "/cargo/git/checkouts/verus-e4ebf515fa1de14c/3a4d30b/source/vstd/function.rs:154:25: 154:26 (#0)" (> ReadPlace (@@ "/cargo/git/checkouts/verus-e4ebf515fa1de14c/3a4d30b/source/vstd/function.rs:154:25: 154:26 (#0)"
+    ) (@@ "/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/vstd-0.0.0-2026-08-30-0159/function.rs:154:9: 154:48 (#0)" (> Binary
+      (BinaryOp Eq Spec) (@@ "/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/vstd-0.0.0-2026-08-30-0159/function.rs:154:9: 154:27 (#0)"
+       (> Unary (UnaryOp MutRefCurrent) (@@ "/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/vstd-0.0.0-2026-08-30-0159/function.rs:154:25: 154:26 (#0)"
+         (> ReadPlace (@@ "/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/vstd-0.0.0-2026-08-30-0159/function.rs:154:25: 154:26 (#0)"
            (Place Local (VarIdent "f" (VarIdentDisambiguate RustcId 2))) (Typ MutRef (Typ TypParam "F"))
-          ) (UnfinalizedReadKind :preliminary_kind (ReadKind Move) :id 14415)
+          ) (UnfinalizedReadKind :preliminary_kind (ReadKind Move) :id 14790)
          ) (Typ MutRef (Typ TypParam "F")))
        ) (Typ TypParam "F")
-      ) (@@ "/cargo/git/checkouts/verus-e4ebf515fa1de14c/3a4d30b/source/vstd/function.rs:154:31: 154:48 (#0)" (> Unary (UnaryOp MutRefFuture
-         (MutRefFutureSourceName MutRefFuture)
-        ) (@@ "/cargo/git/checkouts/verus-e4ebf515fa1de14c/3a4d30b/source/vstd/function.rs:154:46: 154:47 (#0)" (> ReadPlace (@@ "/cargo/git/checkouts/verus-e4ebf515fa1de14c/3a4d30b/source/vstd/function.rs:154:46: 154:47 (#0)"
+      ) (@@ "/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/vstd-0.0.0-2026-08-30-0159/function.rs:154:31: 154:48 (#0)" (>
+        Unary (UnaryOp MutRefFuture (MutRefFutureSourceName MutRefFuture)) (@@ "/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/vstd-0.0.0-2026-08-30-0159/function.rs:154:46: 154:47 (#0)"
+         (> ReadPlace (@@ "/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/vstd-0.0.0-2026-08-30-0159/function.rs:154:46: 154:47 (#0)"
            (Place Local (VarIdent "f" (VarIdentDisambiguate RustcId 2))) (Typ MutRef (Typ TypParam "F"))
-          ) (UnfinalizedReadKind :preliminary_kind (ReadKind Move) :id 14416)
+          ) (UnfinalizedReadKind :preliminary_kind (ReadKind Move) :id 14791)
          ) (Typ MutRef (Typ TypParam "F")))
        ) (Typ TypParam "F"))
      ) (Typ Bool)))
@@ -193,8 +213,9 @@
     true :invariant true
    ) :autospec None :bit_vector false :atomic false :integer_ring false :is_decrease_by false :check_recommends false :nonlinear
    false :spinoff_prover false :memoize false :rlimit None :print_zero_args false :print_as_method false :prophecy_dependent
-   false :size_of_broadcast_proof false :is_type_invariant_fn false :is_external_body true :is_unsafe false :exec_assume_termination
-   false :exec_allows_no_decreases_clause false :tracked_swap false :tracked_take_option false :is_async false
+   false :size_of_broadcast_proof false :is_type_invariant_fn false :is_external_body true :is_unsafe false :impls_cannot_extend_spec
+   false :exec_assume_termination false :exec_allows_no_decreases_clause false :tracked_swap false :tracked_take_option false
+   :is_async false
   ) :body None :extra_dependencies () :async_ret None))
 
 (@ "src/lib.rs:9:5: 9:39 (#0)" (Function
@@ -216,8 +237,9 @@
     true :invariant true
    ) :autospec None :bit_vector false :atomic false :integer_ring false :is_decrease_by false :check_recommends false :nonlinear
    false :spinoff_prover false :memoize false :rlimit None :print_zero_args false :print_as_method false :prophecy_dependent
-   false :size_of_broadcast_proof false :is_type_invariant_fn false :is_external_body false :is_unsafe false :exec_assume_termination
-   false :exec_allows_no_decreases_clause false :tracked_swap false :tracked_take_option false :is_async false
+   false :size_of_broadcast_proof false :is_type_invariant_fn false :is_external_body false :is_unsafe false :impls_cannot_extend_spec
+   false :exec_assume_termination false :exec_allows_no_decreases_clause false :tracked_swap false :tracked_take_option false
+   :is_async false
   ) :body (@@ "src/lib.rs:9:40: 9:50 (#0)" (> Block () (@@ "src/lib.rs:9:42: 9:48 (#0)" (> Binary (BinaryOp Inequality (InequalityOp
         Ge)
       ) (@@ "src/lib.rs:9:42: 9:43 (#0)" (> ReadPlace (@@ "src/lib.rs:9:42: 9:43 (#0)" (Place Local (VarIdent "i" (VarIdentDisambiguate
@@ -249,8 +271,9 @@
     true :invariant true
    ) :autospec None :bit_vector false :atomic false :integer_ring false :is_decrease_by false :check_recommends false :nonlinear
    false :spinoff_prover false :memoize false :rlimit None :print_zero_args false :print_as_method false :prophecy_dependent
-   false :size_of_broadcast_proof false :is_type_invariant_fn false :is_external_body false :is_unsafe false :exec_assume_termination
-   false :exec_allows_no_decreases_clause false :tracked_swap false :tracked_take_option false :is_async false
+   false :size_of_broadcast_proof false :is_type_invariant_fn false :is_external_body false :is_unsafe false :impls_cannot_extend_spec
+   false :exec_assume_termination false :exec_allows_no_decreases_clause false :tracked_swap false :tracked_take_option false
+   :is_async false
   ) :body (@@ "src/lib.rs:10:40: 10:49 (#0)" (> Block () (@@ "src/lib.rs:10:42: 10:47 (#0)" (> Binary (BinaryOp Inequality (InequalityOp
         Gt)
       ) (@@ "src/lib.rs:10:42: 10:43 (#0)" (> ReadPlace (@@ "src/lib.rs:10:42: 10:43 (#0)" (Place Local (VarIdent "i" (VarIdentDisambiguate
@@ -279,11 +302,12 @@
     true :invariant true
    ) :autospec None :bit_vector false :atomic false :integer_ring false :is_decrease_by false :check_recommends false :nonlinear
    false :spinoff_prover false :memoize false :rlimit None :print_zero_args true :print_as_method false :prophecy_dependent
-   false :size_of_broadcast_proof false :is_type_invariant_fn false :is_external_body false :is_unsafe false :exec_assume_termination
-   false :exec_allows_no_decreases_clause false :tracked_swap false :tracked_take_option false :is_async false
+   false :size_of_broadcast_proof false :is_type_invariant_fn false :is_external_body false :is_unsafe false :impls_cannot_extend_spec
+   false :exec_assume_termination false :exec_allows_no_decreases_clause false :tracked_swap false :tracked_take_option false
+   :is_async false
   ) :body (@@ "src/lib.rs:13:44: 13:87 (#0)" (> Block () (@@ "src/lib.rs:13:46: 13:85 (#0)" (> Quant (Forall) ((-> i~10 (Typ Int (
           IntRange Int)))
-      ) (@@ "src/lib.rs:13:61: 13:85 (#0)" (> Binary (BinaryOp Implies) (@@ "src/lib.rs:13:72: 13:76 (#0)" (> Unary (UnaryOp Trigger
+      ) (@@ "src/lib.rs:13:61: 13:85 (#0)" (> Logical (LogicalOp Implies) (@@ "src/lib.rs:13:72: 13:76 (#0)" (> Unary (UnaryOp Trigger
            (TriggerAnnotation Trigger None)
           ) (@@ "src/lib.rs:13:72: 13:76 (#0)" (> Call :target (CallTarget Fun (CallTargetKind Static) (Fun :path fx::q::p) () () (CallTargetAttrs
               :autospec (AutospecUsage IfMarked) :const_var false :assume_external_allowed false)
@@ -325,8 +349,9 @@
     true :invariant true
    ) :autospec None :bit_vector false :atomic false :integer_ring false :is_decrease_by false :check_recommends false :nonlinear
    false :spinoff_prover false :memoize false :rlimit None :print_zero_args true :print_as_method false :prophecy_dependent
-   false :size_of_broadcast_proof false :is_type_invariant_fn false :is_external_body false :is_unsafe false :exec_assume_termination
-   false :exec_allows_no_decreases_clause false :tracked_swap false :tracked_take_option false :is_async false
+   false :size_of_broadcast_proof false :is_type_invariant_fn false :is_external_body false :is_unsafe false :impls_cannot_extend_spec
+   false :exec_assume_termination false :exec_allows_no_decreases_clause false :tracked_swap false :tracked_take_option false
+   :is_async false
   ) :body (@@ "src/lib.rs:15:43: 17:6 (#0)" (> Block () (@@ "src/lib.rs:16:9: 16:71 (#0)" (> Quant (Forall) ((-> i~10 (Typ Int (IntRange
           Int)))
       ) (@@ "src/lib.rs:16:9: 16:71 (#0)" (> WithTriggers :triggers (((@@ "src/lib.rs:16:35: 16:39 (#0)" (> Call :target (CallTarget Fun
@@ -348,9 +373,9 @@
               ) (Typ Int (IntRange Int)))
             ) :post_args None :body None
            ) (Typ Bool)))
-        ) :body (@@ "src/lib.rs:16:58: 16:71 (#0)" (> Binary (BinaryOp Implies) (@@ "src/lib.rs:16:58: 16:62 (#0)" (> Call :target (CallTarget
-             Fun (CallTargetKind Static) (Fun :path fx::q::p) () () (CallTargetAttrs :autospec (AutospecUsage IfMarked) :const_var false
-              :assume_external_allowed false)
+        ) :body (@@ "src/lib.rs:16:58: 16:71 (#0)" (> Logical (LogicalOp Implies) (@@ "src/lib.rs:16:58: 16:62 (#0)" (> Call :target
+            (CallTarget Fun (CallTargetKind Static) (Fun :path fx::q::p) () () (CallTargetAttrs :autospec (AutospecUsage IfMarked) :const_var
+              false :assume_external_allowed false)
             ) :args ((@@ "src/lib.rs:16:60: 16:61 (#0)" (> ReadPlace (@@ "src/lib.rs:16:60: 16:61 (#0)" (Place Local (VarIdent "i" (VarIdentDisambiguate
                    RustcId 10))
                 ) (Typ Int (IntRange Int))
@@ -389,11 +414,12 @@
     true :invariant true
    ) :autospec None :bit_vector false :atomic false :integer_ring false :is_decrease_by false :check_recommends false :nonlinear
    false :spinoff_prover false :memoize false :rlimit None :print_zero_args true :print_as_method false :prophecy_dependent
-   false :size_of_broadcast_proof false :is_type_invariant_fn false :is_external_body false :is_unsafe false :exec_assume_termination
-   false :exec_allows_no_decreases_clause false :tracked_swap false :tracked_take_option false :is_async false
+   false :size_of_broadcast_proof false :is_type_invariant_fn false :is_external_body false :is_unsafe false :impls_cannot_extend_spec
+   false :exec_assume_termination false :exec_allows_no_decreases_clause false :tracked_swap false :tracked_take_option false
+   :is_async false
   ) :body (@@ "src/lib.rs:19:40: 19:72 (#0)" (> Block () (@@ "src/lib.rs:19:42: 19:70 (#0)" (> Quant (Forall) ((-> i~10 (Typ Int (
           IntRange Int)))
-      ) (@@ "src/lib.rs:19:57: 19:70 (#0)" (> Binary (BinaryOp Implies) (@@ "src/lib.rs:19:57: 19:61 (#0)" (> Call :target (CallTarget
+      ) (@@ "src/lib.rs:19:57: 19:70 (#0)" (> Logical (LogicalOp Implies) (@@ "src/lib.rs:19:57: 19:61 (#0)" (> Call :target (CallTarget
            Fun (CallTargetKind Static) (Fun :path fx::q::p) () () (CallTargetAttrs :autospec (AutospecUsage IfMarked) :const_var false
             :assume_external_allowed false)
           ) :args ((@@ "src/lib.rs:19:59: 19:60 (#0)" (> ReadPlace (@@ "src/lib.rs:19:59: 19:60 (#0)" (Place Local (VarIdent "i" (VarIdentDisambiguate
@@ -433,13 +459,14 @@
     true :invariant true
    ) :autospec None :bit_vector false :atomic false :integer_ring false :is_decrease_by false :check_recommends false :nonlinear
    false :spinoff_prover false :memoize false :rlimit None :print_zero_args true :print_as_method false :prophecy_dependent
-   false :size_of_broadcast_proof false :is_type_invariant_fn false :is_external_body false :is_unsafe false :exec_assume_termination
-   false :exec_allows_no_decreases_clause false :tracked_swap false :tracked_take_option false :is_async false
+   false :size_of_broadcast_proof false :is_type_invariant_fn false :is_external_body false :is_unsafe false :impls_cannot_extend_spec
+   false :exec_assume_termination false :exec_allows_no_decreases_clause false :tracked_swap false :tracked_take_option false
+   :is_async false
   ) :body (@@ "src/lib.rs:21:42: 21:83 (#0)" (> Block () (@@ "src/lib.rs:21:44: 21:81 (#0)" (> Quant (Forall) ((-> i~10 (Typ Int (
           IntRange Int)))
       ) (@@ "src/lib.rs:21:44: 21:81 (#0)" (> Unary (UnaryOp Trigger (TriggerAnnotation AutoTrigger)) (@@ "src/lib.rs:21:44: 21:81 (#0)"
-         (> Binary (BinaryOp Implies) (@@ "src/lib.rs:21:68: 21:72 (#0)" (> Call :target (CallTarget Fun (CallTargetKind Static) (Fun :path
-              fx::q::p
+         (> Logical (LogicalOp Implies) (@@ "src/lib.rs:21:68: 21:72 (#0)" (> Call :target (CallTarget Fun (CallTargetKind Static) (Fun
+              :path fx::q::p
              ) () () (CallTargetAttrs :autospec (AutospecUsage IfMarked) :const_var false :assume_external_allowed false)
             ) :args ((@@ "src/lib.rs:21:70: 21:71 (#0)" (> ReadPlace (@@ "src/lib.rs:21:70: 21:71 (#0)" (Place Local (VarIdent "i" (VarIdentDisambiguate
                    RustcId 10))
@@ -479,13 +506,14 @@
     true :invariant true
    ) :autospec None :bit_vector false :atomic false :integer_ring false :is_decrease_by false :check_recommends false :nonlinear
    false :spinoff_prover false :memoize false :rlimit None :print_zero_args true :print_as_method false :prophecy_dependent
-   false :size_of_broadcast_proof false :is_type_invariant_fn false :is_external_body false :is_unsafe false :exec_assume_termination
-   false :exec_allows_no_decreases_clause false :tracked_swap false :tracked_take_option false :is_async false
+   false :size_of_broadcast_proof false :is_type_invariant_fn false :is_external_body false :is_unsafe false :impls_cannot_extend_spec
+   false :exec_assume_termination false :exec_allows_no_decreases_clause false :tracked_swap false :tracked_take_option false
+   :is_async false
   ) :body (@@ "src/lib.rs:23:41: 23:72 (#0)" (> Block () (@@ "src/lib.rs:23:43: 23:70 (#0)" (> Quant (Exists) ((-> i~10 (Typ Int (
           IntRange Int)))
-      ) (@@ "src/lib.rs:23:58: 23:70 (#0)" (> Binary (BinaryOp And) (@@ "src/lib.rs:23:58: 23:62 (#0)" (> Call :target (CallTarget Fun
-           (CallTargetKind Static) (Fun :path fx::q::p) () () (CallTargetAttrs :autospec (AutospecUsage IfMarked) :const_var false :assume_external_allowed
-            false)
+      ) (@@ "src/lib.rs:23:58: 23:70 (#0)" (> Logical (LogicalOp And) (@@ "src/lib.rs:23:58: 23:62 (#0)" (> Call :target (CallTarget
+           Fun (CallTargetKind Static) (Fun :path fx::q::p) () () (CallTargetAttrs :autospec (AutospecUsage IfMarked) :const_var false
+            :assume_external_allowed false)
           ) :args ((@@ "src/lib.rs:23:60: 23:61 (#0)" (> ReadPlace (@@ "src/lib.rs:23:60: 23:61 (#0)" (Place Local (VarIdent "i" (VarIdentDisambiguate
                  RustcId 10))
               ) (Typ Int (IntRange Int))
@@ -523,8 +551,9 @@
     true :invariant true
    ) :autospec None :bit_vector false :atomic false :integer_ring false :is_decrease_by false :check_recommends false :nonlinear
    false :spinoff_prover false :memoize false :rlimit None :print_zero_args true :print_as_method false :prophecy_dependent
-   false :size_of_broadcast_proof false :is_type_invariant_fn false :is_external_body false :is_unsafe false :exec_assume_termination
-   false :exec_allows_no_decreases_clause false :tracked_swap false :tracked_take_option false :is_async false
+   false :size_of_broadcast_proof false :is_type_invariant_fn false :is_external_body false :is_unsafe false :impls_cannot_extend_spec
+   false :exec_assume_termination false :exec_allows_no_decreases_clause false :tracked_swap false :tracked_take_option false
+   :is_async false
   ) :body (@@ "src/lib.rs:29:33: 29:58 (#0)" (> Block (
      (@ "src/lib.rs:29:35: 29:41 (#0)" (Stmt Expr (@@ "src/lib.rs:29:35: 29:41 (#0)" (> AssertAssume :is_assume true :expr (@@ "src/lib.rs:29:42: 29:54 (#0)"
           (> Binary (BinaryOp Eq Spec) (@@ "src/lib.rs:29:42: 29:46 (#0)" (> Const (Constant Int 1)) (Typ Int (IntRange Int))) (@@ "src/lib.rs:29:50: 29:54 (#0)"
@@ -552,8 +581,9 @@
     true :invariant true
    ) :autospec None :bit_vector false :atomic false :integer_ring false :is_decrease_by false :check_recommends false :nonlinear
    false :spinoff_prover false :memoize false :rlimit None :print_zero_args true :print_as_method false :prophecy_dependent
-   false :size_of_broadcast_proof false :is_type_invariant_fn false :is_external_body false :is_unsafe false :exec_assume_termination
-   false :exec_allows_no_decreases_clause false :tracked_swap false :tracked_take_option false :is_async false
+   false :size_of_broadcast_proof false :is_type_invariant_fn false :is_external_body false :is_unsafe false :impls_cannot_extend_spec
+   false :exec_assume_termination false :exec_allows_no_decreases_clause false :tracked_swap false :tracked_take_option false
+   :is_async false
   ) :body (@@ "src/lib.rs:30:32: 30:44 (#0)" (> Block (
      (@ "src/lib.rs:30:34: 30:41 (#0)" (Stmt Expr (@@ "src/lib.rs:30:34: 30:41 (#0)" (> AssertAssume :is_assume true :expr (@@ "src/lib.rs:30:34: 30:41 (#0)"
           (> Const (Constant Bool false)) (Typ Bool)
@@ -582,8 +612,9 @@
     true :invariant true
    ) :autospec None :bit_vector false :atomic false :integer_ring false :is_decrease_by false :check_recommends false :nonlinear
    false :spinoff_prover false :memoize false :rlimit None :print_zero_args true :print_as_method false :prophecy_dependent
-   false :size_of_broadcast_proof false :is_type_invariant_fn false :is_external_body true :is_unsafe false :exec_assume_termination
-   false :exec_allows_no_decreases_clause false :tracked_swap false :tracked_take_option false :is_async false
+   false :size_of_broadcast_proof false :is_type_invariant_fn false :is_external_body true :is_unsafe false :impls_cannot_extend_spec
+   false :exec_assume_termination false :exec_allows_no_decreases_clause false :tracked_swap false :tracked_take_option false
+   :is_async false
   ) :body None :extra_dependencies () :async_ret None))
 
 (@ "src/lib.rs:34:5: 34:43 (#0)" (Function
@@ -607,8 +638,9 @@
     true :invariant true
    ) :autospec None :bit_vector false :atomic false :integer_ring false :is_decrease_by false :check_recommends false :nonlinear
    false :spinoff_prover false :memoize false :rlimit None :print_zero_args true :print_as_method false :prophecy_dependent
-   false :size_of_broadcast_proof false :is_type_invariant_fn false :is_external_body true :is_unsafe false :exec_assume_termination
-   false :exec_allows_no_decreases_clause false :tracked_swap false :tracked_take_option false :is_async false
+   false :size_of_broadcast_proof false :is_type_invariant_fn false :is_external_body true :is_unsafe false :impls_cannot_extend_spec
+   false :exec_assume_termination false :exec_allows_no_decreases_clause false :tracked_swap false :tracked_take_option false
+   :is_async false
   ) :body None :extra_dependencies () :async_ret None))
 
 (@ "src/lib.rs:36:5: 36:43 (#0)" (Function
@@ -649,8 +681,9 @@
     true :invariant true
    ) :autospec None :bit_vector false :atomic false :integer_ring false :is_decrease_by false :check_recommends false :nonlinear
    false :spinoff_prover false :memoize false :rlimit None :print_zero_args false :print_as_method false :prophecy_dependent
-   false :size_of_broadcast_proof false :is_type_invariant_fn false :is_external_body true :is_unsafe false :exec_assume_termination
-   false :exec_allows_no_decreases_clause false :tracked_swap false :tracked_take_option false :is_async false
+   false :size_of_broadcast_proof false :is_type_invariant_fn false :is_external_body true :is_unsafe false :impls_cannot_extend_spec
+   false :exec_assume_termination false :exec_allows_no_decreases_clause false :tracked_swap false :tracked_take_option false
+   :is_async false
   ) :body None :extra_dependencies () :async_ret None))
 
 (@ "src/lib.rs:37:5: 37:44 (#0)" (Function
@@ -691,8 +724,9 @@
     true :invariant true
    ) :autospec None :bit_vector false :atomic false :integer_ring false :is_decrease_by false :check_recommends false :nonlinear
    false :spinoff_prover false :memoize false :rlimit None :print_zero_args false :print_as_method false :prophecy_dependent
-   false :size_of_broadcast_proof false :is_type_invariant_fn false :is_external_body false :is_unsafe false :exec_assume_termination
-   false :exec_allows_no_decreases_clause false :tracked_swap false :tracked_take_option false :is_async false
+   false :size_of_broadcast_proof false :is_type_invariant_fn false :is_external_body false :is_unsafe false :impls_cannot_extend_spec
+   false :exec_assume_termination false :exec_allows_no_decreases_clause false :tracked_swap false :tracked_take_option false
+   :is_async false
   ) :body (@@ "src/lib.rs:37:90: 37:92 (#0)" (> Block () None) (Typ Datatype (Dt Tuple 0) () ())) :extra_dependencies () :async_ret
   None))
 
@@ -725,8 +759,9 @@
     true :invariant true
    ) :autospec None :bit_vector false :atomic false :integer_ring false :is_decrease_by false :check_recommends false :nonlinear
    false :spinoff_prover false :memoize false :rlimit None :print_zero_args false :print_as_method false :prophecy_dependent
-   false :size_of_broadcast_proof false :is_type_invariant_fn false :is_external_body false :is_unsafe false :exec_assume_termination
-   false :exec_allows_no_decreases_clause false :tracked_swap false :tracked_take_option false :is_async false
+   false :size_of_broadcast_proof false :is_type_invariant_fn false :is_external_body false :is_unsafe false :impls_cannot_extend_spec
+   false :exec_assume_termination false :exec_allows_no_decreases_clause false :tracked_swap false :tracked_take_option false
+   :is_async false
   ) :body None :extra_dependencies () :async_ret None))
 
 (@ "src/lib.rs:49:14: 49:36 (#0)" (Function
@@ -756,8 +791,9 @@
     true :invariant true
    ) :autospec None :bit_vector false :atomic false :integer_ring false :is_decrease_by false :check_recommends false :nonlinear
    false :spinoff_prover false :memoize false :rlimit None :print_zero_args false :print_as_method true :prophecy_dependent
-   false :size_of_broadcast_proof false :is_type_invariant_fn false :is_external_body false :is_unsafe false :exec_assume_termination
-   false :exec_allows_no_decreases_clause false :tracked_swap false :tracked_take_option false :is_async false
+   false :size_of_broadcast_proof false :is_type_invariant_fn false :is_external_body false :is_unsafe false :impls_cannot_extend_spec
+   false :exec_assume_termination false :exec_allows_no_decreases_clause false :tracked_swap false :tracked_take_option false
+   :is_async false
   ) :body None :extra_dependencies () :async_ret None))
 
 (@ "src/lib.rs:50:19: 50:41 (#0)" (Function
@@ -788,8 +824,9 @@
     true :invariant true
    ) :autospec None :bit_vector false :atomic false :integer_ring false :is_decrease_by false :check_recommends false :nonlinear
    false :spinoff_prover false :memoize false :rlimit None :print_zero_args false :print_as_method true :prophecy_dependent
-   false :size_of_broadcast_proof false :is_type_invariant_fn false :is_external_body false :is_unsafe false :exec_assume_termination
-   false :exec_allows_no_decreases_clause false :tracked_swap false :tracked_take_option false :is_async false
+   false :size_of_broadcast_proof false :is_type_invariant_fn false :is_external_body false :is_unsafe false :impls_cannot_extend_spec
+   false :exec_assume_termination false :exec_allows_no_decreases_clause false :tracked_swap false :tracked_take_option false
+   :is_async false
   ) :body (@@ "src/lib.rs:50:42: 50:61 (#0)" (> Block () (@@ "src/lib.rs:50:44: 50:59 (#0)" (> Binary (BinaryOp Arith (ArithOp Mul
         (OverflowBehavior Truncate (IntRange Int)))
       ) (@@ "src/lib.rs:50:44: 50:45 (#0)" (> Const (Constant Int 2)) (Typ Int (IntRange Nat))) (@@ "src/lib.rs:50:48: 50:59 (#0)"
@@ -833,8 +870,9 @@
     true :invariant true
    ) :autospec None :bit_vector false :atomic false :integer_ring false :is_decrease_by false :check_recommends false :nonlinear
    false :spinoff_prover false :memoize false :rlimit None :print_zero_args false :print_as_method true :prophecy_dependent
-   false :size_of_broadcast_proof false :is_type_invariant_fn false :is_external_body false :is_unsafe false :exec_assume_termination
-   false :exec_allows_no_decreases_clause false :tracked_swap false :tracked_take_option false :is_async false
+   false :size_of_broadcast_proof false :is_type_invariant_fn false :is_external_body false :is_unsafe false :impls_cannot_extend_spec
+   false :exec_assume_termination false :exec_allows_no_decreases_clause false :tracked_swap false :tracked_take_option false
+   :is_async false
   ) :body None :extra_dependencies () :async_ret None))
 
 (@ "src/lib.rs:56:19: 56:40 (#0)" (Function
@@ -861,8 +899,9 @@
     true :invariant true
    ) :autospec None :bit_vector false :atomic false :integer_ring false :is_decrease_by false :check_recommends false :nonlinear
    false :spinoff_prover false :memoize false :rlimit None :print_zero_args false :print_as_method true :prophecy_dependent
-   false :size_of_broadcast_proof false :is_type_invariant_fn false :is_external_body false :is_unsafe false :exec_assume_termination
-   false :exec_allows_no_decreases_clause false :tracked_swap false :tracked_take_option false :is_async false
+   false :size_of_broadcast_proof false :is_type_invariant_fn false :is_external_body false :is_unsafe false :impls_cannot_extend_spec
+   false :exec_assume_termination false :exec_allows_no_decreases_clause false :tracked_swap false :tracked_take_option false
+   :is_async false
   ) :body (@@ "src/lib.rs:56:41: 56:60 (#0)" (> Block () (@@ "src/lib.rs:56:43: 56:58 (#0)" (> Binary (BinaryOp Arith (ArithOp Mul
         (OverflowBehavior Truncate (IntRange Int)))
       ) (@@ "src/lib.rs:56:43: 56:49 (#0)" (> ReadPlace (@@ "src/lib.rs:56:43: 56:49 (#0)" (Place Field (FieldOpr :datatype (Dt Path
@@ -911,8 +950,9 @@
     true :invariant true
    ) :autospec None :bit_vector false :atomic false :integer_ring false :is_decrease_by false :check_recommends false :nonlinear
    false :spinoff_prover false :memoize false :rlimit None :print_zero_args false :print_as_method true :prophecy_dependent
-   false :size_of_broadcast_proof false :is_type_invariant_fn false :is_external_body false :is_unsafe false :exec_assume_termination
-   false :exec_allows_no_decreases_clause false :tracked_swap false :tracked_take_option false :is_async false
+   false :size_of_broadcast_proof false :is_type_invariant_fn false :is_external_body false :is_unsafe false :impls_cannot_extend_spec
+   false :exec_assume_termination false :exec_allows_no_decreases_clause false :tracked_swap false :tracked_take_option false
+   :is_async false
   ) :body (@@ "src/lib.rs:57:45: 57:50 (#0)" (> Block () (@@ "src/lib.rs:57:47: 57:48 (#0)" (> Const (Constant Int 1)) (Typ Int
       (IntRange Int)))
    ) (Typ Int (IntRange Int))
@@ -942,8 +982,9 @@
     true :invariant true
    ) :autospec None :bit_vector false :atomic false :integer_ring false :is_decrease_by false :check_recommends false :nonlinear
    false :spinoff_prover false :memoize false :rlimit None :print_zero_args false :print_as_method true :prophecy_dependent
-   false :size_of_broadcast_proof false :is_type_invariant_fn false :is_external_body false :is_unsafe false :exec_assume_termination
-   false :exec_allows_no_decreases_clause false :tracked_swap false :tracked_take_option false :is_async false
+   false :size_of_broadcast_proof false :is_type_invariant_fn false :is_external_body false :is_unsafe false :impls_cannot_extend_spec
+   false :exec_assume_termination false :exec_allows_no_decreases_clause false :tracked_swap false :tracked_take_option false
+   :is_async false
   ) :body (@@ "src/lib.rs:60:41: 60:64 (#0)" (> Block () (@@ "src/lib.rs:60:43: 60:62 (#0)" (> Binary (BinaryOp Arith (ArithOp Mul
         (OverflowBehavior Truncate (IntRange Int)))
       ) (@@ "src/lib.rs:60:43: 60:53 (#0)" (> Binary (BinaryOp Arith (ArithOp Mul (OverflowBehavior Truncate (IntRange Int)))) (@@
@@ -995,8 +1036,9 @@
     true :invariant true
    ) :autospec None :bit_vector false :atomic false :integer_ring false :is_decrease_by false :check_recommends false :nonlinear
    false :spinoff_prover false :memoize false :rlimit None :print_zero_args false :print_as_method true :prophecy_dependent
-   false :size_of_broadcast_proof false :is_type_invariant_fn false :is_external_body false :is_unsafe false :exec_assume_termination
-   false :exec_allows_no_decreases_clause false :tracked_swap false :tracked_take_option false :is_async false
+   false :size_of_broadcast_proof false :is_type_invariant_fn false :is_external_body false :is_unsafe false :impls_cannot_extend_spec
+   false :exec_assume_termination false :exec_allows_no_decreases_clause false :tracked_swap false :tracked_take_option false
+   :is_async false
   ) :body (@@ "src/lib.rs:61:42: 61:65 (#0)" (> Block () (@@ "src/lib.rs:61:44: 61:63 (#0)" (> Binary (BinaryOp Arith (ArithOp Mul
         (OverflowBehavior Truncate (IntRange Int)))
       ) (@@ "src/lib.rs:61:44: 61:54 (#0)" (> Binary (BinaryOp Arith (ArithOp Mul (OverflowBehavior Truncate (IntRange Int)))) (@@
@@ -1048,8 +1090,9 @@
     true :invariant true
    ) :autospec None :bit_vector false :atomic false :integer_ring false :is_decrease_by false :check_recommends false :nonlinear
    false :spinoff_prover false :memoize false :rlimit None :print_zero_args false :print_as_method true :prophecy_dependent
-   false :size_of_broadcast_proof false :is_type_invariant_fn false :is_external_body false :is_unsafe false :exec_assume_termination
-   false :exec_allows_no_decreases_clause false :tracked_swap false :tracked_take_option false :is_async false
+   false :size_of_broadcast_proof false :is_type_invariant_fn false :is_external_body false :is_unsafe false :impls_cannot_extend_spec
+   false :exec_assume_termination false :exec_allows_no_decreases_clause false :tracked_swap false :tracked_take_option false
+   :is_async false
   ) :body (@@ "src/lib.rs:62:45: 62:50 (#0)" (> Block () (@@ "src/lib.rs:62:47: 62:48 (#0)" (> Const (Constant Int 2)) (Typ Int
       (IntRange Int)))
    ) (Typ Int (IntRange Int))
@@ -1080,8 +1123,9 @@
     true :invariant true
    ) :autospec None :bit_vector false :atomic false :integer_ring false :is_decrease_by false :check_recommends false :nonlinear
    false :spinoff_prover false :memoize false :rlimit None :print_zero_args false :print_as_method false :prophecy_dependent
-   false :size_of_broadcast_proof false :is_type_invariant_fn false :is_external_body false :is_unsafe false :exec_assume_termination
-   false :exec_allows_no_decreases_clause false :tracked_swap false :tracked_take_option false :is_async false
+   false :size_of_broadcast_proof false :is_type_invariant_fn false :is_external_body false :is_unsafe false :impls_cannot_extend_spec
+   false :exec_assume_termination false :exec_allows_no_decreases_clause false :tracked_swap false :tracked_take_option false
+   :is_async false
   ) :body (@@ "src/lib.rs:64:55: 64:68 (#0)" (> Block () (@@ "src/lib.rs:64:57: 64:66 (#0)" (> Call :target (CallTarget Fun (CallTargetKind
         Dynamic
        ) (Fun :path fx::tr::Shape::twice) ((Typ TypParam "S")) () (CallTargetAttrs :autospec (AutospecUsage IfMarked) :const_var
@@ -1092,42 +1136,6 @@
          ) (UnfinalizedReadKind :preliminary_kind (ReadKind ImmutBor) :id 28)
         ) (Typ Decorate (TypDecoration Ref) None (Typ TypParam "S")))
       ) :post_args None :body None
-     ) (Typ Int (IntRange Int)))
-   ) (Typ Int (IntRange Int))
-  ) :extra_dependencies () :async_ret None))
-
-(@ "src/lib.rs:70:5: 70:36 (#0)" (Function
-  :name (Fun :path fx::dt::impl&%0::arrow_w) :proxy None :kind (FunctionKind Static) :visibility (Visibility :restricted_to
-   None
-  ) :body_visibility (BodyVisibility Visibility (Visibility :restricted_to None)) :opaqueness (Opaqueness Revealed :visibility
-   (Visibility :restricted_to None)
-  ) :owning_module fx::dt :mode Spec :typ_params () :typ_bounds () :params (
-   (@ "src/lib.rs:70:5: 70:40 (#0)" (Param :name (VarIdent "self" (VarIdentDisambiguate RustcId 2)) :typ (Typ Datatype (Dt Path
-       fx::dt::E
-      ) () ()
-     ) :mode Spec :user_mut false :unwrapped_info None))
-  ) :ret (@ "src/lib.rs:70:33: 70:36 (#0)" (Param :name (VarIdent "%return" (VarIdentDisambiguate AirLocal)) :typ (Typ Int (IntRange
-      Int)
-    ) :mode Spec :user_mut false :unwrapped_info None)
-  ) :ens_has_return true :require () :ensure (
-   tuple
-   ()
-   ()
-  ) :returns None :decrease () :decrease_when None :decrease_by None :fndef_axioms None :mask_spec None :atomic_update None
-  :unwind_spec None :item_kind (ItemKind Function) :attrs (FunctionAttrs :uses_ghost_blocks true :inline true :hidden () :broadcast_forall
-   false :broadcast_forall_only false :no_auto_trigger false :auto_ext_equal (AutoExtEqual :assert true :assert_by true :ensures
-    true :invariant true
-   ) :autospec None :bit_vector false :atomic false :integer_ring false :is_decrease_by false :check_recommends false :nonlinear
-   false :spinoff_prover false :memoize false :rlimit None :print_zero_args false :print_as_method true :prophecy_dependent
-   false :size_of_broadcast_proof false :is_type_invariant_fn false :is_external_body false :is_unsafe false :exec_assume_termination
-   false :exec_allows_no_decreases_clause false :tracked_swap false :tracked_take_option false :is_async false
-  ) :body (@@ "src/lib.rs:70:5: 70:40 (#0)" (> Block () (@@ "src/lib.rs:70:5: 70:40 (#0)" (> UnaryOpr (UnaryOpr Field (FieldOpr :datatype
-        (Dt Path fx::dt::E) :variant "B" :field "w" :get_variant true :check (VariantCheck None))
-      ) (@@ "src/lib.rs:70:5: 70:40 (#0)" (> ReadPlace (@@ "src/lib.rs:70:5: 70:40 (#0)" (Place Local (VarIdent "self" (VarIdentDisambiguate
-            RustcId 2))
-         ) (Typ Datatype (Dt Path fx::dt::E) () ())
-        ) (UnfinalizedReadKind :preliminary_kind (ReadKind Move) :id 29)
-       ) (Typ Datatype (Dt Path fx::dt::E) () ()))
      ) (Typ Int (IntRange Int)))
    ) (Typ Int (IntRange Int))
   ) :extra_dependencies () :async_ret None))
@@ -1145,7 +1153,14 @@
   ) :ret (@ "src/lib.rs:70:20: 70:23 (#0)" (Param :name (VarIdent "%return" (VarIdentDisambiguate AirLocal)) :typ (Typ Int (IntRange
       Int)
     ) :mode Spec :user_mut false :unwrapped_info None)
-  ) :ens_has_return true :require () :ensure (
+  ) :ens_has_return true :require (
+   (@@ "src/lib.rs:70:5: 70:40 (#0)" (> UnaryOpr (UnaryOpr IsVariant :datatype (Dt Path fx::dt::E) :variant "A") (@@ "src/lib.rs:70:5: 70:40 (#0)"
+      (> ReadPlace (@@ "src/lib.rs:70:5: 70:40 (#0)" (Place Local (VarIdent "self" (VarIdentDisambiguate RustcId 2))) (Typ Datatype
+         (Dt Path fx::dt::E) () ())
+       ) (UnfinalizedReadKind :preliminary_kind (ReadKind ImmutBor) :id 29)
+      ) (Typ Decorate (TypDecoration Ref) None (Typ Datatype (Dt Path fx::dt::E) () ())))
+    ) (Typ Bool))
+  ) :ensure (
    tuple
    ()
    ()
@@ -1155,14 +1170,59 @@
     true :invariant true
    ) :autospec None :bit_vector false :atomic false :integer_ring false :is_decrease_by false :check_recommends false :nonlinear
    false :spinoff_prover false :memoize false :rlimit None :print_zero_args false :print_as_method true :prophecy_dependent
-   false :size_of_broadcast_proof false :is_type_invariant_fn false :is_external_body false :is_unsafe false :exec_assume_termination
-   false :exec_allows_no_decreases_clause false :tracked_swap false :tracked_take_option false :is_async false
+   false :size_of_broadcast_proof false :is_type_invariant_fn false :is_external_body false :is_unsafe false :impls_cannot_extend_spec
+   false :exec_assume_termination false :exec_allows_no_decreases_clause false :tracked_swap false :tracked_take_option false
+   :is_async false
   ) :body (@@ "src/lib.rs:70:5: 70:40 (#0)" (> Block () (@@ "src/lib.rs:70:5: 70:40 (#0)" (> UnaryOpr (UnaryOpr Field (FieldOpr :datatype
-        (Dt Path fx::dt::E) :variant "A" :field "0" :get_variant true :check (VariantCheck None))
+        (Dt Path fx::dt::E) :variant "A" :field "0" :get_variant true :check (VariantCheck Recommends))
       ) (@@ "src/lib.rs:70:5: 70:40 (#0)" (> ReadPlace (@@ "src/lib.rs:70:5: 70:40 (#0)" (Place Local (VarIdent "self" (VarIdentDisambiguate
             RustcId 2))
          ) (Typ Datatype (Dt Path fx::dt::E) () ())
         ) (UnfinalizedReadKind :preliminary_kind (ReadKind Move) :id 30)
+       ) (Typ Datatype (Dt Path fx::dt::E) () ()))
+     ) (Typ Int (IntRange Int)))
+   ) (Typ Int (IntRange Int))
+  ) :extra_dependencies () :async_ret None))
+
+(@ "src/lib.rs:70:5: 70:36 (#0)" (Function
+  :name (Fun :path fx::dt::impl&%0::arrow_w) :proxy None :kind (FunctionKind Static) :visibility (Visibility :restricted_to
+   None
+  ) :body_visibility (BodyVisibility Visibility (Visibility :restricted_to None)) :opaqueness (Opaqueness Revealed :visibility
+   (Visibility :restricted_to None)
+  ) :owning_module fx::dt :mode Spec :typ_params () :typ_bounds () :params (
+   (@ "src/lib.rs:70:5: 70:40 (#0)" (Param :name (VarIdent "self" (VarIdentDisambiguate RustcId 2)) :typ (Typ Datatype (Dt Path
+       fx::dt::E
+      ) () ()
+     ) :mode Spec :user_mut false :unwrapped_info None))
+  ) :ret (@ "src/lib.rs:70:33: 70:36 (#0)" (Param :name (VarIdent "%return" (VarIdentDisambiguate AirLocal)) :typ (Typ Int (IntRange
+      Int)
+    ) :mode Spec :user_mut false :unwrapped_info None)
+  ) :ens_has_return true :require (
+   (@@ "src/lib.rs:70:5: 70:40 (#0)" (> UnaryOpr (UnaryOpr IsVariant :datatype (Dt Path fx::dt::E) :variant "B") (@@ "src/lib.rs:70:5: 70:40 (#0)"
+      (> ReadPlace (@@ "src/lib.rs:70:5: 70:40 (#0)" (Place Local (VarIdent "self" (VarIdentDisambiguate RustcId 2))) (Typ Datatype
+         (Dt Path fx::dt::E) () ())
+       ) (UnfinalizedReadKind :preliminary_kind (ReadKind ImmutBor) :id 31)
+      ) (Typ Decorate (TypDecoration Ref) None (Typ Datatype (Dt Path fx::dt::E) () ())))
+    ) (Typ Bool))
+  ) :ensure (
+   tuple
+   ()
+   ()
+  ) :returns None :decrease () :decrease_when None :decrease_by None :fndef_axioms None :mask_spec None :atomic_update None
+  :unwind_spec None :item_kind (ItemKind Function) :attrs (FunctionAttrs :uses_ghost_blocks true :inline true :hidden () :broadcast_forall
+   false :broadcast_forall_only false :no_auto_trigger false :auto_ext_equal (AutoExtEqual :assert true :assert_by true :ensures
+    true :invariant true
+   ) :autospec None :bit_vector false :atomic false :integer_ring false :is_decrease_by false :check_recommends false :nonlinear
+   false :spinoff_prover false :memoize false :rlimit None :print_zero_args false :print_as_method true :prophecy_dependent
+   false :size_of_broadcast_proof false :is_type_invariant_fn false :is_external_body false :is_unsafe false :impls_cannot_extend_spec
+   false :exec_assume_termination false :exec_allows_no_decreases_clause false :tracked_swap false :tracked_take_option false
+   :is_async false
+  ) :body (@@ "src/lib.rs:70:5: 70:40 (#0)" (> Block () (@@ "src/lib.rs:70:5: 70:40 (#0)" (> UnaryOpr (UnaryOpr Field (FieldOpr :datatype
+        (Dt Path fx::dt::E) :variant "B" :field "w" :get_variant true :check (VariantCheck Recommends))
+      ) (@@ "src/lib.rs:70:5: 70:40 (#0)" (> ReadPlace (@@ "src/lib.rs:70:5: 70:40 (#0)" (Place Local (VarIdent "self" (VarIdentDisambiguate
+            RustcId 2))
+         ) (Typ Datatype (Dt Path fx::dt::E) () ())
+        ) (UnfinalizedReadKind :preliminary_kind (ReadKind Move) :id 32)
        ) (Typ Datatype (Dt Path fx::dt::E) () ()))
      ) (Typ Int (IntRange Int)))
    ) (Typ Int (IntRange Int))
@@ -1181,7 +1241,14 @@
   ) :ret (@ "src/lib.rs:70:20: 70:23 (#0)" (Param :name (VarIdent "%return" (VarIdentDisambiguate AirLocal)) :typ (Typ Int (IntRange
       Int)
     ) :mode Spec :user_mut false :unwrapped_info None)
-  ) :ens_has_return true :require () :ensure (
+  ) :ens_has_return true :require (
+   (@@ "src/lib.rs:70:5: 70:40 (#0)" (> UnaryOpr (UnaryOpr IsVariant :datatype (Dt Path fx::dt::E) :variant "A") (@@ "src/lib.rs:70:5: 70:40 (#0)"
+      (> ReadPlace (@@ "src/lib.rs:70:5: 70:40 (#0)" (Place Local (VarIdent "self" (VarIdentDisambiguate RustcId 2))) (Typ Datatype
+         (Dt Path fx::dt::E) () ())
+       ) (UnfinalizedReadKind :preliminary_kind (ReadKind ImmutBor) :id 33)
+      ) (Typ Decorate (TypDecoration Ref) None (Typ Datatype (Dt Path fx::dt::E) () ())))
+    ) (Typ Bool))
+  ) :ensure (
    tuple
    ()
    ()
@@ -1191,14 +1258,15 @@
     true :invariant true
    ) :autospec None :bit_vector false :atomic false :integer_ring false :is_decrease_by false :check_recommends false :nonlinear
    false :spinoff_prover false :memoize false :rlimit None :print_zero_args false :print_as_method true :prophecy_dependent
-   false :size_of_broadcast_proof false :is_type_invariant_fn false :is_external_body false :is_unsafe false :exec_assume_termination
-   false :exec_allows_no_decreases_clause false :tracked_swap false :tracked_take_option false :is_async false
+   false :size_of_broadcast_proof false :is_type_invariant_fn false :is_external_body false :is_unsafe false :impls_cannot_extend_spec
+   false :exec_assume_termination false :exec_allows_no_decreases_clause false :tracked_swap false :tracked_take_option false
+   :is_async false
   ) :body (@@ "src/lib.rs:70:5: 70:40 (#0)" (> Block () (@@ "src/lib.rs:70:5: 70:40 (#0)" (> UnaryOpr (UnaryOpr Field (FieldOpr :datatype
-        (Dt Path fx::dt::E) :variant "A" :field "0" :get_variant true :check (VariantCheck None))
+        (Dt Path fx::dt::E) :variant "A" :field "0" :get_variant true :check (VariantCheck Recommends))
       ) (@@ "src/lib.rs:70:5: 70:40 (#0)" (> ReadPlace (@@ "src/lib.rs:70:5: 70:40 (#0)" (Place Local (VarIdent "self" (VarIdentDisambiguate
             RustcId 2))
          ) (Typ Datatype (Dt Path fx::dt::E) () ())
-        ) (UnfinalizedReadKind :preliminary_kind (ReadKind Move) :id 31)
+        ) (UnfinalizedReadKind :preliminary_kind (ReadKind Move) :id 34)
        ) (Typ Datatype (Dt Path fx::dt::E) () ()))
      ) (Typ Int (IntRange Int)))
    ) (Typ Int (IntRange Int))
@@ -1217,7 +1285,14 @@
   ) :ret (@ "src/lib.rs:70:33: 70:36 (#0)" (Param :name (VarIdent "%return" (VarIdentDisambiguate AirLocal)) :typ (Typ Int (IntRange
       Int)
     ) :mode Spec :user_mut false :unwrapped_info None)
-  ) :ens_has_return true :require () :ensure (
+  ) :ens_has_return true :require (
+   (@@ "src/lib.rs:70:5: 70:40 (#0)" (> UnaryOpr (UnaryOpr IsVariant :datatype (Dt Path fx::dt::E) :variant "B") (@@ "src/lib.rs:70:5: 70:40 (#0)"
+      (> ReadPlace (@@ "src/lib.rs:70:5: 70:40 (#0)" (Place Local (VarIdent "self" (VarIdentDisambiguate RustcId 2))) (Typ Datatype
+         (Dt Path fx::dt::E) () ())
+       ) (UnfinalizedReadKind :preliminary_kind (ReadKind ImmutBor) :id 35)
+      ) (Typ Decorate (TypDecoration Ref) None (Typ Datatype (Dt Path fx::dt::E) () ())))
+    ) (Typ Bool))
+  ) :ensure (
    tuple
    ()
    ()
@@ -1227,14 +1302,15 @@
     true :invariant true
    ) :autospec None :bit_vector false :atomic false :integer_ring false :is_decrease_by false :check_recommends false :nonlinear
    false :spinoff_prover false :memoize false :rlimit None :print_zero_args false :print_as_method true :prophecy_dependent
-   false :size_of_broadcast_proof false :is_type_invariant_fn false :is_external_body false :is_unsafe false :exec_assume_termination
-   false :exec_allows_no_decreases_clause false :tracked_swap false :tracked_take_option false :is_async false
+   false :size_of_broadcast_proof false :is_type_invariant_fn false :is_external_body false :is_unsafe false :impls_cannot_extend_spec
+   false :exec_assume_termination false :exec_allows_no_decreases_clause false :tracked_swap false :tracked_take_option false
+   :is_async false
   ) :body (@@ "src/lib.rs:70:5: 70:40 (#0)" (> Block () (@@ "src/lib.rs:70:5: 70:40 (#0)" (> UnaryOpr (UnaryOpr Field (FieldOpr :datatype
-        (Dt Path fx::dt::E) :variant "B" :field "w" :get_variant true :check (VariantCheck None))
+        (Dt Path fx::dt::E) :variant "B" :field "w" :get_variant true :check (VariantCheck Recommends))
       ) (@@ "src/lib.rs:70:5: 70:40 (#0)" (> ReadPlace (@@ "src/lib.rs:70:5: 70:40 (#0)" (Place Local (VarIdent "self" (VarIdentDisambiguate
             RustcId 2))
          ) (Typ Datatype (Dt Path fx::dt::E) () ())
-        ) (UnfinalizedReadKind :preliminary_kind (ReadKind Move) :id 32)
+        ) (UnfinalizedReadKind :preliminary_kind (ReadKind Move) :id 36)
        ) (Typ Datatype (Dt Path fx::dt::E) () ()))
      ) (Typ Int (IntRange Int)))
    ) (Typ Int (IntRange Int))
@@ -1261,8 +1337,9 @@
     true :invariant true
    ) :autospec None :bit_vector false :atomic false :integer_ring false :is_decrease_by false :check_recommends false :nonlinear
    false :spinoff_prover false :memoize false :rlimit None :print_zero_args false :print_as_method false :prophecy_dependent
-   false :size_of_broadcast_proof false :is_type_invariant_fn false :is_external_body false :is_unsafe false :exec_assume_termination
-   false :exec_allows_no_decreases_clause false :tracked_swap false :tracked_take_option false :is_async false
+   false :size_of_broadcast_proof false :is_type_invariant_fn false :is_external_body false :is_unsafe false :impls_cannot_extend_spec
+   false :exec_assume_termination false :exec_allows_no_decreases_clause false :tracked_swap false :tracked_take_option false
+   :is_async false
   ) :body (@@ "src/lib.rs:71:41: 71:86 (#0)" (> Block () (@@ "src/lib.rs:71:43: 71:84 (#0)" (> Match (@@ "src/lib.rs:71:49: 71:50 (#0)"
        (Place Local (VarIdent "e" (VarIdentDisambiguate RustcId 2))) (Typ Datatype (Dt Path fx::dt::E) () ())
       ) ((@ "src/lib.rs:71:53: 71:65 (#0)" (Arm :pattern (@@ "src/lib.rs:71:53: 71:60 (#0)" (Pattern Constructor (Dt Path fx::dt::E)
@@ -1273,7 +1350,7 @@
          ) :guard (@@ "src/lib.rs:71:49: 71:50 (#0)" (> Const (Constant Bool true)) (Typ Bool)) :body (@@ "src/lib.rs:71:64: 71:65 (#0)"
           (> ReadPlace (@@ "src/lib.rs:71:64: 71:65 (#0)" (Place Local (VarIdent "x" (VarIdentDisambiguate RustcId 10))) (Typ Int (IntRange
               Int))
-           ) (UnfinalizedReadKind :preliminary_kind (ReadKind Copy) :id 33)
+           ) (UnfinalizedReadKind :preliminary_kind (ReadKind Copy) :id 37)
           ) (Typ Int (IntRange Int))))
        ) (@ "src/lib.rs:71:67: 71:82 (#0)" (Arm :pattern (@@ "src/lib.rs:71:67: 71:77 (#0)" (Pattern Constructor (Dt Path fx::dt::E)
            "B" ((-> w (@@ "src/lib.rs:71:74: 71:75 (#0)" (Pattern Var (PatternBinding :name (VarIdent "w" (VarIdentDisambiguate RustcId 18))
@@ -1283,8 +1360,9 @@
          ) :guard (@@ "src/lib.rs:71:49: 71:50 (#0)" (> Const (Constant Bool true)) (Typ Bool)) :body (@@ "src/lib.rs:71:81: 71:82 (#0)"
           (> ReadPlace (@@ "src/lib.rs:71:81: 71:82 (#0)" (Place Local (VarIdent "w" (VarIdentDisambiguate RustcId 18))) (Typ Int (IntRange
               Int))
-           ) (UnfinalizedReadKind :preliminary_kind (ReadKind Copy) :id 34)
-          ) (Typ Int (IntRange Int))))))
+           ) (UnfinalizedReadKind :preliminary_kind (ReadKind Copy) :id 38)
+          ) (Typ Int (IntRange Int)))))
+      ) false
      ) (Typ Int (IntRange Int)))
    ) (Typ Int (IntRange Int))
   ) :extra_dependencies () :async_ret None))
@@ -1305,8 +1383,9 @@
     true :invariant true
    ) :autospec None :bit_vector false :atomic false :integer_ring false :is_decrease_by false :check_recommends false :nonlinear
    false :spinoff_prover false :memoize false :rlimit None :print_zero_args true :print_as_method false :prophecy_dependent
-   false :size_of_broadcast_proof false :is_type_invariant_fn false :is_external_body false :is_unsafe false :exec_assume_termination
-   false :exec_allows_no_decreases_clause false :tracked_swap false :tracked_take_option false :is_async false
+   false :size_of_broadcast_proof false :is_type_invariant_fn false :is_external_body false :is_unsafe false :impls_cannot_extend_spec
+   false :exec_assume_termination false :exec_allows_no_decreases_clause false :tracked_swap false :tracked_take_option false
+   :is_async false
   ) :body (@@ "src/lib.rs:78:31: 78:48 (#0)" (> Block (
      (@ "src/lib.rs:78:33: 78:39 (#0)" (Stmt Expr (@@ "src/lib.rs:78:33: 78:39 (#0)" (> AssertAssume :is_assume false :expr (@@ "src/lib.rs:78:40: 78:44 (#0)"
           (> Call :target (CallTarget Fun (CallTargetKind Static) (Fun :path fx::q::p) () () (CallTargetAttrs :autospec (AutospecUsage
@@ -1337,8 +1416,9 @@
     true :invariant true
    ) :autospec None :bit_vector false :atomic false :integer_ring false :is_decrease_by false :check_recommends false :nonlinear
    false :spinoff_prover false :memoize false :rlimit None :print_zero_args true :print_as_method false :prophecy_dependent
-   false :size_of_broadcast_proof false :is_type_invariant_fn false :is_external_body false :is_unsafe false :exec_assume_termination
-   false :exec_allows_no_decreases_clause false :tracked_swap false :tracked_take_option false :is_async false
+   false :size_of_broadcast_proof false :is_type_invariant_fn false :is_external_body false :is_unsafe false :impls_cannot_extend_spec
+   false :exec_assume_termination false :exec_allows_no_decreases_clause false :tracked_swap false :tracked_take_option false
+   :is_async false
   ) :body (@@ "src/lib.rs:79:36: 79:53 (#0)" (> Block (
      (@ "src/lib.rs:79:38: 79:44 (#0)" (Stmt Expr (@@ "src/lib.rs:79:38: 79:44 (#0)" (> AssertAssume :is_assume false :expr (@@ "src/lib.rs:79:45: 79:49 (#0)"
           (> Call :target (CallTarget Fun (CallTargetKind Static) (Fun :path fx::q::p) () () (CallTargetAttrs :autospec (AutospecUsage
@@ -1368,8 +1448,9 @@
     true :invariant true
    ) :autospec None :bit_vector false :atomic false :integer_ring false :is_decrease_by false :check_recommends false :nonlinear
    false :spinoff_prover false :memoize false :rlimit None :print_zero_args true :print_as_method false :prophecy_dependent
-   false :size_of_broadcast_proof false :is_type_invariant_fn false :is_external_body false :is_unsafe false :exec_assume_termination
-   false :exec_allows_no_decreases_clause false :tracked_swap false :tracked_take_option false :is_async false
+   false :size_of_broadcast_proof false :is_type_invariant_fn false :is_external_body false :is_unsafe false :impls_cannot_extend_spec
+   false :exec_assume_termination false :exec_allows_no_decreases_clause false :tracked_swap false :tracked_take_option false
+   :is_async false
   ) :body (@@ "src/lib.rs:80:33: 80:52 (#0)" (> Block (
      (@ "src/lib.rs:80:35: 80:49 (#0)" (Stmt Expr (@@ "src/lib.rs:80:35: 80:49 (#0)" (> Call :target (CallTarget Fun (CallTargetKind
            Static
@@ -1397,8 +1478,9 @@
     true :invariant true
    ) :autospec None :bit_vector false :atomic false :integer_ring false :is_decrease_by false :check_recommends false :nonlinear
    false :spinoff_prover false :memoize false :rlimit None :print_zero_args true :print_as_method false :prophecy_dependent
-   false :size_of_broadcast_proof false :is_type_invariant_fn false :is_external_body false :is_unsafe false :exec_assume_termination
-   false :exec_allows_no_decreases_clause false :tracked_swap false :tracked_take_option false :is_async false
+   false :size_of_broadcast_proof false :is_type_invariant_fn false :is_external_body false :is_unsafe false :impls_cannot_extend_spec
+   false :exec_assume_termination false :exec_allows_no_decreases_clause false :tracked_swap false :tracked_take_option false
+   :is_async false
   ) :body (@@ "src/lib.rs:81:33: 81:52 (#0)" (> Block (
      (@ "src/lib.rs:81:35: 81:49 (#0)" (Stmt Expr (@@ "src/lib.rs:81:35: 81:49 (#0)" (> Call :target (CallTarget Fun (CallTargetKind
            Static
@@ -1426,8 +1508,9 @@
     true :invariant true
    ) :autospec None :bit_vector false :atomic false :integer_ring false :is_decrease_by false :check_recommends false :nonlinear
    false :spinoff_prover false :memoize false :rlimit None :print_zero_args true :print_as_method false :prophecy_dependent
-   false :size_of_broadcast_proof false :is_type_invariant_fn false :is_external_body false :is_unsafe false :exec_assume_termination
-   false :exec_allows_no_decreases_clause false :tracked_swap false :tracked_take_option false :is_async false
+   false :size_of_broadcast_proof false :is_type_invariant_fn false :is_external_body false :is_unsafe false :impls_cannot_extend_spec
+   false :exec_assume_termination false :exec_allows_no_decreases_clause false :tracked_swap false :tracked_take_option false
+   :is_async false
   ) :body (@@ "src/lib.rs:82:32: 86:6 (#0)" (> Block (
      (@ "src/lib.rs:83:9: 83:21 (#0)" (Stmt Expr (@@ "src/lib.rs:83:9: 83:21 (#0)" (> Call :target (CallTarget Fun (CallTargetKind Static)
           (Fun :path fx::live::lemma_used) () () (CallTargetAttrs :autospec (AutospecUsage IfMarked) :const_var false :assume_external_allowed
@@ -1443,7 +1526,7 @@
            None
           ) (Typ Datatype (Dt Path fx::tr::Sq) () ()))
         ) (Typ Datatype (Dt Path fx::tr::Sq) () ())
-       ) :els None))
+       ) :els None :assert_irrefutable false))
      (@ "src/lib.rs:85:9: 85:15 (#0)" (Stmt Expr (@@ "src/lib.rs:85:9: 85:15 (#0)" (> AssertAssume :is_assume false :expr (@@ "src/lib.rs:85:16: 85:66 (#0)"
           (> Binary (BinaryOp Eq Spec) (@@ "src/lib.rs:85:16: 85:39 (#0)" (> Call :target (CallTarget Fun (CallTargetKind Static) (Fun :path
                fx::tr::use_shape
@@ -1453,7 +1536,7 @@
              ) :args ((@@ "src/lib.rs:85:37: 85:38 (#0)" (> ReadPlace (@@ "src/lib.rs:85:37: 85:38 (#0)" (Place Local (VarIdent "s" (VarIdentDisambiguate
                     RustcId 20))
                  ) (Typ Datatype (Dt Path fx::tr::Sq) () ())
-                ) (UnfinalizedReadKind :preliminary_kind (ReadKind Move) :id 35)
+                ) (UnfinalizedReadKind :preliminary_kind (ReadKind Move) :id 39)
                ) (Typ Datatype (Dt Path fx::tr::Sq) () ()))
              ) :post_args None :body None
             ) (Typ Int (IntRange Int))
@@ -1464,7 +1547,7 @@
              ) :args ((@@ "src/lib.rs:85:64: 85:65 (#0)" (> ReadPlace (@@ "src/lib.rs:85:64: 85:65 (#0)" (Place Local (VarIdent "s" (VarIdentDisambiguate
                     RustcId 20))
                  ) (Typ Datatype (Dt Path fx::tr::Sq) () ())
-                ) (UnfinalizedReadKind :preliminary_kind (ReadKind Move) :id 36)
+                ) (UnfinalizedReadKind :preliminary_kind (ReadKind Move) :id 40)
                ) (Typ Datatype (Dt Path fx::tr::Sq) () ()))
              ) :post_args None :body None
             ) (Typ Int (IntRange Int)))
@@ -1494,7 +1577,7 @@
           ) :args ((@@ "src/lib.rs:87:82: 87:83 (#0)" (> ReadPlace (@@ "src/lib.rs:87:82: 87:83 (#0)" (Place Local (VarIdent "i" (VarIdentDisambiguate
                  RustcId 2))
               ) (Typ Int (IntRange Int))
-             ) (UnfinalizedReadKind :preliminary_kind (ReadKind Copy) :id 37)
+             ) (UnfinalizedReadKind :preliminary_kind (ReadKind Copy) :id 41)
             ) (Typ Int (IntRange Int)))
           ) :post_args None :body None
          ) (Typ Bool))
@@ -1502,7 +1585,7 @@
       ) (@@ "src/lib.rs:87:88: 87:96 (#0)" (> Binary (BinaryOp Inequality (InequalityOp Ge)) (@@ "src/lib.rs:87:89: 87:90 (#0)" (>
           ReadPlace (@@ "src/lib.rs:87:89: 87:90 (#0)" (Place Local (VarIdent "i" (VarIdentDisambiguate RustcId 2))) (Typ Int (IntRange
              Int))
-          ) (UnfinalizedReadKind :preliminary_kind (ReadKind Copy) :id 38)
+          ) (UnfinalizedReadKind :preliminary_kind (ReadKind Copy) :id 42)
          ) (Typ Int (IntRange Int))
         ) (@@ "src/lib.rs:87:94: 87:95 (#0)" (> Const (Constant Int 0)) (Typ Int (IntRange Nat)))
        ) (Typ Bool))
@@ -1514,8 +1597,9 @@
     true :invariant true
    ) :autospec None :bit_vector false :atomic false :integer_ring false :is_decrease_by false :check_recommends false :nonlinear
    false :spinoff_prover false :memoize false :rlimit None :print_zero_args false :print_as_method false :prophecy_dependent
-   false :size_of_broadcast_proof false :is_type_invariant_fn false :is_external_body false :is_unsafe false :exec_assume_termination
-   false :exec_allows_no_decreases_clause false :tracked_swap false :tracked_take_option false :is_async false
+   false :size_of_broadcast_proof false :is_type_invariant_fn false :is_external_body false :is_unsafe false :impls_cannot_extend_spec
+   false :exec_assume_termination false :exec_allows_no_decreases_clause false :tracked_swap false :tracked_take_option false
+   :is_async false
   ) :body (@@ "src/lib.rs:87:97: 87:100 (#0)" (> Block () None) (Typ Datatype (Dt Tuple 0) () ())) :extra_dependencies () :async_ret
   None))
 
@@ -1535,8 +1619,9 @@
     true :invariant true
    ) :autospec None :bit_vector false :atomic false :integer_ring false :is_decrease_by false :check_recommends false :nonlinear
    false :spinoff_prover false :memoize false :rlimit None :print_zero_args true :print_as_method false :prophecy_dependent
-   false :size_of_broadcast_proof false :is_type_invariant_fn false :is_external_body false :is_unsafe false :exec_assume_termination
-   false :exec_allows_no_decreases_clause false :tracked_swap false :tracked_take_option false :is_async false
+   false :size_of_broadcast_proof false :is_type_invariant_fn false :is_external_body false :is_unsafe false :impls_cannot_extend_spec
+   false :exec_assume_termination false :exec_allows_no_decreases_clause false :tracked_swap false :tracked_take_option false
+   :is_async false
   ) :body (@@ "src/lib.rs:89:42: 89:50 (#0)" (> Block () (@@ "src/lib.rs:89:44: 89:48 (#0)" (> Call :target (CallTarget Fun (CallTargetKind
         Static
        ) (Fun :path fx::q::p) () () (CallTargetAttrs :autospec (AutospecUsage IfMarked) :const_var false :assume_external_allowed
@@ -1563,8 +1648,9 @@
     true :invariant true
    ) :autospec None :bit_vector false :atomic false :integer_ring false :is_decrease_by false :check_recommends false :nonlinear
    false :spinoff_prover false :memoize false :rlimit None :print_zero_args true :print_as_method false :prophecy_dependent
-   false :size_of_broadcast_proof false :is_type_invariant_fn false :is_external_body false :is_unsafe false :exec_assume_termination
-   false :exec_allows_no_decreases_clause false :tracked_swap false :tracked_take_option false :is_async false
+   false :size_of_broadcast_proof false :is_type_invariant_fn false :is_external_body false :is_unsafe false :impls_cannot_extend_spec
+   false :exec_assume_termination false :exec_allows_no_decreases_clause false :tracked_swap false :tracked_take_option false
+   :is_async false
   ) :body (@@ "src/lib.rs:90:36: 90:65 (#0)" (> Block () (@@ "src/lib.rs:90:38: 90:63 (#0)" (> Block (
        (@ "src/lib.rs:90:38: 90:63 (#0)" (Stmt Expr (@@ "src/lib.rs:90:38: 90:63 (#0)" (> Fuel (Fun :path fx::live::group_live) 1 true)
           (Typ Datatype (Dt Tuple 0) () ()))))
@@ -1589,8 +1675,9 @@
     true :invariant true
    ) :autospec None :bit_vector false :atomic false :integer_ring false :is_decrease_by false :check_recommends false :nonlinear
    false :spinoff_prover false :memoize false :rlimit None :print_zero_args true :print_as_method false :prophecy_dependent
-   false :size_of_broadcast_proof false :is_type_invariant_fn false :is_external_body false :is_unsafe false :exec_assume_termination
-   false :exec_allows_no_decreases_clause false :tracked_swap false :tracked_take_option false :is_async false
+   false :size_of_broadcast_proof false :is_type_invariant_fn false :is_external_body false :is_unsafe false :impls_cannot_extend_spec
+   false :exec_assume_termination false :exec_allows_no_decreases_clause false :tracked_swap false :tracked_take_option false
+   :is_async false
   ) :body (@@ "src/lib.rs:92:23: 92:59 (#0)" (> Block () (@@ "src/lib.rs:92:31: 92:57 (#0)" (> Ghost :alloc_wrapper false :tracked
       false :expr (@@ "src/lib.rs:92:31: 92:57 (#0)" (> Block (
          (@ "src/lib.rs:92:33: 92:54 (#0)" (Stmt Expr (@@ "src/lib.rs:92:33: 92:54 (#0)" (> Call :target (CallTarget Fun (CallTargetKind
@@ -1603,6 +1690,175 @@
        ) (Typ Datatype (Dt Tuple 0) () ()))
      ) (Typ Datatype (Dt Tuple 0) () ()))
    ) (Typ Datatype (Dt Tuple 0) () ())
+  ) :extra_dependencies () :async_ret None))
+
+(@ "src/lib.rs:100:5: 100:35 (#0)" (Function
+  :name (Fun :path fx::k::SPEC_LIMIT) :proxy None :kind (FunctionKind Static) :visibility (Visibility :restricted_to None)
+  :body_visibility (BodyVisibility Visibility (Visibility :restricted_to None)) :opaqueness (Opaqueness Revealed :visibility
+   (Visibility :restricted_to None)
+  ) :owning_module fx::k :mode Spec :typ_params () :typ_bounds () :params () :ret (@ "src/lib.rs:100:5: 100:35 (#0)" (Param :name
+    (VarIdent "%return" (VarIdentDisambiguate AirLocal)) :typ (Typ Int (IntRange Nat)) :mode Spec :user_mut false :unwrapped_info
+    None)
+  ) :ens_has_return true :require () :ensure (
+   tuple
+   ()
+   ()
+  ) :returns None :decrease () :decrease_when None :decrease_by None :fndef_axioms None :mask_spec None :atomic_update None
+  :unwind_spec None :item_kind (ItemKind Const) :attrs (FunctionAttrs :uses_ghost_blocks false :inline false :hidden () :broadcast_forall
+   false :broadcast_forall_only false :no_auto_trigger false :auto_ext_equal (AutoExtEqual :assert true :assert_by true :ensures
+    true :invariant true
+   ) :autospec None :bit_vector false :atomic false :integer_ring false :is_decrease_by false :check_recommends false :nonlinear
+   false :spinoff_prover false :memoize false :rlimit None :print_zero_args false :print_as_method false :prophecy_dependent
+   false :size_of_broadcast_proof false :is_type_invariant_fn false :is_external_body false :is_unsafe false :impls_cannot_extend_spec
+   false :exec_assume_termination false :exec_allows_no_decreases_clause false :tracked_swap false :tracked_take_option false
+   :is_async false
+  ) :body (@@ "src/lib.rs:100:38: 100:39 (#0)" (> Block () (@@ "src/lib.rs:100:38: 100:39 (#0)" (> Const (Constant Int 8)) (Typ
+      Int (IntRange Nat)))
+   ) (Typ Int (IntRange Nat))
+  ) :extra_dependencies () :async_ret None))
+
+(@ "src/lib.rs:101:5: 101:25 (#0)" (Function
+  :name (Fun :path fx::k::LIMIT) :proxy None :kind (FunctionKind Static) :visibility (Visibility :restricted_to None) :body_visibility
+  (BodyVisibility Visibility (Visibility :restricted_to None)) :opaqueness (Opaqueness Revealed :visibility (Visibility :restricted_to
+    None)
+  ) :owning_module fx::k :mode Spec :typ_params () :typ_bounds () :params () :ret (@ "src/lib.rs:101:5: 101:25 (#0)" (Param :name
+    (VarIdent "%return" (VarIdentDisambiguate AirLocal)) :typ (Typ Int (IntRange U 64)) :mode Exec :user_mut false :unwrapped_info
+    None)
+  ) :ens_has_return true :require () :ensure (
+   tuple
+   ()
+   ()
+  ) :returns None :decrease () :decrease_when None :decrease_by None :fndef_axioms None :mask_spec None :atomic_update None
+  :unwind_spec None :item_kind (ItemKind Const) :attrs (FunctionAttrs :uses_ghost_blocks false :inline false :hidden () :broadcast_forall
+   false :broadcast_forall_only false :no_auto_trigger false :auto_ext_equal (AutoExtEqual :assert true :assert_by true :ensures
+    true :invariant true
+   ) :autospec None :bit_vector false :atomic false :integer_ring false :is_decrease_by false :check_recommends false :nonlinear
+   false :spinoff_prover false :memoize false :rlimit None :print_zero_args false :print_as_method false :prophecy_dependent
+   false :size_of_broadcast_proof false :is_type_invariant_fn false :is_external_body false :is_unsafe false :impls_cannot_extend_spec
+   false :exec_assume_termination false :exec_allows_no_decreases_clause false :tracked_swap false :tracked_take_option false
+   :is_async false
+  ) :body (@@ "src/lib.rs:101:28: 101:29 (#0)" (> Block () (@@ "src/lib.rs:101:28: 101:29 (#0)" (> Const (Constant Int 8)) (Typ
+      Int (IntRange U 64)))
+   ) (Typ Int (IntRange U 64))
+  ) :extra_dependencies () :async_ret None))
+
+(@ "src/lib.rs:102:5: 102:35 (#0)" (Function
+  :name (Fun :path fx::k::limit) :proxy None :kind (FunctionKind Static) :visibility (Visibility :restricted_to None) :body_visibility
+  (BodyVisibility Visibility (Visibility :restricted_to fx::k)) :opaqueness (Opaqueness Opaque) :owning_module fx::k :mode
+  Exec :typ_params () :typ_bounds () :params () :ret (@ "src/lib.rs:102:32: 102:35 (#0)" (Param :name (VarIdent "r" (VarIdentDisambiguate
+      RustcId 10)
+    ) :typ (Typ Int (IntRange U 64)) :mode Exec :user_mut false :unwrapped_info None)
+  ) :ens_has_return true :require () :ensure (
+   tuple
+   ((@@ "src/lib.rs:102:45: 102:55 (#0)" (> Binary (BinaryOp Eq Spec) (@@ "src/lib.rs:102:45: 102:46 (#0)" (> ReadPlace (@@ "src/lib.rs:102:45: 102:46 (#0)"
+         (Place Local (VarIdent "r" (VarIdentDisambiguate RustcId 10))) (Typ Int (IntRange U 64))
+        ) (UnfinalizedReadKind :preliminary_kind (ReadKind Copy) :id 43)
+       ) (Typ Int (IntRange U 64))
+      ) (@@ "src/lib.rs:102:50: 102:55 (#0)" (> ConstVar (Fun :path fx::k::LIMIT) (AutospecUsage IfMarked)) (Typ Int (IntRange U 64)))
+     ) (Typ Bool)))
+   ()
+  ) :returns None :decrease () :decrease_when None :decrease_by None :fndef_axioms None :mask_spec None :atomic_update None
+  :unwind_spec None :item_kind (ItemKind Function) :attrs (FunctionAttrs :uses_ghost_blocks true :inline false :hidden () :broadcast_forall
+   false :broadcast_forall_only false :no_auto_trigger false :auto_ext_equal (AutoExtEqual :assert true :assert_by true :ensures
+    true :invariant true
+   ) :autospec None :bit_vector false :atomic false :integer_ring false :is_decrease_by false :check_recommends false :nonlinear
+   false :spinoff_prover false :memoize false :rlimit None :print_zero_args true :print_as_method false :prophecy_dependent
+   false :size_of_broadcast_proof false :is_type_invariant_fn false :is_external_body false :is_unsafe false :impls_cannot_extend_spec
+   false :exec_assume_termination false :exec_allows_no_decreases_clause false :tracked_swap false :tracked_take_option false
+   :is_async false
+  ) :body (@@ "src/lib.rs:102:56: 102:65 (#0)" (> Block () (@@ "src/lib.rs:102:58: 102:63 (#0)" (> ConstVar (Fun :path fx::k::LIMIT)
+      (AutospecUsage Final)
+     ) (Typ Int (IntRange U 64)))
+   ) (Typ Int (IntRange U 64))
+  ) :extra_dependencies () :async_ret None))
+
+(@ "src/lib.rs:107:5: 107:44 (#0)" (Function
+  :name (Fun :path fx::k::impl&%3::arrow_Hold_slot) :proxy None :kind (FunctionKind Static) :visibility (Visibility :restricted_to
+   None
+  ) :body_visibility (BodyVisibility Visibility (Visibility :restricted_to None)) :opaqueness (Opaqueness Revealed :visibility
+   (Visibility :restricted_to None)
+  ) :owning_module fx::k :mode Spec :typ_params () :typ_bounds () :params (
+   (@ "src/lib.rs:107:5: 107:70 (#0)" (Param :name (VarIdent "self" (VarIdentDisambiguate RustcId 2)) :typ (Typ Datatype (Dt Path
+       fx::k::Stage
+      ) () ()
+     ) :mode Spec :user_mut false :unwrapped_info None))
+  ) :ret (@ "src/lib.rs:107:41: 107:44 (#0)" (Param :name (VarIdent "%return" (VarIdentDisambiguate AirLocal)) :typ (Typ Int (
+      IntRange U 64)
+    ) :mode Spec :user_mut false :unwrapped_info None)
+  ) :ens_has_return true :require (
+   (@@ "src/lib.rs:107:5: 107:70 (#0)" (> UnaryOpr (UnaryOpr IsVariant :datatype (Dt Path fx::k::Stage) :variant "Hold") (@@ "src/lib.rs:107:5: 107:70 (#0)"
+      (> ReadPlace (@@ "src/lib.rs:107:5: 107:70 (#0)" (Place Local (VarIdent "self" (VarIdentDisambiguate RustcId 2))) (Typ Datatype
+         (Dt Path fx::k::Stage) () ())
+       ) (UnfinalizedReadKind :preliminary_kind (ReadKind ImmutBor) :id 44)
+      ) (Typ Decorate (TypDecoration Ref) None (Typ Datatype (Dt Path fx::k::Stage) () ())))
+    ) (Typ Bool))
+  ) :ensure (
+   tuple
+   ()
+   ()
+  ) :returns None :decrease () :decrease_when None :decrease_by None :fndef_axioms None :mask_spec None :atomic_update None
+  :unwind_spec None :item_kind (ItemKind Function) :attrs (FunctionAttrs :uses_ghost_blocks true :inline true :hidden () :broadcast_forall
+   false :broadcast_forall_only false :no_auto_trigger false :auto_ext_equal (AutoExtEqual :assert true :assert_by true :ensures
+    true :invariant true
+   ) :autospec None :bit_vector false :atomic false :integer_ring false :is_decrease_by false :check_recommends false :nonlinear
+   false :spinoff_prover false :memoize false :rlimit None :print_zero_args false :print_as_method true :prophecy_dependent
+   false :size_of_broadcast_proof false :is_type_invariant_fn false :is_external_body false :is_unsafe false :impls_cannot_extend_spec
+   false :exec_assume_termination false :exec_allows_no_decreases_clause false :tracked_swap false :tracked_take_option false
+   :is_async false
+  ) :body (@@ "src/lib.rs:107:5: 107:70 (#0)" (> Block () (@@ "src/lib.rs:107:5: 107:70 (#0)" (> UnaryOpr (UnaryOpr Field (FieldOpr
+        :datatype (Dt Path fx::k::Stage) :variant "Hold" :field "slot" :get_variant true :check (VariantCheck Recommends))
+      ) (@@ "src/lib.rs:107:5: 107:70 (#0)" (> ReadPlace (@@ "src/lib.rs:107:5: 107:70 (#0)" (Place Local (VarIdent "self" (VarIdentDisambiguate
+            RustcId 2))
+         ) (Typ Datatype (Dt Path fx::k::Stage) () ())
+        ) (UnfinalizedReadKind :preliminary_kind (ReadKind Move) :id 45)
+       ) (Typ Datatype (Dt Path fx::k::Stage) () ()))
+     ) (Typ Int (IntRange U 64)))
+   ) (Typ Int (IntRange U 64))
+  ) :extra_dependencies () :async_ret None))
+
+(@ "src/lib.rs:107:5: 107:66 (#0)" (Function
+  :name (Fun :path fx::k::impl&%3::arrow_Staged_slot) :proxy None :kind (FunctionKind Static) :visibility (Visibility :restricted_to
+   None
+  ) :body_visibility (BodyVisibility Visibility (Visibility :restricted_to None)) :opaqueness (Opaqueness Revealed :visibility
+   (Visibility :restricted_to None)
+  ) :owning_module fx::k :mode Spec :typ_params () :typ_bounds () :params (
+   (@ "src/lib.rs:107:5: 107:70 (#0)" (Param :name (VarIdent "self" (VarIdentDisambiguate RustcId 2)) :typ (Typ Datatype (Dt Path
+       fx::k::Stage
+      ) () ()
+     ) :mode Spec :user_mut false :unwrapped_info None))
+  ) :ret (@ "src/lib.rs:107:63: 107:66 (#0)" (Param :name (VarIdent "%return" (VarIdentDisambiguate AirLocal)) :typ (Typ Int (
+      IntRange U 64)
+    ) :mode Spec :user_mut false :unwrapped_info None)
+  ) :ens_has_return true :require (
+   (@@ "src/lib.rs:107:5: 107:70 (#0)" (> UnaryOpr (UnaryOpr IsVariant :datatype (Dt Path fx::k::Stage) :variant "Staged") (@@
+      "src/lib.rs:107:5: 107:70 (#0)" (> ReadPlace (@@ "src/lib.rs:107:5: 107:70 (#0)" (Place Local (VarIdent "self" (VarIdentDisambiguate
+           RustcId 2))
+        ) (Typ Datatype (Dt Path fx::k::Stage) () ())
+       ) (UnfinalizedReadKind :preliminary_kind (ReadKind ImmutBor) :id 46)
+      ) (Typ Decorate (TypDecoration Ref) None (Typ Datatype (Dt Path fx::k::Stage) () ())))
+    ) (Typ Bool))
+  ) :ensure (
+   tuple
+   ()
+   ()
+  ) :returns None :decrease () :decrease_when None :decrease_by None :fndef_axioms None :mask_spec None :atomic_update None
+  :unwind_spec None :item_kind (ItemKind Function) :attrs (FunctionAttrs :uses_ghost_blocks true :inline true :hidden () :broadcast_forall
+   false :broadcast_forall_only false :no_auto_trigger false :auto_ext_equal (AutoExtEqual :assert true :assert_by true :ensures
+    true :invariant true
+   ) :autospec None :bit_vector false :atomic false :integer_ring false :is_decrease_by false :check_recommends false :nonlinear
+   false :spinoff_prover false :memoize false :rlimit None :print_zero_args false :print_as_method true :prophecy_dependent
+   false :size_of_broadcast_proof false :is_type_invariant_fn false :is_external_body false :is_unsafe false :impls_cannot_extend_spec
+   false :exec_assume_termination false :exec_allows_no_decreases_clause false :tracked_swap false :tracked_take_option false
+   :is_async false
+  ) :body (@@ "src/lib.rs:107:5: 107:70 (#0)" (> Block () (@@ "src/lib.rs:107:5: 107:70 (#0)" (> UnaryOpr (UnaryOpr Field (FieldOpr
+        :datatype (Dt Path fx::k::Stage) :variant "Staged" :field "slot" :get_variant true :check (VariantCheck Recommends))
+      ) (@@ "src/lib.rs:107:5: 107:70 (#0)" (> ReadPlace (@@ "src/lib.rs:107:5: 107:70 (#0)" (Place Local (VarIdent "self" (VarIdentDisambiguate
+            RustcId 2))
+         ) (Typ Datatype (Dt Path fx::k::Stage) () ())
+        ) (UnfinalizedReadKind :preliminary_kind (ReadKind Move) :id 47)
+       ) (Typ Datatype (Dt Path fx::k::Stage) () ()))
+     ) (Typ Int (IntRange U 64)))
+   ) (Typ Int (IntRange U 64))
   ) :extra_dependencies () :async_ret None))
 
 (group_id vstd::array::group_array_axioms)
@@ -1695,6 +1951,8 @@
 
 (group_id vstd::std_specs::control_flow::group_control_flow_axioms)
 
+(group_id vstd::std_specs::fmt::group_fmt_axioms)
+
 (group_id vstd::std_specs::iter::group_iter_axioms)
 
 (group_id vstd::std_specs::manually_drop::group_manually_drop_axioms)
@@ -1759,7 +2017,13 @@
 
 (trait_impl fx::tr::impl&%1 fx::tr::Shape)
 
-(@ "/rustc/ac68faa20c58cbccd01ee7208bf3b6e93a7d7f96/library/core/src/ops/function.rs:280:5: 282:26 (#0)" (AssocTypeImpl :name
+(trait_impl fx::k::impl&%0 core::marker::StructuralPartialEq)
+
+(trait_impl fx::k::impl&%1 core::cmp::PartialEq)
+
+(trait_impl fx::k::impl&%2 core::cmp::Eq)
+
+(@ "/rustc/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/core/src/ops/function.rs:280:5: 282:26 (#0)" (AssocTypeImpl :name
   "Output" :impl_path core::ops::function::impls::impl&%2 :typ_params (
    "A"
    "F"
@@ -1774,7 +2038,7 @@
    "Output"
   ) :impl_paths ()))
 
-(@ "/rustc/ac68faa20c58cbccd01ee7208bf3b6e93a7d7f96/library/core/src/ops/function.rs:304:5: 306:29 (#0)" (AssocTypeImpl :name
+(@ "/rustc/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/core/src/ops/function.rs:304:5: 306:29 (#0)" (AssocTypeImpl :name
   "Output" :impl_path core::ops::function::impls::impl&%4 :typ_params (
    "A"
    "F"
@@ -1787,7 +2051,7 @@
    :trait_typ_args ((Typ TypParam "F") (Typ TypParam "A")) :trait_path core::ops::function::FnOnce :name "Output"
   ) :impl_paths ()))
 
-(@ "/rustc/ac68faa20c58cbccd01ee7208bf3b6e93a7d7f96/library/alloc/src/boxed.rs:2245:1: 2245:85 (#0)" (AssocTypeImpl :name "Output"
+(@ "/rustc/8bab26f4f68e0e26f0bb7960be334d5b520ea452/library/alloc/src/boxed.rs:2271:1: 2271:85 (#0)" (AssocTypeImpl :name "Output"
   :impl_path alloc::boxed::impl&%31 :typ_params (
    "Args"
    "F"
@@ -1935,6 +2199,8 @@
 
 (module_id vstd::std_specs::borrow)
 
+(module_id vstd::std_specs::char)
+
 (module_id vstd::std_specs::clone)
 
 (module_id vstd::std_specs::cmp)
@@ -1946,6 +2212,8 @@
 (module_id vstd::std_specs::core)
 
 (module_id vstd::std_specs::default)
+
+(module_id vstd::std_specs::fmt)
 
 (module_id vstd::std_specs::iter)
 
@@ -2221,17 +2489,29 @@
 
 (module_id fx::live)
 
+(module_id fx::k)
+
 (module_id fx::)
 
-(external_fn (Fun :path vstd::atomic::impl&%4::new))
+(external_fn (Fun :path vstd::atomic::_))
 
-(external_fn (Fun :path vstd::atomic::impl&%6::new))
+(external_fn (Fun :path vstd::atomic::_))
 
-(external_fn (Fun :path vstd::atomic::impl&%8::new))
+(external_fn (Fun :path vstd::atomic::_))
 
-(external_fn (Fun :path vstd::atomic::impl&%10::new))
+(external_fn (Fun :path vstd::atomic::_))
 
-(external_fn (Fun :path vstd::atomic::impl&%12::new))
+(external_fn (Fun :path vstd::atomic::_))
+
+(external_fn (Fun :path vstd::atomic::_))
+
+(external_fn (Fun :path vstd::atomic::_))
+
+(external_fn (Fun :path vstd::atomic::_))
+
+(external_fn (Fun :path vstd::atomic::_))
+
+(external_fn (Fun :path vstd::atomic::_))
 
 (external_fn (Fun :path vstd::atomic::impl&%14::new))
 
@@ -2247,9 +2527,19 @@
 
 (external_fn (Fun :path vstd::atomic::impl&%26::new))
 
+(external_fn (Fun :path vstd::atomic::impl&%28::new))
+
+(external_fn (Fun :path vstd::atomic::impl&%30::new))
+
+(external_fn (Fun :path vstd::atomic::impl&%32::new))
+
+(external_fn (Fun :path vstd::atomic::impl&%34::new))
+
+(external_fn (Fun :path vstd::atomic::impl&%36::new))
+
 (external_fn (Fun :path vstd::atomic::impl&%0::fmt))
 
-(external_fn (Fun :path vstd::atomic::impl&%31::fmt))
+(external_fn (Fun :path vstd::atomic::impl&%41::fmt))
 
 (external_fn (Fun :path vstd::atomic::atomically))
 
@@ -2317,9 +2607,43 @@
 
 (external_fn (Fun :path vstd::thread::impl&%4::clone))
 
-(external_fn (Fun :path vstd::std_specs::range::impl&%5::arrow_0))
+(external_fn (Fun :path core::fmt::rt::impl&%0::new_binary))
+
+(external_fn (Fun :path core::fmt::rt::impl&%0::new_debug))
+
+(external_fn (Fun :path core::fmt::rt::impl&%0::new_debug_noop))
+
+(external_fn (Fun :path core::fmt::rt::impl&%0::new_display))
+
+(external_fn (Fun :path core::fmt::rt::impl&%0::new_lower_exp))
+
+(external_fn (Fun :path core::fmt::rt::impl&%0::new_lower_hex))
+
+(external_fn (Fun :path core::fmt::rt::impl&%0::new_octal))
+
+(external_fn (Fun :path core::fmt::rt::impl&%0::new_pointer))
+
+(external_fn (Fun :path core::fmt::rt::impl&%0::new_upper_exp))
+
+(external_fn (Fun :path core::fmt::rt::impl&%0::new_upper_hex))
+
+(external_fn (Fun :path core::fmt::rt::impl&%0::from_usize))
+
+(external_fn (Fun :path core::fmt::impl&%4::new))
 
 (external_fn (Fun :path fx::t::ext_id))
+
+(external_fn (Fun :path fx::k::SPEC_LIMIT))
+
+(external_fn (Fun :path fx::k::LIMIT))
+
+(external_fn (Fun :path fx::k::impl&%1::eq))
+
+(external_fn (Fun :path fx::k::impl&%2::assert_fields_are_eq))
+
+(external_fn (Fun :path fx::k::impl&%3::arrow_slot))
+
+(external_type core::fmt::rt::Argument)
 
 (external_type vstd::std_specs::VstdSpecsForRustStdLib)
 

@@ -188,8 +188,8 @@ pub fn updated_baseline(old: &Baseline, out: &Outcome, verus_commit: &str) -> Ba
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::adapters::newest;
     use crate::db::{CrateInfo, Db};
-    use crate::vir::{ImplNames, parse_log};
 
     struct Two;
     impl Rule for Two {
@@ -209,7 +209,7 @@ mod tests {
 
     fn facts() -> Facts {
         let text = include_str!("../tests/fixtures/mini.vir");
-        let parsed = parse_log(text, "mini", &ImplNames::new()).unwrap();
+        let parsed = newest().parse_crate(text, "", "mini").unwrap();
         let mut db = Db::in_memory().unwrap();
         db.load_crate(
             &parsed,

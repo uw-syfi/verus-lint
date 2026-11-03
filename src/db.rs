@@ -1,7 +1,7 @@
 //! `DuckDB` storage of extracted facts.
 
+use crate::facts::CrateFacts;
 use crate::num::to_i64;
-use crate::vir::CrateFacts;
 use anyhow::{Context, Result};
 use duckdb::{Connection, params};
 use std::collections::HashMap;
@@ -321,7 +321,7 @@ impl Db {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::vir::{ImplNames, parse_log};
+    use crate::adapters::newest;
 
     #[test]
     fn open_in_ancestor_is_open_spec() {
@@ -331,7 +331,7 @@ mod tests {
             "(BodyVisibility Visibility (Visibility :restricted_to mini))",
             1,
         );
-        let facts = parse_log(&text, "mini", &ImplNames::new()).unwrap();
+        let facts = newest().parse_crate(&text, "", "mini").unwrap();
         let mut db = Db::in_memory().unwrap();
         db.load_crate(
             &facts,
@@ -353,7 +353,7 @@ mod tests {
     #[test]
     fn load_and_resolve_fixture() {
         let text = include_str!("../tests/fixtures/mini.vir");
-        let facts = parse_log(text, "mini", &ImplNames::new()).unwrap();
+        let facts = newest().parse_crate(text, "", "mini").unwrap();
         let mut db = Db::in_memory().unwrap();
         db.load_crate(
             &facts,

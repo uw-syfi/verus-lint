@@ -1,0 +1,97 @@
+# Module layering of verus-lint, checked by `cargo strata check` (cargo-strata 0.4.0) in CI.
+#
+# Verus releases differ in their VIR log and report formats. Only the adapters under
+# `adapters::` know a format; `adapters` (src/adapters/mod.rs) is the one dispatch point that
+# maps a detected release to its adapter. Everything else sees the normalized rows of `facts`,
+# so rules, the database and the reports never depend on the Verus version.
+# docs/verus-versions.md says how to add a release.
+
+[[crate]]
+name = "verus-lint"
+allow = []
+
+# Dispatch: the supported-release table and adapter selection. The adapters are its children.
+[[crate.module]]
+path = "adapters"
+depends_on = ["facts", "version"]
+
+# One adapter per format generation: it reads only the fact model and the parsing helpers,
+# implements the trait of its parent, and never reaches a sibling adapter.
+[[crate.module]]
+path = "adapters::*"
+depends_on = ["adapters", "facts", "num", "sexp"]
+deny = ["adapters::*"]
+
+# The normalized fact model and the release detection depend on nothing.
+[[crate.module]]
+path = "facts"
+depends_on = []
+
+[[crate.module]]
+path = "version"
+depends_on = []
+
+# Format-agnostic helpers.
+[[crate.module]]
+path = "sexp"
+depends_on = []
+
+[[crate.module]]
+path = "num"
+depends_on = []
+
+[[crate.module]]
+path = "config"
+depends_on = []
+
+# Drivers: run Verus, then pick the adapter through the dispatch point only.
+[[crate.module]]
+path = "extract"
+deny = ["adapters::*", "sexp", "cli", "engine", "output", "baseline"]
+
+[[crate.module]]
+path = "verify"
+deny = ["adapters::*", "sexp", "cli", "engine", "output", "baseline"]
+
+# Storage and the source scan: normalized facts in, no Verus format knowledge, no drivers.
+[[crate.module]]
+path = "db"
+deny = ["adapters", "sexp", "version", "extract", "verify", "cli", "engine", "output"]
+
+[[crate.module]]
+path = "scan"
+depends_on = ["facts", "num"]
+
+[[crate.module]]
+path = "analysis"
+deny = ["adapters", "sexp", "version", "extract", "verify", "cli", "engine", "output"]
+
+# Rules and their reporting read the database only: they never see a Verus format or a driver.
+[[crate.module]]
+path = "rules"
+deny = ["adapters", "sexp", "version", "facts", "extract", "verify", "scan", "cli"]
+
+[[crate.module]]
+path = "sdk"
+deny = ["adapters", "sexp", "version", "facts", "extract", "verify", "scan", "cli"]
+
+[[crate.module]]
+path = "engine"
+deny = ["adapters", "sexp", "version", "facts", "extract", "verify", "scan", "cli"]
+
+[[crate.module]]
+path = "baseline"
+deny = ["adapters", "sexp", "version", "facts", "extract", "verify", "scan", "cli"]
+
+[[crate.module]]
+path = "output"
+deny = ["adapters", "sexp", "version", "facts", "extract", "verify", "scan", "cli"]
+
+# The CLI wires everything; it may use the dispatch point (exit status 3) but no adapter.
+[[crate.module]]
+path = "cli"
+deny = ["adapters::*", "sexp", "facts"]
+
+[[crate]]
+name = "verus-lint-example-rules"
+allow = ["verus-lint"]

@@ -411,9 +411,9 @@ pub struct Use {
 /// # use verus_lint::{db::Db, extract::load_crate_logs, sdk::Facts};
 /// # let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
 /// # let mut db = Db::in_memory()?;
-/// # let vir = std::fs::read_to_string(root.join("tests/fixtures/fx/crate.vir"))?;
-/// # let imp = std::fs::read_to_string(root.join("tests/fixtures/fx/crate.impl_names"))?;
-/// # load_crate_logs(&mut db, root, "fx", "Cargo.toml", &vir, &imp)?;
+/// # let vir = std::fs::read_to_string(root.join("tests/fixtures/fx/0.2026.08.30.b432e82/crate.vir"))?;
+/// # let imp = std::fs::read_to_string(root.join("tests/fixtures/fx/0.2026.08.30.b432e82/crate.impl_names"))?;
+/// # load_crate_logs(&mut db, root, verus_lint::adapters::newest(), "fx", "Cargo.toml", &vir, &imp)?;
 /// # db.resolve()?;
 /// # let facts = Facts::load(db.conn)?;
 /// let top = facts.by_path("fx::live::theorem_top").unwrap();
@@ -695,9 +695,9 @@ impl Facts {
 /// # use verus_lint::{db::Db, extract::load_crate_logs, sdk::Facts};
 /// # let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
 /// # let mut db = Db::in_memory()?;
-/// # let vir = std::fs::read_to_string(root.join("tests/fixtures/fx/crate.vir"))?;
-/// # let imp = std::fs::read_to_string(root.join("tests/fixtures/fx/crate.impl_names"))?;
-/// # load_crate_logs(&mut db, root, "fx", "Cargo.toml", &vir, &imp)?;
+/// # let vir = std::fs::read_to_string(root.join("tests/fixtures/fx/0.2026.08.30.b432e82/crate.vir"))?;
+/// # let imp = std::fs::read_to_string(root.join("tests/fixtures/fx/0.2026.08.30.b432e82/crate.impl_names"))?;
+/// # load_crate_logs(&mut db, root, verus_lint::adapters::newest(), "fx", "Cargo.toml", &vir, &imp)?;
 /// # db.resolve()?;
 /// # let facts = Facts::load(db.conn)?;
 /// let id = |p: &str| facts.by_path(p).unwrap().id;
@@ -806,9 +806,9 @@ pub struct Cx<'a> {
 /// # use verus_lint::{db::Db, extract::load_crate_logs, sdk::Facts};
 /// # let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
 /// # let mut db = Db::in_memory()?;
-/// # let vir = std::fs::read_to_string(root.join("tests/fixtures/fx/crate.vir"))?;
-/// # let imp = std::fs::read_to_string(root.join("tests/fixtures/fx/crate.impl_names"))?;
-/// # load_crate_logs(&mut db, root, "fx", "Cargo.toml", &vir, &imp)?;
+/// # let vir = std::fs::read_to_string(root.join("tests/fixtures/fx/0.2026.08.30.b432e82/crate.vir"))?;
+/// # let imp = std::fs::read_to_string(root.join("tests/fixtures/fx/0.2026.08.30.b432e82/crate.impl_names"))?;
+/// # load_crate_logs(&mut db, root, verus_lint::adapters::newest(), "fx", "Cargo.toml", &vir, &imp)?;
 /// # db.resolve()?;
 /// # let facts = Facts::load(db.conn)?;
 ///
@@ -891,12 +891,12 @@ impl Findings {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::adapters::newest;
     use crate::db::{CrateInfo, Db};
-    use crate::vir::{ImplNames, parse_log};
 
     fn fixture() -> Facts {
         let text = include_str!("../tests/fixtures/mini.vir");
-        let facts = parse_log(text, "mini", &ImplNames::new()).unwrap();
+        let facts = newest().parse_crate(text, "", "mini").unwrap();
         let mut db = Db::in_memory().unwrap();
         db.load_crate(
             &facts,

@@ -2,6 +2,7 @@
 
 #![warn(missing_docs)]
 
+pub mod adapters;
 pub mod analysis;
 pub mod baseline;
 pub mod cli;
@@ -9,6 +10,7 @@ pub mod config;
 pub mod db;
 pub mod engine;
 pub mod extract;
+pub(crate) mod facts;
 pub(crate) mod num;
 pub mod output;
 pub mod rules;
@@ -17,7 +19,6 @@ pub mod sdk;
 pub(crate) mod sexp;
 pub mod verify;
 pub mod version;
-pub(crate) mod vir;
 
 pub use cli::run;
 

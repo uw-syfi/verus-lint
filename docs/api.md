@@ -532,10 +532,11 @@ These are public for tools that embed verus-lint; rules do not need them.
 | Module | Contents |
 | --- | --- |
 | `verus_lint::db` | `Db` (open, create, `query_rows`), `SCHEMA_VERSION`. `Db::open_read_only(path)` is how to read a database. |
-| `verus_lint::extract` | `extract`, `Options`, `load_crate_logs`: run Verus per crate and load logs. |
+| `verus_lint::extract` | `extract`, `Options`, `load_crate_logs` (takes the adapter of the release that wrote the logs): run Verus per crate and load logs. |
 | `verus_lint::verify` | `run`, `ingest_file`: load verification reports. |
 | `verus_lint::engine` | `evaluate`, `Outcome`, `Reported`: run rules and apply levels and the baseline. |
 | `verus_lint::baseline` | `Baseline`: load, save and compare baseline files. |
 | `verus_lint::output` | `text`, `json`, `sarif`: render an `Outcome`. |
 | `verus_lint::rules` | `Finding`, and the SQL rule loader. |
-| `verus_lint::version` | `SUPPORTED` (the Verus releases accepted), `check`. |
+| `verus_lint::version` | `VerusVersion`, `query`, `parse_version_json`, `from_report`: detect the Verus release. |
+| `verus_lint::adapters` | `SUPPORTED` (the Verus releases accepted and their adapters), `select`, `newest`, `parse_report`, `Unsupported`. |

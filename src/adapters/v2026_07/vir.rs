@@ -5,116 +5,10 @@
 //! The parser fails closed: a form it interprets that does not have the
 //! expected shape is an error naming the function and span.
 
+use crate::facts::{CrateFacts, FunctionRow, QuantRow, TraitImplRow, TrustedRow, UseRow};
 use crate::num::to_u32;
 use crate::sexp::{Node, Reader, fields, fun_path};
-use std::collections::HashMap;
-
-#[derive(Debug, Default, Clone)]
-#[allow(
-    clippy::struct_excessive_bools,
-    reason = "mirrors the boolean columns of the functions table"
-)]
-pub struct FunctionRow {
-    pub path: String,
-    pub friendly: String,
-    pub krate: String,
-    pub module: String,
-    pub name: String,
-    pub self_type: Option<String>,
-    pub trait_path: Option<String>,
-    pub mode: String,
-    pub kind: String,
-    pub item_kind: String,
-    pub vis: String,
-    pub body_vis: String,
-    pub opaque: bool,
-    pub reveal_vis: Option<String>,
-    pub external_body: bool,
-    pub broadcast_forall: bool,
-    pub broadcast_forall_only: bool,
-    pub rlimit_attr: Option<String>,
-    pub spinoff_prover: bool,
-    pub integer_ring: bool,
-    pub bit_vector: bool,
-    pub nonlinear: bool,
-    pub has_body: bool,
-    pub file: String,
-    pub line: u32,
-    pub end_line: u32,
-    pub body_lines: u32,
-    pub n_requires: u32,
-    pub n_ensures: u32,
-    /// Trait method declaration with a default body.
-    pub has_default: bool,
-    /// For a trait method implementation: path of the declaration it implements.
-    pub trait_method: Option<String>,
-    /// `#[verifier::type_invariant]` function: used implicitly by the verifier.
-    pub type_invariant: bool,
-    /// Compiler-generated datatype field accessor (`arrow_Variant_0`): no source item to delete.
-    pub generated: bool,
-}
-
-#[derive(Debug, Clone)]
-pub struct UseRow {
-    /// Index into `CrateFacts::functions`.
-    pub caller: usize,
-    pub callee_path: String,
-    pub section: &'static str,
-    pub kind: &'static str,
-    pub in_trigger: bool,
-    pub fuel: Option<String>,
-    pub file: String,
-    pub line: u32,
-    pub col: u32,
-}
-
-#[derive(Debug, Clone)]
-pub struct QuantRow {
-    pub caller: usize,
-    /// forall, exists or choose.
-    pub quant: &'static str,
-    /// explicit (`#[trigger]` or `#![trigger ..]`), `auto_annotation` (`#![auto]`), or none.
-    pub trigger: &'static str,
-    pub n_triggers: u32,
-    pub section: &'static str,
-    pub file: String,
-    pub line: u32,
-}
-
-#[derive(Debug, Clone)]
-pub struct TrustedRow {
-    pub caller: Option<usize>,
-    /// assume, admit, `external_body`, `external_fn`, `external_type`, `assume_specification`, `broadcast_axiom`.
-    pub kind: &'static str,
-    pub file: String,
-    pub line: u32,
-    pub text: String,
-}
-
-#[derive(Debug, Clone)]
-pub struct TraitImplRow {
-    pub impl_path: String,
-    pub trait_path: String,
-    pub self_type: String,
-    pub file: String,
-    pub line: u32,
-}
-
-#[derive(Debug, Default)]
-pub struct CrateFacts {
-    pub krate: String,
-    pub functions: Vec<FunctionRow>,
-    pub uses: Vec<UseRow>,
-    pub modules: Vec<String>,
-    /// Broadcast group paths owned by this crate (`(group_id ..)` forms).
-    pub groups: Vec<String>,
-    pub quants: Vec<QuantRow>,
-    pub trusted: Vec<TrustedRow>,
-    pub trait_impls: Vec<TraitImplRow>,
-    /// Own-crate `external_fn` and `external_type` ids: (kind, path).
-    pub externals: Vec<(&'static str, String)>,
-    pub forms: usize,
-}
+use std::collections::{HashMap, HashSet};
 
 /// Map from impl path to (trait path, self type), from `--log impl-names`.
 pub type ImplNames = HashMap<String, (String, String)>;
@@ -808,6 +702,35 @@ pub fn parse_log(text: &str, krate: &str, names: &ImplNames) -> Result<CrateFact
     Ok(facts)
 }
 
+/// `(external_fn ..)` entries that are not outside verification by the user's choice: Verus also
+/// lists every const (which has a verified function entry), the methods of derived trait impls
+/// (impls whose span is a macro expansion, `(#N)` with N > 0, in `--log impl-names`) and the
+/// accessor `impl&%N::arrow_f` of a field shared by enum variants. Only the rest stay.
+pub fn drop_generated_externals(facts: &mut CrateFacts, impl_names: &str) {
+    let consts: HashSet<String> = facts
+        .functions
+        .iter()
+        .filter(|f| f.item_kind == "const")
+        .map(|f| f.path.clone())
+        .collect();
+    let derived: HashSet<&str> = impl_names
+        .lines()
+        .filter_map(|line| {
+            let p: Vec<&str> = line.split("   ###   ").collect();
+            let expansion = p.get(3)?.trim().rsplit_once(" (#")?.1.strip_suffix(')')?;
+            (expansion != "0").then(|| p[0].trim())
+        })
+        .collect();
+    facts.externals.retain(|(k, p)| {
+        let generated = consts.contains(p)
+            || p.rsplit_once("::").is_some_and(|(owner, name)| {
+                derived.contains(owner)
+                    || (owner.contains("::impl&%") && name.starts_with("arrow_"))
+            });
+        !(*k == "external_fn" && generated)
+    });
+}
+
 /// Friendly name of an associated function without `self` from a sibling in the same `impl`
 /// block that has one: `impl&%3::lemma_pages_fit(k, n, s)` is `T::lemma_pages_fit` when
 /// `impl&%3::reserve(&self)` is a method of `T`. This beats the return-type guess.
@@ -834,7 +757,7 @@ fn name_from_impl_siblings(facts: &mut CrateFacts) {
 mod tests {
     use super::*;
 
-    const FIXTURE: &str = include_str!("../tests/fixtures/mini.vir");
+    const FIXTURE: &str = include_str!("../../../tests/fixtures/mini.vir");
 
     /// An inherent-impl function Verus prints as `T::name`: a `&mut self` method names `T` by its
     /// receiver, a constructor by the own-crate type inside the type it returns.

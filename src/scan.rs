@@ -6,8 +6,8 @@
 //! file and skips those inside a known function span, which leaves the
 //! module-level ones.
 
+use crate::facts::CrateFacts;
 use crate::num::to_u32;
-use crate::vir::CrateFacts;
 use std::collections::BTreeSet;
 
 #[derive(Debug, PartialEq, Eq)]
@@ -278,7 +278,7 @@ pub fn unique_suffix_match<'a>(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::vir::{ImplNames, parse_log};
+    use crate::adapters::newest;
 
     #[test]
     fn suffix_match_needs_a_single_hit() {
@@ -311,12 +311,9 @@ mod tests {
 
     #[test]
     fn skips_comments_strings_and_function_local() {
-        let facts = parse_log(
-            include_str!("../tests/fixtures/mini.vir"),
-            "mini",
-            &ImplNames::new(),
-        )
-        .unwrap();
+        let facts = newest()
+            .parse_crate(include_str!("../tests/fixtures/mini.vir"), "", "mini")
+            .unwrap();
         // lemma_u of the fixture spans src/n.rs lines 8..16.
         let src = format!(
             "broadcast use vstd::a::group_a;\n// broadcast use vstd::no::comment;\n\

@@ -113,9 +113,18 @@ fn every_table_and_column_is_documented() {
 fn example_queries_run_on_the_fixture() {
     let mut db = Db::in_memory().unwrap();
     let ws = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/crate");
-    let vir = include_str!("fixtures/fx/crate.vir");
-    let imp = include_str!("fixtures/fx/crate.impl_names");
-    load_crate_logs(&mut db, &ws, "fx", "Cargo.toml", vir, imp).unwrap();
+    let vir = include_str!("fixtures/fx/0.2026.08.30.b432e82/crate.vir");
+    let imp = include_str!("fixtures/fx/0.2026.08.30.b432e82/crate.impl_names");
+    load_crate_logs(
+        &mut db,
+        &ws,
+        verus_lint::adapters::newest(),
+        "fx",
+        "Cargo.toml",
+        vir,
+        imp,
+    )
+    .unwrap();
     db.resolve().unwrap();
     let mut n = 0;
     let mut in_block = false;
